@@ -24,9 +24,11 @@ prebuilt image; it does not build the Next.js application or provision a databas
 4. Set PUBLIC_URL to the actual stable HTTPS service URL before activation.
    Supply the direct Neon hostname (not the pooler), database, role and password
    through Render's secret fields. TLS certificate verification stays enabled.
-5. The owner supplies a new private ADMIN_PASSWORD through the hosting setup;
-   never reuse a password supplied in conversation. Remove bootstrap admin
-   password configuration after initial setup. Preserve SECRET across restarts.
+5. Render generates a random 256-bit ADMIN_PASSWORD during creation. Never reuse
+   a password supplied in conversation. The owner completes the final browser
+   deployment submission. Save the generated credential privately after creation
+   and remove bootstrap admin password configuration after initial setup.
+   Preserve SECRET across restarts.
 6. Keep uploads out of this text-only rollout. Render disk is ephemeral.
    Do not configure scheduled keepalive requests, paid disks, Redis or workers.
 
