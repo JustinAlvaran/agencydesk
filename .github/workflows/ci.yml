@@ -1,0 +1,39 @@
+name: Verify AgencyDesk
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      APP_MODE: demo
+      APP_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:database
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      # Live Auth checks require invited accounts and run separately.
+      - run: pnpm test:e2e --grep-invert 'anonymous visitors'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

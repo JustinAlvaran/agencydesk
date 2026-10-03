@@ -1,0 +1,7 @@
+import {ActionForm} from '@/app/crm/action-form';
+import {notFound} from 'next/navigation';
+import {row,related} from '@/lib/data';
+import {statusLabel,type Project,type Milestone,type ProjectUpdate,type Comment} from '@/lib/domain';
+import {postComment} from '@/app/actions';
+import {Heading,Panel,Area,Submit} from '@/app/crm/workspace-ui';
+export default async function Page({params}:{params:Promise<{id:string}>}){const {id}=await params;const project=await row<Project>('projects',id,true);if(!project)notFound();const [milestones,updates]=await Promise.all([related<Milestone>('milestones','project_id',id,true),related<ProjectUpdate>('project_updates','project_id',id,true)]);const comments=(await Promise.all(updates.map(u=>related<Comment>('comments','update_id',u.id,true)))).flat();return <><Heading title={project.name??project.title} description={statusLabel(project.status)}/><Panel title="Project milestones">{milestones.map(m=><p key={m.id}><strong>{m.title}</strong> · {statusLabel(m.status)} {m.due_at&&`· ${new Date(m.due_at).toLocaleDateString()}`}</p>)}</Panel><Panel title="Updates and conversation">{updates.map(u=><article key={u.id} style={{marginBottom:24}}><p>{u.body}</p><small>{new Date(u.created_at).toLocaleString()}</small>{comments.filter(c=>c.update_id===u.id).map(c=><blockquote key={c.id}>{c.body}</blockquote>)}<ActionForm action={postComment}><input type="hidden" name="update_id" value={u.id}/><Area label="Reply to this update" name="body"/><Submit>Send comment</Submit></ActionForm></article>)}</Panel></>;}

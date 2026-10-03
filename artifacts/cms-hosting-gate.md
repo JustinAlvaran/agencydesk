@@ -8,7 +8,8 @@ content source, CRM permission, Supabase migration or Vercel deployment changed.
 - Render dashboard authenticated, workspace `chaksad`, ID
   `tea-db08b98u01pc7399d410`: Hobby, no card on file, no pending charges.
   Available allowances: 750 free instance hours, 5 GB bandwidth and 500 pipeline
-  minutes; none consumed at inspection. No service provisioned yet.
+  minutes; none consumed at initial inspection. The dedicated Free image service
+  was subsequently provisioned as `srv-db08u349v7es73adpa20`.
 - Render plugin installed; connector still reports not connected after dashboard
   sign-in. Browser sign-in and connector authorization are separate.
 - Dedicated Neon resource created using Vercel's existing native integration,
@@ -34,11 +35,23 @@ content source, CRM permission, Supabase migration or Vercel deployment changed.
   available in Render. Its Blueprint review accepted the custom YAML path.
   Database settings and owner email were filled privately. ADMIN_PASSWORD now
   uses Render's random 256-bit generation, so no password needs to be entered.
-  Final submission is handed to the owner under browser credential rules.
+  The Blueprint was submitted using the server-generated password, which is
+  saved in ignored local storage for the owner.
   Initial bootstrap uses Core; activate the grant only after confirming
   the actual assigned HTTPS hostname and setting PUBLIC_URL.
 - Read-only Neon verification confirmed the dedicated `neondb` database is
   reachable and contains zero public tables before Directus initialization.
+- Initial deployment completed successfully at
+  `https://agencydesk-cms.onrender.com`; `/server/ping` and owner authentication
+  passed. The initial license was Core, with custom permission rules disabled.
+- Grant activation deployment `dep-db090gc9v7es73ae3h8g` failed because PUBLIC_URL
+  remained `/`. Logs explicitly reported that `public_url` must be absolute.
+  The environment value was corrected and verified as
+  `https://agencydesk-cms.onrender.com` before saving and deploying again.
+  Replacement deployment `dep-db093upsrm7s73ejlof0` became Live at 13:29 Manila.
+  At 13:29:44 Manila, authenticated `/license` returned Open Innovation Grant,
+  active, source `env`, and custom permission rules enabled. No key is recorded
+  in this report.
 - Manual host probe prepared at `scripts/check-cms-host.mjs`. It checks for the
   actual Directus ping response within a 180-second total deadline; it is not a
   scheduled keepalive and does not establish the full hosting gate by itself.
@@ -47,9 +60,8 @@ content source, CRM permission, Supabase migration or Vercel deployment changed.
 
 ## Not yet verified
 
-- Eligible free Directus grant issued and activated at a stable PUBLIC_URL.
 - Render connector access and intended workspace confirmation.
-- Hosted initialization, permissions, restricted reads, preview and publishing.
+- Custom permissions, restricted reads, preview and publishing.
 - Restart persistence and two real idle wakeups; memory/CPU logs.
 - Publish-triggered deployment, failed-build behavior, backup restoration and
   CRM regression after integration.

@@ -1,0 +1,44 @@
+import Link from "next/link";
+import { Button } from "./ui/primitives";
+
+export function MarketingHeader() {
+  return (
+    <header className="site-nav">
+      <nav className="site-nav-links" aria-label="Main navigation">
+        <Link href="/">Home</Link>
+        <Link href="/services">Services</Link>
+        <Link href="/case-studies">Sample projects</Link>
+        <Link href="/demo">Demo</Link>
+        <Link href="/crm">Staff CRM</Link>
+      </nav>
+      <Button asChild><Link href="/inquire">Start inquiry</Link></Button>
+    </header>
+  );
+}
+
+export function MarketingFooter() {
+  return (
+    <footer className="site-footer">
+      <p>Portfolio demo. Sample projects and records are fictional.</p>
+      <nav className="site-footer-links" aria-label="Footer navigation">
+        <Link href="/demo">Explore demo</Link>
+        <Link href="/crm">Staff CRM</Link>
+      </nav>
+    </footer>
+  );
+}
+
+export function WorkflowPreview() {
+  return (
+    <section className="panel workflow-preview" aria-labelledby="workflow-heading">
+      <div className="panel-heading"><h2 id="workflow-heading">Project workflow</h2></div>
+      <ol className="workflow-preview-list">
+        <li><Link href="/inquire">Submit an inquiry</Link><p>Share your requirements, budget, and timeline.</p></li>
+        <li><Link href="/demo/leads">Review the lead</Link><p>Track the conversation and next follow-up.</p></li>
+        <li><Link href="/demo/proposals">Agree on a proposal</Link><p>Define the scope and price before work begins.</p></li>
+        <li><Link href="/demo/projects">Track the project</Link><p>Check progress and upcoming milestones.</p></li>
+        <li><Link href="/demo/portal">Open the client portal</Link><p>Share project updates with the client.</p></li>
+      </ol>
+    </section>
+  );
+}

@@ -1,0 +1,5 @@
+import {redirect} from 'next/navigation';
+import {AppShell} from '@/components/app-shell';
+import {requireStaff} from '@/lib/auth';
+import {isDemo} from '@/lib/env';
+export default async function Layout({children}:{children:React.ReactNode}){if(isDemo())redirect('/demo');await requireStaff();return <AppShell mode="live">{children}</AppShell>;}

@@ -17,7 +17,7 @@ services:
       - key: PORT
         value: "8055"
       - key: PUBLIC_URL
-        sync: false
+        value: https://agencydesk-cms.onrender.com
       - key: SECRET
         generateValue: true
       - key: DB_CLIENT

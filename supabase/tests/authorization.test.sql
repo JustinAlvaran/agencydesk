@@ -1,0 +1,18 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set search_path=public,extensions;
+select plan(12);
+select ok((select bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'), 'All exposed tables enforce RLS');
+select ok(not has_table_privilege('anon','public.leads','select'), 'Anonymous cannot read CRM leads');
+select ok(not has_table_privilege('authenticated','public.projects','insert'), 'Clients cannot directly create projects');
+select ok(not has_table_privilege('authenticated','public.activity_events','insert'), 'Client cannot forge business activity');
+select ok(not has_function_privilege('anon','public.accept_proposal_revision(uuid)','execute'), 'Anonymous acceptance unavailable');
+select ok(has_function_privilege('authenticated','public.accept_proposal_revision(uuid)','execute'), 'Authenticated acceptance entrypoint available');
+select ok(not has_function_privilege('authenticated','public.submit_inquiry(text,text,text,text,bigint,text)','execute'), 'Public inquiry restricted to server endpoint');
+select ok(has_function_privilege('service_role','public.submit_inquiry(text,text,text,text,bigint,text)','execute'), 'Inquiry service capability available');
+select ok(not has_function_privilege('anon','public.get_dashboard_metrics()','execute'), 'Dashboard unavailable anonymously');
+select ok((select not prosecdef from pg_proc where oid='public.accept_proposal_revision(uuid)'::regprocedure), 'Public RPC wrapper is invoker');
+select ok((select prosecdef from pg_proc where oid='private.accept_revision(uuid)'::regprocedure), 'Private acceptance transaction has deliberate privilege');
+select ok(not has_function_privilege('anon','private.accept_revision(uuid)','execute'), 'Anonymous cannot call private acceptance implementation');
+select * from finish();
+rollback;

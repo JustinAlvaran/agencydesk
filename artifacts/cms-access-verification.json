@@ -1,0 +1,103 @@
+[
+  {
+    "kind": "anonymous",
+    "path": "/items/services?fields=id,title&limit=5",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "anonymous",
+    "path": "/items/services/business-websites?fields=id,title&version=security-check",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "anonymous",
+    "path": "/versions/be7614d7-e7d3-47aa-9d93-e1812360f140",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "anonymous",
+    "path": "/revisions?limit=1",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "anonymous",
+    "path": "/users?limit=1",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "published",
+    "path": "/items/services?fields=id,title&limit=5",
+    "http": 200,
+    "draftExposed": false
+  },
+  {
+    "kind": "published",
+    "path": "/items/services/business-websites?fields=id,title&version=security-check",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "published",
+    "path": "/versions/be7614d7-e7d3-47aa-9d93-e1812360f140",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "published",
+    "path": "/revisions?limit=1",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "published",
+    "path": "/users?limit=1",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "preview",
+    "path": "/items/services?fields=id,title&limit=5",
+    "http": 200,
+    "draftExposed": false
+  },
+  {
+    "kind": "preview",
+    "path": "/items/services/business-websites?fields=id,title&version=security-check",
+    "http": 200,
+    "draftExposed": true
+  },
+  {
+    "kind": "preview",
+    "path": "/versions/be7614d7-e7d3-47aa-9d93-e1812360f140",
+    "http": 200,
+    "draftExposed": true
+  },
+  {
+    "kind": "preview",
+    "path": "/revisions?limit=1",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  },
+  {
+    "kind": "preview",
+    "path": "/users?limit=1",
+    "http": 403,
+    "code": "FORBIDDEN",
+    "draftExposed": false
+  }
+]

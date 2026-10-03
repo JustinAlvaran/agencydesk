@@ -1,0 +1,82 @@
+{
+  "site_settings": {
+    "id": "main",
+    "seo_title": "AgencyDesk",
+    "seo_description": "An original agency CRM and client portal. Bring inquiries, proposals, and project delivery into one workspace.",
+    "contact_heading": "Start a project inquiry",
+    "contact_description": "Share your requirements, budget, and timeline."
+  },
+  "home_page": {
+    "id": "main",
+    "heading": "Manage inquiries, proposals, and projects.",
+    "description": "A shared workspace for an agency and its clients. Keep lead follow-ups, agreed scope, milestones, and project updates together.",
+    "section_heading": "What you can do",
+    "leads_heading": "Follow up on leads",
+    "leads_description": "Review new inquiries, record internal notes, and schedule the next conversation.",
+    "proposals_heading": "Prepare proposals",
+    "proposals_description": "Define scope and pricing. An accepted proposal creates its linked project.",
+    "portal_heading": "Keep clients informed",
+    "portal_description": "Share milestones and updates through a client portal while keeping staff notes private."
+  },
+  "services": [
+    {
+      "id": "business-websites",
+      "sort": 1,
+      "visibility": "visible",
+      "title": "Business websites",
+      "description": "Responsive pages that explain a business, present its services, and collect inquiries.",
+      "bullet_1": "Content structure and page design",
+      "bullet_2": "Responsive development",
+      "bullet_3": "Inquiry form and CRM handoff"
+    },
+    {
+      "id": "website-redesign",
+      "sort": 2,
+      "visibility": "visible",
+      "title": "Website redesign",
+      "description": "Improve an existing website’s navigation, mobile layout, and accessibility.",
+      "bullet_1": "Review of existing pages",
+      "bullet_2": "Updated layouts and components",
+      "bullet_3": "Keyboard and mobile checks"
+    },
+    {
+      "id": "web-applications",
+      "sort": 3,
+      "visibility": "visible",
+      "title": "Web applications and client portals",
+      "description": "Build shared workspaces for business records, project delivery, and client communication.",
+      "bullet_1": "Workflow and role-based access",
+      "bullet_2": "Database-backed records",
+      "bullet_3": "Project milestones and updates"
+    }
+  ],
+  "sample_projects": [
+    {
+      "id": "forma",
+      "sort": 1,
+      "visibility": "visible",
+      "title": "Forma Studio",
+      "service": "Website launch",
+      "description": "An architecture studio reviews its launch milestones and project updates in the client portal.",
+      "scenario": "portal"
+    },
+    {
+      "id": "northline",
+      "sort": 2,
+      "visibility": "visible",
+      "title": "Northline",
+      "service": "Operations application",
+      "description": "A logistics team reviews a published proposal that defines the application’s scope and pricing.",
+      "scenario": "proposals"
+    },
+    {
+      "id": "ember",
+      "sort": 3,
+      "visibility": "visible",
+      "title": "Ember Coffee",
+      "service": "Business website",
+      "description": "A coffee studio’s inquiry becomes a qualified lead with a project brief and estimated budget.",
+      "scenario": "leads"
+    }
+  ]
+}

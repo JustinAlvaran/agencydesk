@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AgencyDesk
 
-## Getting Started
+An original agency CRM and client portal built with Next.js App Router, React, TypeScript, Tailwind CSS, Supabase, and Vercel. Website inquiry → lead → versioned proposal → client acceptance → project and milestones.
 
-First, run the development server:
+Live application: https://agencydesk-theta.vercel.app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+The public site and recruiter demo use fictional content. Reference projects were inspected only for engineering practices; no business data, copy, branding, designs, or assets were reused.
+
+## Product and architecture
+
+The staff CRM manages leads, owners, internal notes, follow-ups, contacts, proposals, and projects. Clients see their own proposals, milestones, shared updates, and comments. Administrator-generated invitation and recovery links require no SMTP provider. The independent recruiter demo is read-only.
+
+Server Components read through a server-only data access layer; authenticated Server Actions validate writes. Supabase SSR uses cookies and server-verified identities. Privileged inquiry and invitation operations run in Edge Functions using their built-in secrets; Next.js needs no service-role key.
+
+```mermaid
+flowchart LR
+  Visitor[Public visitor] --> Inquiry[Next.js inquiry endpoint]
+  Inquiry --> Edge[Supabase Edge Function]
+  Edge --> Lead[(Lead)]
+  Staff[Staff CRM] --> RLS[Supabase Auth and RLS]
+  Client[Client portal] --> RLS
+  RLS --> Proposal[(Versioned proposals)]
+  Proposal --> Accept[Acceptance transaction]
+  Accept --> Result[(Project, Won lead, activity)]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+SQL migrations own grants, RLS, guards, and transactional RPCs. Acceptance derives `auth.uid()`, checks live company membership, locks lead → series → revision, and commits all handoff records together. Unique constraints and retry behavior prevent duplicate projects. Published scope, prices, and items cannot be edited. Internal records are separated from client-readable data; JWT user metadata never determines authorization.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Version one excludes payments, invoicing, uploads, campaigns, AI features, and multiple agency workspaces. Prices use USD integer cents. Scheduling inputs use Asia/Manila; Postgres stores `timestamptz`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup
 
-## Learn More
+Use Node.js 22 and pnpm 10.28.1.
 
-To learn more about Next.js, take a look at the following resources:
+```sh
+pnpm install --frozen-lockfile
+cp .env.example .env.local
+pnpm dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Default `APP_MODE=demo` runs without credentials at `http://localhost:3000` and `/demo`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For live mode, use a dedicated Supabase project:
 
-## Deploy on Vercel
+| Variable | Purpose |
+| --- | --- |
+| `APP_MODE=live` | Enable authenticated CRM, portal, and writes |
+| `NEXT_PUBLIC_SUPABASE_URL` | Project API URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public application key |
+| `SUPABASE_EDGE_ANON_KEY` | Legacy anon JWT used server-side for inquiry gateway |
+| `APP_URL` | Origin used for invitation links |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Apply migrations in order, optionally load `supabase/seed.sql` into the development database, and deploy `inquiry` and `admin-invite` from `supabase/functions`. Keep inquiry gateway JWT verification enabled. The invitation function verifies the caller and requires an active database admin.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For local Supabase, start Docker Desktop before `npx supabase start`; `npx supabase db reset` loads migrations and fictional data. The seed creates no accounts or passwords.
+
+Hosted Auth must disable public registration through Auth → Sign In / Providers → Allow new users to sign up, or Management API `disable_signup: true`. Local `config.toml` does not automatically configure hosted Auth. Keep the email provider enabled. Configure production and local confirmation URLs.
+
+Bootstrap the first admin through Supabase's trusted administrator interface, then add their Auth user ID to `staff_members` with role `admin`. CRM access settings generate later invitation/recovery links. Clients need `can_accept_proposals=true` to accept or decline. Links open `/auth/confirm`, then `/auth/password`.
+
+Vercel uses the Next.js preset, Node 22, and the pinned pnpm lockfile. Preview uses `APP_MODE=demo` with no production database credentials. Production uses `APP_MODE=live`, the dedicated hosted database, and Singapore functions. Build each environment separately; never promote a fixture-configured preview unchanged.
+
+## Verification
+
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:database
+pnpm build
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+The embedded PostgreSQL suite passes **44 assertions** covering actual RLS roles, isolation, live membership revocation, draft visibility, immutable publication, database totals, retry idempotence, superseded revisions, injected transaction rollback, and persistent inquiry limits. Only Supabase's external Auth schema is emulated.
+
+The dedicated hosted project passed **18 Auth/Data API/RPC checks**, including two concurrent HTTP accepts returning one project ID, one project row, and one acceptance event. Evidence is in `artifacts/hosted-verification.json`. `pnpm test:hosted` uses private local test accounts and changes test records; run only against a dedicated test project. CI excludes this command.
+
+Docker-backed Supabase tests were not run because the local daemon was unavailable. Saved pgTAP privilege checks can run with `npx supabase test db`. Browser tests cover responsive demo pages, accessibility, keyboard navigation, and read-only behavior. No unmeasured performance scores are claimed.
+
+Supabase advisors reported no database authorization/function findings. Leaked-password protection remains an Auth advisory because the hosted setting requires Pro; no paid upgrade was made. See [Supabase password security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Fresh-database unused-index notices are informational.
+
+Inquiry briefs require 20–4,000 trimmed characters in application and Edge validation. The Edge Function derives the persistent rate key from normalized email; visitors cannot choose another key, read CRM tables, or invoke the privileged inquiry RPC directly.
+
+GitHub Actions runs lint, type checks, unit tests, embedded database checks, production build, and demo browser tests without cloud credentials. Live Auth checks require invited test accounts and remain separate. The live browser suite verifies inquiry-to-project delivery, follow-ups, milestones, client comments, cross-company denial, invitation callbacks, and disabled signup. A successful client walkthrough is saved in `artifacts/walkthrough/client-workflow.webm`.
+
+## Resume bullets
+
+- Built a full-stack agency CRM and client portal using Next.js, React, TypeScript, Tailwind CSS, and Supabase, connecting lead capture, versioned proposals, and project delivery.
+- Enforced company isolation with Postgres RLS and live membership, and implemented atomic acceptance using transaction locks and uniqueness constraints.
+- Verified business rules with 44 PostgreSQL assertions and 18 hosted checks, including concurrent requests producing one project and one acceptance event.
+
+Add performance or adoption figures only after measuring them.
+
+## Interface simplification — October 3, 2026
+
+The public site, CRM, and portal use a neutral palette, literal screen titles, and compact records. There is no approved logo; no wordmark or invented symbol is shown. Forms appear on request, demo records open into read-only details, and client sample views restrict navigation to the sample company. Interface conventions are recorded in DESIGN.md; product facts and user constraints are recorded in PRODUCT.md.

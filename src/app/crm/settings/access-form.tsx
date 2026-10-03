@@ -1,0 +1,9 @@
+'use client';
+import { useActionState } from 'react';
+import { generateAccessLink } from './actions';
+
+export function AccessForm({ companies }: {companies:{id:string;name:string}[]}) {
+  const [state,action,pending]=useActionState(generateAccessLink,{});
+  return <form action={action} className="auth-form max-w-xl"><label htmlFor="email">Account email</label><input name="email" id="email" type="email" required /><div className="grid grid-cols-2 gap-4"><div><label htmlFor="role">Role</label><select id="role" name="role"><option value="client">Client</option><option value="staff">Staff</option><option value="admin">Administrator</option></select></div><div><label htmlFor="type">Link type</label><select id="type" name="type"><option value="invite">New account invitation</option><option value="recovery">Existing account recovery</option></select></div></div><label htmlFor="company_id">Client company</label><select name="company_id" id="company_id"><option value="">Choose a company</option>{companies.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><label className="flex items-center gap-3"><input name="can_accept_proposals" type="checkbox" className="w-auto" /> Client may accept proposals</label><button className="primary-button" disabled={pending}>{pending?'Generating…':'Generate private link'}</button>{state.error&&<p role="alert" className="error-text">{state.error}</p>}{state.link&&<div role="status" className="rounded-xl border border-neutral-300 bg-neutral-50 p-4"><p className="mb-3 text-sm">Copy this private link and share it securely with the intended person. It is single-use and expires.</p><label htmlFor="access-link" className="sr-only">Private access link</label><textarea id="access-link" readOnly value={state.link} className="min-h-28" /><button type="button" className="secondary-button mt-3" onClick={()=>navigator.clipboard.writeText(state.link!)}>Copy link</button></div>}</form>;
+}
+
