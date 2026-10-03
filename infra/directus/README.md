@@ -17,8 +17,8 @@ prebuilt image; it does not build the Next.js application or provision a databas
    pending charges, and available free-instance hours. Do not add a card.
 2. Create a dedicated Neon Free project and database. Do not reuse existing
    project data. Verify its free plan before creating compute.
-3. Obtain the eligible free Open Innovation Grant. The owner completes any
-   legal acceptance; credentials and license keys never belong in Git.
+3. Obtain the eligible free Open Innovation Grant (owner confirmed issued).
+   Supply LICENSE_KEY privately; credentials and license keys never belong in Git.
 4. Set PUBLIC_URL to the actual stable HTTPS service URL before activation.
    Supply the direct Neon hostname (not the pooler), database, role and password
    through Render's secret fields. TLS certificate verification stays enabled.
