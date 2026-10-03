@@ -1,6 +1,8 @@
 # Directus hosting gate
 
-Status: NOT PASSED. This configuration has not been provisioned or runtime-tested.
+Status: partially verified. The dedicated instance is provisioned and licensed;
+collections, restricted readers, owner sign-in and first idle recovery passed.
+See [current evidence](../../artifacts/cms-hosting-gate.md) for remaining checks.
 Do not change AgencyDesk's production content source until every gate passes.
 
 ## Pinned release
@@ -25,8 +27,7 @@ prebuilt image; it does not build the Next.js application or provision a databas
    Supply the direct Neon hostname (not the pooler), database, role and password
    through Render's secret fields. TLS certificate verification stays enabled.
 5. Render generates a random 256-bit ADMIN_PASSWORD during creation. Never reuse
-   a password supplied in conversation. The owner completes the final browser
-   deployment submission. Save the generated credential privately after creation
+   a password supplied in conversation. Save the generated credential privately after creation
    and remove bootstrap admin password configuration after initial setup.
    Preserve SECRET across restarts.
 6. Keep uploads out of this text-only rollout. Render disk is ephemeral.
@@ -39,10 +40,12 @@ Record timestamps and sanitized results, never tokens or database URLs:
 - Successful initialization, licensing activation and owner Studio sign-in.
 - Four content collections and restricted published/preview machine readers.
 - Published-reader fetch plus draft/version/anonymous denial checks.
-- One edit/preview/publish/build cycle using a fixture-isolated test deployment.
+- One edit/preview/publish/build cycle; previews and CI remain fixture-isolated,
+  while the final production build uses explicit live/Directus configuration.
 - Restart persistence, comparing content before and after restart.
 - Two real idle wakeups after more than 15 minutes without service requests.
-- CPU/memory/deployment logs showing no OOM, restart loops or repeated timeout.
+- Deployment logs showing no OOM, restart loops or repeated timeout. The Free
+  dashboard does not expose actual CPU/memory usage graphs; no upgrade is allowed.
 
 Health-check success alone is insufficient. A cold published-content request
 must complete within the application's 180-second total retry deadline.
