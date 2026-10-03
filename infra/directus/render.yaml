@@ -1,0 +1,44 @@
+# Provision only after the account billing and free-license checks pass.
+# No Render database, disk, worker, Redis, or preview service is provisioned.
+previews:
+  generation: "off"
+services:
+  - type: web
+    name: agencydesk-cms
+    runtime: image
+    plan: free
+    region: singapore
+    image:
+      url: docker.io/directus/directus:12.4.1@sha256:9cc8ab88e6f1fc98d860416d89d53dd15838860c315a66c6d8ee68cb72f6b3a6
+    healthCheckPath: /server/ping
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "8055"
+      - key: PUBLIC_URL
+        sync: false
+      - key: SECRET
+        generateValue: true
+      - key: DB_CLIENT
+        value: pg
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL__REJECT_UNAUTHORIZED
+        value: "true"
+      - key: DB_POOL__MIN
+        value: "0"
+      - key: DB_POOL__MAX
+        value: "2"
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
