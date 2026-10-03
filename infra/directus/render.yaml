@@ -18,8 +18,6 @@ services:
         value: "8055"
       - key: PUBLIC_URL
         sync: false
-      - key: LICENSE_KEY
-        sync: false
       - key: SECRET
         generateValue: true
       - key: DB_CLIENT
