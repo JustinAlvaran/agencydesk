@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-03T09:03:19.739Z",
+  "checkedAt": "2026-10-03T09:30:52.203Z",
   "report": [
     {
       "name": "anonymous",
@@ -32,6 +32,13 @@
     {
       "name": "owner",
       "path": "/crm/content-preview?collection=directus_users&item=main&version=main",
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "owner",
+      "path": "/crm/content-preview?collection=services&item=business-websites&version=security-check",
       "status": 200,
       "location": null,
       "cacheControl": "private, no-store"

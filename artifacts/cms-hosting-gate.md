@@ -1,7 +1,7 @@
 # CMS hosting gate — 2026-10-03
 
-Status: foundation verified; production CMS rollout still pending. Production
-continues to use its existing content. No paid hosting or trial was provisioned.
+Status: free hosting gate passed; production release and publishing journey
+still pending. No paid hosting or trial was provisioned.
 
 ## Verified infrastructure
 
@@ -47,15 +47,22 @@ continues to use its existing content. No paid hosting or trial was provisioned.
 - REST-created publication/visibility Flows are inactive until hook configuration
   and hosting verification pass. Exports contain environment references only.
 
-## Hosting proof still in progress
+## Hosting proof
 
 One actual idle recovery passed: new instance tkfc7, successful ping after
 132,865ms, active license and persisted content. A later Blueprint configuration
 restart created instance 2ntjq; a subsequent fast ping was warm and was not
 counted as an idle recovery. Evidence: cms-idle-verification.json.
 
-The second actual idle recovery, resource-log review, private deployment hook,
-production environment configuration, and edit → preview → publish → live
+The second actual idle recovery passed through the application's published
+content adapter: confirmed idle shutdown at 09:24:20 UTC, cold request beginning
+09:26:46 UTC, fresh content ready in 163,293ms. License and permissions remained
+active, and the content digest matched the expected original copy. This is
+within the 180-second deadline but leaves a narrow margin.
+
+Production-only CMS reader configuration is verified on Vercel. Preview has
+only demo configuration and receives no CMS production readers. The private
+deployment hook, first production release, and edit → preview → publish → live
 journey remain required. Inactive Flows do not establish publishing success.
 
 Render's current dashboard reports 512 MB and 0.15 CPU limits. Actual memory and

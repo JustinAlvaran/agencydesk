@@ -1,4 +1,7 @@
 .local
+.agents
+skills-lock.json
+src/generated
 .env.local
 .env.development.local
 .env.production.local

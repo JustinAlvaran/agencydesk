@@ -1,7 +1,7 @@
 # Directus hosting gate
 
-Status: partially verified. The dedicated instance is provisioned and licensed;
-collections, restricted readers, owner sign-in and first idle recovery passed.
+Status: hosting verified. The dedicated instance is provisioned and licensed;
+collections, restricted readers, owner sign-in and both idle recoveries passed.
 See [current evidence](../../artifacts/cms-hosting-gate.md) for remaining checks.
 Do not change AgencyDesk's production content source until every gate passes.
 

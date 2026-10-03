@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-03T08:39:28.132Z",
+  "checkedAt": "2026-10-03T09:30:46.688Z",
   "idleCycles": [
     {
       "idleSince": "2026-10-03T05:36:05Z",
@@ -9,7 +9,17 @@
       "newInstance": "tkfc7",
       "licenseActive": true,
       "serviceCount": 3
+    },
+    {
+      "startedAt": "2026-10-03T09:26:46.836Z",
+      "idleSince": "2026-10-03T09:09:22.061Z",
+      "confirmedShutdownAt": "2026-10-03T09:24:20.117Z",
+      "passed": true,
+      "elapsedMs": 163293,
+      "finishedAt": "2026-10-03T09:29:30.129Z",
+      "licenseActive": true,
+      "contentDigest": "21e6fdc9c69b3eff2fd912d67103dd797c871e71f0a282d15e140d60f50c3046"
     }
   ],
-  "secondCycle": "pending"
+  "secondCycle": "passed"
 }

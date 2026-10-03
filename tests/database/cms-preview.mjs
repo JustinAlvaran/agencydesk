@@ -25,7 +25,10 @@ const path = '/crm/content-preview?collection=services&item=business-websites&ve
 function assertDenied(result, destination) {
   // Next.js can stream its shell before an authenticated component redirects.
   const headerRedirect = result.response.status === 307 && result.response.headers.get('location')?.includes(destination);
-  const streamedRedirect = result.response.status === 200 && result.body.includes('NEXT_REDIRECT') && result.body.includes(destination);
+  const streamedRedirect = result.response.status === 200 && (
+    result.body.includes(`NEXT_REDIRECT;replace;${destination};307;`)
+    || result.body.includes(`NEXT_REDIRECT;push;${destination};307;`)
+  );
   assert.ok(headerRedirect || streamedRedirect, `Redirects to ${destination}`);
   assert.doesNotMatch(result.body, /Unpublished security check|Website content preview/);
   assert.match(result.response.headers.get('cache-control'), /no-store/);
