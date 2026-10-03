@@ -59,6 +59,7 @@ content adapter: confirmed idle shutdown at 09:24:20 UTC, cold request beginning
 09:26:46 UTC, fresh content ready in 163,293ms. License and permissions remained
 active, and the content digest matched the expected original copy. This is
 within the 180-second deadline but leaves a narrow margin.
+Render logs confirm recovered instance `b9fmc` started at 09:29:22 UTC.
 
 Production-only CMS reader configuration is verified on Vercel. Preview has
 only demo configuration and receives no CMS production readers. The private
@@ -68,6 +69,12 @@ journey remain required. Inactive Flows do not establish publishing success.
 Render's current dashboard reports 512 MB and 0.15 CPU limits. Actual memory and
 CPU usage graphs require paid compute; no upgrade was made, and no measured
 resource-usage claim is made. Runtime logs remain available for failure review.
+
+GitHub CI passed the complete verification job for commit `7a890ae`, including
+the fixture build and browser checks. The first Git-triggered Vercel release
+was blocked by an unrecognized Git author identity. Future commits now use
+JustinAlvaran's GitHub noreply identity; earlier history is retained at the
+owner's explicit request.
 
 If the free hosting gate fails, pause CMS rollout and preserve the existing
 website and CRM. No upgrade or local-CMS substitution is authorized.
