@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-03T08:36:19.978Z",
+  "restoreDatabase": "agencydesk_restore_verification",
+  "backupBytes": 111850,
+  "verifiedTLS": true,
+  "counts": {
+    "services": 3,
+    "projects": 3,
+    "versions": 1,
+    "collections": 4
+  }
+}

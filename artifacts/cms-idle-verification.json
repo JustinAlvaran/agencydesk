@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-03T08:39:28.132Z",
+  "idleCycles": [
+    {
+      "idleSince": "2026-10-03T05:36:05Z",
+      "wakeAt": "2026-10-03T08:38:30.699Z",
+      "elapsedMs": 132865,
+      "passed": true,
+      "newInstance": "tkfc7",
+      "licenseActive": true,
+      "serviceCount": 3
+    }
+  ],
+  "secondCycle": "pending"
+}

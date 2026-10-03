@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const c=JSON.parse(await fs.readFile('.local/cms-secrets.json','utf8'));const s=JSON.parse(await fs.readFile('.local/cms-session.json','utf8'));
+const c=JSON.parse(await fs.readFile('.local/cms-secrets.json','utf8'));let s;
 const call=async(path,token,method='GET',body)=>{const r=await fetch(c.cmsUrl+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body?{body:JSON.stringify(body)}:{})});const j=await r.json();return {http:r.status,data:j.data,code:j.errors?.[0]?.extensions?.code};};
+const login=await call('/auth/login',null,'POST',{email:c.ownerEmail,password:c.adminPassword,mode:'json'});assert.equal(login.http,200);s=login.data;
 let v=await call('/versions?filter[key][_eq]=security-check',s.access_token);let id=v.data?.[0]?.id;if(!id){v=await call('/versions',s.access_token,'POST',{key:'security-check',name:'Security verification draft',collection:'services',item:'business-websites'});id=v.data?.id;}
 if(!id){console.log({versionCreation:v.http,code:v.code});process.exit(1);}
 await call('/versions/'+id+'/save',s.access_token,'POST',{title:'Unpublished security check'});
