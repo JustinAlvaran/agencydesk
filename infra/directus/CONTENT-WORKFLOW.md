@@ -28,10 +28,24 @@ The protected `/crm/content-preview` requires a currently active Supabase admin.
 Choose a collection, item ID and version key (`main` for current published copy).
 Preview is dynamic, uncached and excluded from indexing. Its URL carries no token.
 Open it in a separate tab; the app's framing protections remain enabled.
+The native collection preview URL points to this protected route. It becomes
+usable on the public deployment after the integration is released.
 
 Publishing content and deploying the website are separate outcomes. Until the
 hosting gate and deployment Flow pass, CMS edits do not update the production
 website. The existing production application remains running.
+
+The prepared publication Flow uses the pinned `items.promote` action, scoped to
+the four content collections. A separate Flow handles visibility-only updates.
+Promotions also emit item updates, so the guards route each change once. Draft
+saves update native versions and do not request a build. Flows use an allowed
+Render environment variable for the private hook, and record activity without
+storing hook URLs or response payloads. Both Flows currently remain inactive.
+
+Revision restoration in 12.4.1 updates main content instead of emitting a
+promotion. After restoring a content revision, use **Rebuild website**. Ordinary
+main-copy edits also require that explicit rebuild; use native drafts and
+promotion for the normal editing workflow.
 
 ## Build contract
 
@@ -59,3 +73,10 @@ backups, account setup URLs, environment pulls or reader tokens.
 and after meaningful content changes, make a private full PostgreSQL backup and
 verify a restore into an isolated database. Never restore tests into the live
 CMS database. A failed website build leaves the previous deployment online.
+
+`node scripts/backup-directus.mjs` reads the ignored owner configuration and
+saves a full custom-format archive under `.local/backups`. Set `PG_DUMP_BIN` to
+PostgreSQL 18's `pg_dump` and `PGSSLROOTCERT` to a trusted certificate bundle.
+The script enforces `verify-full` and records a private checksum manifest.
+Restore testing uses `pg_restore` into the separate verification database;
+never use its cleanup flags against the live CMS database.

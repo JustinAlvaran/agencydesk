@@ -2,7 +2,7 @@ name: Verify AgencyDesk
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, codex/directus-cms]
 permissions:
   contents: read
 jobs:
@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 20
     env:
       APP_MODE: demo
+      CONTENT_SOURCE: fixtures
       APP_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
@@ -25,6 +26,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm test:database
+      - run: node tests/database/content-build.mjs
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium
       # Live Auth checks require invited accounts and run separately.

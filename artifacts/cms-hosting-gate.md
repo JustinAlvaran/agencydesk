@@ -1,74 +1,66 @@
 # CMS hosting gate — 2026-10-03
 
-Result: pending licensing and hosted Directus runtime verification. No production
-content source, CRM permission, Supabase migration or Vercel deployment changed.
+Status: foundation verified; production CMS rollout still pending. Production
+continues to use its existing content. No paid hosting or trial was provisioned.
 
-## Verified
+## Verified infrastructure
 
-- Render dashboard authenticated, workspace `chaksad`, ID
-  `tea-db08b98u01pc7399d410`: Hobby, no card on file, no pending charges.
-  Available allowances: 750 free instance hours, 5 GB bandwidth and 500 pipeline
-  minutes; none consumed at initial inspection. The dedicated Free image service
-  was subsequently provisioned as `srv-db08u349v7es73adpa20`.
-- Render plugin installed; connector still reports not connected after dashboard
-  sign-in. Browser sign-in and connector authorization are separate.
-- Dedicated Neon resource created using Vercel's existing native integration,
-  explicit `free_v3`, Singapore, Auth disabled, no connection to the Next app,
-  and no environment pull.
-- Neon plugin independently verified project `cool-violet-11926574`, name
-  `agencydesk-cms`, region `aws-ap-southeast-1`, owner plan `free_v3`, PostgreSQL
-  18, 1 GB project limit and default main branch `br-empty-voice-b3ms944y` ready.
-  Existing `neon-amethyst-bridge` database was not modified.
-- Official Directus 12.4.1 release and Docker Hub multi-platform digest verified.
-  Secret-free Blueprint prepared at `infra/directus/render.yaml` and validated
-  against Render's current public JSON schema.
-- Owner confirmed the free Individual/Hobbyist grant was issued. The license
-  and dedicated database connection are in ignored `.local/cms-secrets.json`.
-- Private repository created at https://github.com/JustinAlvaran/agencydesk.
-  GitHub's authenticated account has been renamed from the previously cached
-  username. Only the hosting configuration and initial template history have
-  been pushed; Vercel is not Git-connected yet.
-- Initially, both visible GitHub connect controls left the page unchanged and
-  opened no in-app browser tab. A direct official installation page was opened
-  for the owner; separate Render connector authorization remains pending.
-- After the owner installed the Render GitHub app, the private repository became
-  available in Render. Its Blueprint review accepted the custom YAML path.
-  Database settings and owner email were filled privately. ADMIN_PASSWORD now
-  uses Render's random 256-bit generation, so no password needs to be entered.
-  The Blueprint was submitted using the server-generated password, which is
-  saved in ignored local storage for the owner.
-  Initial bootstrap uses Core; activate the grant only after confirming
-  the actual assigned HTTPS hostname and setting PUBLIC_URL.
-- Read-only Neon verification confirmed the dedicated `neondb` database is
-  reachable and contains zero public tables before Directus initialization.
-- Initial deployment completed successfully at
-  `https://agencydesk-cms.onrender.com`; `/server/ping` and owner authentication
-  passed. The initial license was Core, with custom permission rules disabled.
-- Grant activation deployment `dep-db090gc9v7es73ae3h8g` failed because PUBLIC_URL
-  remained `/`. Logs explicitly reported that `public_url` must be absolute.
-  The environment value was corrected and verified as
-  `https://agencydesk-cms.onrender.com` before saving and deploying again.
-  Replacement deployment `dep-db093upsrm7s73ejlof0` became Live at 13:29 Manila.
-  At 13:29:44 Manila, authenticated `/license` returned Open Innovation Grant,
-  active, source `env`, and custom permission rules enabled. No key is recorded
-  in this report.
-- Manual host probe prepared at `scripts/check-cms-host.mjs`. It checks for the
-  actual Directus ping response within a 180-second total deadline; it is not a
-  scheduled keepalive and does not establish the full hosting gate by itself.
-- Vercel CLI authenticated as `kinggucci195-9991`. Its Neon provisioning command
-  also installed official Neon skills under `.agents/skills` and skills-lock.json.
+- Dedicated Render Free image service srv-db08u349v7es73adpa20, Singapore,
+  https://agencydesk-cms.onrender.com. Hobby workspace has no payment card.
+- Dedicated Neon project cool-violet-11926574, free_v3, Singapore,
+  PostgreSQL 18; existing application databases remain separate.
+- Directus 12.4.1 Docker image pinned by digest; TLS verification enabled,
+  connection pool minimum 0 / maximum 2; no persistent files or uploads.
+- Open Innovation Grant active, environment-managed, custom permissions enabled.
+  Owner email and required license terms were completed by the human owner.
+- Private GitHub repository https://github.com/JustinAlvaran/agencydesk connected
+  to the existing Vercel project; production branch codex/directus-cms.
+- Render connector is unavailable in this session. Hosting configuration and
+  logs were inspected through the authenticated dashboard. Directus changes
+  use REST exclusively.
 
-## Not yet verified
+## Verified content and application behavior
 
-- Render connector access and intended workspace confirmation.
-- Custom permissions, restricted reads, preview and publishing.
-- Restart persistence and two real idle wakeups; memory/CPU logs.
-- Publish-triggered deployment, failed-build behavior, backup restoration and
-  CRM regression after integration.
+- Four versioned collections, original fictional content, API-only published
+  and preview readers. Anonymous content access disabled; readers cannot write.
+- Published reader denied versions, revisions and users. Only preview reader
+  can read the private verification draft. Evidence:
+  cms-access-verification.json.
+- Supabase owner account and Directus owner account sign-in verified separately.
+  Admin preview guards, no-store/noindex, public draft isolation, invalid-input
+  handling and existing-session membership removal passed. Evidence:
+  cms-preview-verification.json.
+- Desktop and 390px browser preview inspected; no horizontal overflow. Keyboard
+  tab-to-submit and retry feedback verified.
+- Clean clone installs, prepares fixtures, generates Next types, and builds
+  without private credentials. Public content is static; CRM and previews are
+  dynamic. Eleven unit tests, lint, type checks and fixture build passed on
+  official Node 22.23.3 (download checksum verified).
+- Unavailable-CMS preparation fails without overwriting the prior snapshot or
+  printing credentials. Evidence: content-build-verification.json.
+- Full private PostgreSQL backup restored into isolated
+  agencydesk_restore_verification; four collections, three services, three
+  sample projects and one draft recovered. Evidence:
+  cms-backup-verification.json. Schema export alone is not a backup.
+- Existing CRM regression passed 17 hosted Auth/Data API/RPC checks, including
+  concurrent acceptance, isolation, immutability and removed membership.
+- REST-created publication/visibility Flows are inactive until hook configuration
+  and hosting verification pass. Exports contain environment references only.
 
-The owner completed the grant application. License activation remains pending
-deployment at a stable service URL. Never paste a license key or password into
-chat; ignore local credentials and do not commit them.
+## Hosting proof still in progress
 
-If the license or $0 hosting checks fail, pause the CMS rollout and preserve the
-existing website. No paid upgrade or local-CMS fallback is authorized.
+One actual idle recovery passed: new instance tkfc7, successful ping after
+132,865ms, active license and persisted content. A later Blueprint configuration
+restart created instance 2ntjq; a subsequent fast ping was warm and was not
+counted as an idle recovery. Evidence: cms-idle-verification.json.
+
+The second actual idle recovery, resource-log review, private deployment hook,
+production environment configuration, and edit → preview → publish → live
+journey remain required. Inactive Flows do not establish publishing success.
+
+Render's current dashboard reports 512 MB and 0.15 CPU limits. Actual memory and
+CPU usage graphs require paid compute; no upgrade was made, and no measured
+resource-usage claim is made. Runtime logs remain available for failure review.
+
+If the free hosting gate fails, pause CMS rollout and preserve the existing
+website and CRM. No upgrade or local-CMS substitution is authorized.

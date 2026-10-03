@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-10-03T09:03:19.739Z",
+  "report": [
+    {
+      "name": "anonymous",
+      "path": "/crm/content-preview?collection=services&item=business-websites&version=security-check",
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "client",
+      "path": "/crm/content-preview?collection=services&item=business-websites&version=security-check",
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "owner",
+      "path": "/crm/content-preview?collection=services&item=business-websites&version=security-check",
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "anonymous",
+      "path": "/services",
+      "status": 200,
+      "location": null,
+      "cacheControl": "s-maxage=31536000"
+    },
+    {
+      "name": "owner",
+      "path": "/crm/content-preview?collection=directus_users&item=main&version=main",
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-store"
+    },
+    {
+      "name": "owner",
+      "path": "/crm/content-preview?collection=services&item=business-websites&version=security-check",
+      "status": 200,
+      "location": null,
+      "cacheControl": "private, no-store"
+    }
+  ]
+}

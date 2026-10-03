@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/primitives";
 import { websiteContent } from "@/lib/website-content";
 import { ServiceContent } from "@/components/website-content";
 
-export const metadata = { title: "Services | AgencyDesk" };
+export const metadata = { title: "Services" };
 export default function Page() {
   return (
     <div className="marketing">

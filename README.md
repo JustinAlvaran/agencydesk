@@ -4,6 +4,10 @@ An original agency CRM and client portal built with Next.js App Router, React, T
 
 Live application: https://agencydesk-theta.vercel.app
 
+CMS editing and recovery: [content workflow](infra/directus/CONTENT-WORKFLOW.md).
+Responsibilities and future integrations: [content and automation](docs/content-and-automation.md).
+Hosted rollout evidence: [CMS hosting gate](artifacts/cms-hosting-gate.md).
+
 The public site and recruiter demo use fictional content. Reference projects were inspected only for engineering practices; no business data, copy, branding, designs, or assets were reused.
 
 ## Product and architecture
@@ -30,7 +34,7 @@ Version one excludes payments, invoicing, uploads, campaigns, AI features, and m
 
 ## Setup
 
-Use Node.js 22 and pnpm 10.28.1.
+Use Node.js 22.18 or newer in the 22.x line and pnpm 10.28.1.
 
 ```sh
 pnpm install --frozen-lockfile
@@ -74,7 +78,7 @@ pnpm test:e2e
 
 The embedded PostgreSQL suite passes **44 assertions** covering actual RLS roles, isolation, live membership revocation, draft visibility, immutable publication, database totals, retry idempotence, superseded revisions, injected transaction rollback, and persistent inquiry limits. Only Supabase's external Auth schema is emulated.
 
-The dedicated hosted project passed **18 Auth/Data API/RPC checks**, including two concurrent HTTP accepts returning one project ID, one project row, and one acceptance event. Evidence is in `artifacts/hosted-verification.json`. `pnpm test:hosted` uses private local test accounts and changes test records; run only against a dedicated test project. CI excludes this command.
+The latest dedicated hosted project verification passed **17 Auth/Data API/RPC checks**, including two concurrent HTTP accepts returning one project ID, one project row, and one acceptance event. Evidence is in `artifacts/hosted-verification.json`. `pnpm test:hosted` uses private local test accounts and changes test records; run only against a dedicated test project. CI excludes this command.
 
 Docker-backed Supabase tests were not run because the local daemon was unavailable. Saved pgTAP privilege checks can run with `npx supabase test db`. Browser tests cover responsive demo pages, accessibility, keyboard navigation, and read-only behavior. No unmeasured performance scores are claimed.
 
@@ -88,7 +92,7 @@ GitHub Actions runs lint, type checks, unit tests, embedded database checks, pro
 
 - Built a full-stack agency CRM and client portal using Next.js, React, TypeScript, Tailwind CSS, and Supabase, connecting lead capture, versioned proposals, and project delivery.
 - Enforced company isolation with Postgres RLS and live membership, and implemented atomic acceptance using transaction locks and uniqueness constraints.
-- Verified business rules with 44 PostgreSQL assertions and 18 hosted checks, including concurrent requests producing one project and one acceptance event.
+- Verified business rules with 44 PostgreSQL assertions and 17 hosted checks, including concurrent requests producing one project and one acceptance event.
 
 Add performance or adoption figures only after measuring them.
 

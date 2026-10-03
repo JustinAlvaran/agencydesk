@@ -1,0 +1,209 @@
+[
+  {
+    "flow": {
+      "id": "8bf856f3-3eeb-4f38-b988-142f03ff60c9",
+      "name": "AgencyDesk publication rebuild",
+      "status": "inactive",
+      "trigger": "event",
+      "accountability": "activity",
+      "operation": "a6bbed41-27a7-4f75-9ccd-f526a49aa180",
+      "options": {
+        "type": "action",
+        "scope": [
+          "site_settings.items.promote",
+          "home_page.items.promote",
+          "services.items.promote",
+          "sample_projects.items.promote"
+        ],
+        "collections": [
+          "site_settings",
+          "home_page",
+          "services",
+          "sample_projects"
+        ]
+      }
+    },
+    "operations": [
+      {
+        "id": "a6bbed41-27a7-4f75-9ccd-f526a49aa180",
+        "key": "select_public_change",
+        "name": "Select published change",
+        "type": "exec",
+        "options": {
+          "code": "const collections = [\"site_settings\",\"home_page\",\"services\",\"sample_projects\"];\nfunction shouldRebuild(trigger, kind) {\n  if (!collections.includes(trigger?.collection)) return false;\n  const payload = trigger.payload ?? {};\n  const keys = Object.keys(payload).filter(key => key !== 'id');\n  const visibilityOnly = ['services', 'sample_projects'].includes(trigger.collection)\n    && keys.length === 1 && keys[0] === 'visibility'\n    && ['visible', 'archived'].includes(payload.visibility);\n  return kind === 'visibility' ? visibilityOnly : !visibilityOnly;\n}\nmodule.exports = data => ({ rebuild: shouldRebuild(data.$trigger, \"publication\") });"
+        },
+        "resolve": "2375b0a6-c4eb-492c-a2f2-2c8ccc10cc03",
+        "flow": "8bf856f3-3eeb-4f38-b988-142f03ff60c9",
+        "position_x": 0,
+        "position_y": 0,
+        "reject": null
+      },
+      {
+        "id": "2375b0a6-c4eb-492c-a2f2-2c8ccc10cc03",
+        "key": "check_rebuild",
+        "name": "Rebuild needed",
+        "type": "condition",
+        "options": {
+          "filter": {
+            "select_public_change": {
+              "rebuild": {
+                "_eq": true
+              }
+            }
+          }
+        },
+        "resolve": "783a8871-badf-4182-9e81-40a40bd23065",
+        "flow": "8bf856f3-3eeb-4f38-b988-142f03ff60c9",
+        "position_x": 20,
+        "position_y": 20,
+        "reject": null
+      },
+      {
+        "id": "783a8871-badf-4182-9e81-40a40bd23065",
+        "key": "request_rebuild",
+        "name": "Request website deployment",
+        "type": "request",
+        "options": {
+          "method": "POST",
+          "url": "{{$env.VERCEL_DEPLOY_HOOK}}",
+          "body": {},
+          "headers": []
+        },
+        "resolve": "bbd2f10e-eb14-4107-b2f3-def7d3555411",
+        "reject": "5734d32b-98c6-4dc8-bd97-20621e351c6a",
+        "flow": "8bf856f3-3eeb-4f38-b988-142f03ff60c9",
+        "position_x": 40,
+        "position_y": 40
+      },
+      {
+        "id": "bbd2f10e-eb14-4107-b2f3-def7d3555411",
+        "key": "rebuild_requested",
+        "name": "Request accepted",
+        "type": "log",
+        "options": {
+          "message": "Website rebuild requested. Publication becomes live after deployment succeeds."
+        },
+        "flow": "8bf856f3-3eeb-4f38-b988-142f03ff60c9",
+        "position_x": 60,
+        "position_y": 60,
+        "resolve": null,
+        "reject": null
+      },
+      {
+        "id": "5734d32b-98c6-4dc8-bd97-20621e351c6a",
+        "key": "rebuild_failed",
+        "name": "Request failed",
+        "type": "log",
+        "options": {
+          "message": "Website rebuild request failed. Published CMS content remains saved; use the owner rebuild action to retry."
+        },
+        "flow": "8bf856f3-3eeb-4f38-b988-142f03ff60c9",
+        "position_x": 80,
+        "position_y": 80,
+        "resolve": null,
+        "reject": null
+      }
+    ]
+  },
+  {
+    "flow": {
+      "id": "62ae768a-e37a-4a25-9a18-7048b7f2099b",
+      "name": "AgencyDesk visibility rebuild",
+      "status": "inactive",
+      "trigger": "event",
+      "accountability": "activity",
+      "operation": "1c8edde2-6611-47c0-b7b5-98289be4aabd",
+      "options": {
+        "type": "action",
+        "scope": [
+          "items.update"
+        ],
+        "collections": [
+          "services",
+          "sample_projects"
+        ]
+      }
+    },
+    "operations": [
+      {
+        "id": "1c8edde2-6611-47c0-b7b5-98289be4aabd",
+        "key": "select_public_change",
+        "name": "Select published change",
+        "type": "exec",
+        "options": {
+          "code": "const collections = [\"site_settings\",\"home_page\",\"services\",\"sample_projects\"];\nfunction shouldRebuild(trigger, kind) {\n  if (!collections.includes(trigger?.collection)) return false;\n  const payload = trigger.payload ?? {};\n  const keys = Object.keys(payload).filter(key => key !== 'id');\n  const visibilityOnly = ['services', 'sample_projects'].includes(trigger.collection)\n    && keys.length === 1 && keys[0] === 'visibility'\n    && ['visible', 'archived'].includes(payload.visibility);\n  return kind === 'visibility' ? visibilityOnly : !visibilityOnly;\n}\nmodule.exports = data => ({ rebuild: shouldRebuild(data.$trigger, \"visibility\") });"
+        },
+        "resolve": "2c01de09-e52e-4c27-9dbf-1be05602cd83",
+        "flow": "62ae768a-e37a-4a25-9a18-7048b7f2099b",
+        "position_x": 0,
+        "position_y": 0,
+        "reject": null
+      },
+      {
+        "id": "2c01de09-e52e-4c27-9dbf-1be05602cd83",
+        "key": "check_rebuild",
+        "name": "Rebuild needed",
+        "type": "condition",
+        "options": {
+          "filter": {
+            "select_public_change": {
+              "rebuild": {
+                "_eq": true
+              }
+            }
+          }
+        },
+        "resolve": "a0774e6c-aef4-4ca4-86ae-9e160f2ddfc7",
+        "flow": "62ae768a-e37a-4a25-9a18-7048b7f2099b",
+        "position_x": 20,
+        "position_y": 20,
+        "reject": null
+      },
+      {
+        "id": "a0774e6c-aef4-4ca4-86ae-9e160f2ddfc7",
+        "key": "request_rebuild",
+        "name": "Request website deployment",
+        "type": "request",
+        "options": {
+          "method": "POST",
+          "url": "{{$env.VERCEL_DEPLOY_HOOK}}",
+          "body": {},
+          "headers": []
+        },
+        "resolve": "8f5aba1d-512c-406c-ab53-36eb443801a4",
+        "reject": "79ee9967-7b83-4644-a502-c099ef10d21b",
+        "flow": "62ae768a-e37a-4a25-9a18-7048b7f2099b",
+        "position_x": 40,
+        "position_y": 40
+      },
+      {
+        "id": "8f5aba1d-512c-406c-ab53-36eb443801a4",
+        "key": "rebuild_requested",
+        "name": "Request accepted",
+        "type": "log",
+        "options": {
+          "message": "Website rebuild requested. Publication becomes live after deployment succeeds."
+        },
+        "flow": "62ae768a-e37a-4a25-9a18-7048b7f2099b",
+        "position_x": 60,
+        "position_y": 60,
+        "resolve": null,
+        "reject": null
+      },
+      {
+        "id": "79ee9967-7b83-4644-a502-c099ef10d21b",
+        "key": "rebuild_failed",
+        "name": "Request failed",
+        "type": "log",
+        "options": {
+          "message": "Website rebuild request failed. Published CMS content remains saved; use the owner rebuild action to retry."
+        },
+        "flow": "62ae768a-e37a-4a25-9a18-7048b7f2099b",
+        "position_x": 80,
+        "position_y": 80,
+        "resolve": null,
+        "reject": null
+      }
+    ]
+  }
+]

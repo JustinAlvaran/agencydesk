@@ -43,6 +43,9 @@ try {
     const items = await api(`/items/${collection}?limit=100&fields=id`);
     const known = singleton ? items?.id ? [items.id] : [] : items.map(item => item.id);
     for (const record of singleton ? [records] : records) if (!known.includes(record.id)) await api(`/items/${collection}`, singleton ? 'PATCH' : 'POST', record);
+    await api(`/collections/${collection}`, 'PATCH', { meta: {
+      preview_url: `https://agencydesk-theta.vercel.app/crm/content-preview?collection=${collection}&item={{id}}&version={{$version}}`,
+    } });
   }
   const policies = await api('/policies?limit=100');
   config.readers ??= {};
