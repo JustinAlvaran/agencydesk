@@ -28,12 +28,13 @@ The protected `/crm/content-preview` requires a currently active Supabase admin.
 Choose a collection, item ID and version key (`main` for current published copy).
 Preview is dynamic, uncached and excluded from indexing. Its URL carries no token.
 Open it in a separate tab; the app's framing protections remain enabled.
-The native collection preview URL points to this protected route. It becomes
-usable on the public deployment after the integration is released.
+The native collection preview URL points to this protected production route.
 
-Publishing content and deploying the website are separate outcomes. Until the
-hosting gate and deployment Flow pass, CMS edits do not update the production
-website. The existing production application remains running.
+Publishing content and deploying the website are separate outcomes. The first
+production release uses published CMS content. Automatic rebuilds still await
+private hook approval/configuration; publishing alone currently saves CMS
+content without updating the deployed website. A new production Git/CLI build
+reads fresh CMS content. The owner rebuild button stays disabled until connected.
 
 The prepared publication Flow uses the pinned `items.promote` action, scoped to
 the four content collections. A separate Flow handles visibility-only updates.

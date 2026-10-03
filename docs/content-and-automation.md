@@ -34,9 +34,10 @@ flowchart LR
   Accept --> Project[Project and client portal]
 ```
 
-The publishing hook is connected only after hosting verification and explicit
-hook approval. The diagram describes the completed workflow, not a claim that
-pending integration steps have already passed.
+The hosting checks passed and production now uses CMS content. Owner sign-in
+and private draft preview are verified. The publishing hook still awaits
+explicit approval; the diagram includes that pending step. Until it is
+connected, production Git/CLI deployments fetch fresh published CMS content.
 
 ## Future analytics and automation
 

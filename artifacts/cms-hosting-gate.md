@@ -1,7 +1,8 @@
 # CMS hosting gate — 2026-10-03
 
-Status: free hosting gate passed; production release and publishing journey
-still pending. No paid hosting or trial was provisioned.
+Status: free hosting gate passed and the first production CMS release is live.
+Automatic publishing and its full journey remain pending hook approval.
+No paid hosting or trial was provisioned.
 
 ## Verified infrastructure
 
@@ -63,8 +64,8 @@ Render logs confirm recovered instance `b9fmc` started at 09:29:22 UTC.
 
 Production-only CMS reader configuration is verified on Vercel. Preview has
 only demo configuration and receives no CMS production readers. The private
-deployment hook, first production release, and edit → preview → publish → live
-journey remain required. Inactive Flows do not establish publishing success.
+deployment hook and edit → preview → publish → live journey remain required.
+Inactive Flows do not establish publishing success.
 
 Render's current dashboard reports 512 MB and 0.15 CPU limits. Actual memory and
 CPU usage graphs require paid compute; no upgrade was made, and no measured
@@ -75,6 +76,18 @@ the fixture build and browser checks. The first Git-triggered Vercel release
 was blocked by an unrecognized Git author identity. Future commits now use
 JustinAlvaran's GitHub noreply identity; earlier history is retained at the
 owner's explicit request.
+
+Commit `ccaaabe` is attributed by GitHub to `JustinAlvaran`; its production
+deployment `dpl_3VTh71Uv7hMQgZpB1hnq9aXxbexc` is Ready. Cached-build logs show
+fresh `directus` preparation and the expected snapshot digest. Production
+public pages, draft isolation, Staff CRM navigation, and public-bundle secret
+scanning passed. Evidence: cms-production-verification.json. Actual owner
+sign-in and private draft preview on production succeeded. CI passed again for
+`ccaaabe`: https://github.com/JustinAlvaran/agencydesk/actions/runs/37114082449.
+
+Automatic publish/rebuild, rapid-publish convergence, archive-triggered builds,
+and the recorded complete publishing walkthrough are not yet verified. The
+private hook approval is still pending, and the two prepared Flows are inactive.
 
 If the free hosting gate fails, pause CMS rollout and preserve the existing
 website and CRM. No upgrade or local-CMS substitution is authorized.

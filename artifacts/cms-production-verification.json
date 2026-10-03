@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-03T09:47:31.897Z",
+  "origin": "https://agencydesk-theta.vercel.app",
+  "deploymentId": "dpl_3VTh71Uv7hMQgZpB1hnq9aXxbexc",
+  "source": "directus",
+  "pages": [
+    {
+      "path": "/",
+      "digest": "21e6fdc9c69b3eff2fd912d67103dd797c871e71f0a282d15e140d60f50c3046"
+    },
+    {
+      "path": "/services",
+      "digest": "21e6fdc9c69b3eff2fd912d67103dd797c871e71f0a282d15e140d60f50c3046"
+    },
+    {
+      "path": "/case-studies",
+      "digest": "21e6fdc9c69b3eff2fd912d67103dd797c871e71f0a282d15e140d60f50c3046"
+    }
+  ],
+  "publicScriptsChecked": 9,
+  "draftsAbsent": true,
+  "secretsAbsent": true,
+  "staffCrmLink": true,
+  "ownerSignIn": true,
+  "ownerDraftPreview": true,
+  "previewScreenshot": "artifacts/cms-production-preview.jpg",
+  "gitHubAccount": "JustinAlvaran",
+  "gitHubCi": "https://github.com/JustinAlvaran/agencydesk/actions/runs/37114082449",
+  "automaticPublishing": "pending private hook approval"
+}
