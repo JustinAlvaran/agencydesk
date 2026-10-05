@@ -62,6 +62,8 @@ Hosted Auth must disable public registration through Auth → Sign In / Provider
 
 Bootstrap the first admin through Supabase's trusted administrator interface, then add their Auth user ID to `staff_members` with role `admin`. CRM access settings generate later invitation/recovery links. Clients need `can_accept_proposals=true` to accept or decline. Links open `/auth/confirm`, then `/auth/password`.
 
+Google sign-in uses the same Supabase accounts and live memberships. Configure a Google Web OAuth client with the Supabase `/auth/v1/callback` URL, save its Client ID and Secret in the hosted Google provider, and allow `${APP_URL}/auth/callback` in Supabase Auth redirect URLs. Keep public signup disabled. Google testing-mode users must be listed in Google's Audience settings. The application exchanges the PKCE code into an SSR cookie session, verifies identity, and routes active staff to `/crm` or active clients to `/portal`. Users without membership are signed out locally and denied access. Google credentials do not belong in application code or browser environment variables. A real Google sign-in must verify that the existing invited user's ID and memberships remain intact; mocked callback tests do not prove account linking.
+
 Vercel uses the Next.js preset, Node 22, and the pinned pnpm lockfile. Preview uses `APP_MODE=demo` with no production database credentials. Production uses `APP_MODE=live`, the dedicated hosted database, and Singapore functions. Build each environment separately; never promote a fixture-configured preview unchanged.
 
 ## Verification
