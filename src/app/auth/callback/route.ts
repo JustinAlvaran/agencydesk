@@ -38,4 +38,3 @@ export async function GET(request: NextRequest) {
     return finish('/login?error=Could+not+verify+workspace+access.+Please+try+again.');
   }
 }
-
