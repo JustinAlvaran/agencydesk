@@ -21,11 +21,15 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.5.5
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm test:database
+      - run: pnpm test:edge
       - run: node tests/database/content-build.mjs
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium

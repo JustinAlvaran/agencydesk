@@ -7,6 +7,7 @@ export async function POST(request:Request){
  const contentLength=Number(request.headers.get('content-length')??0);if(contentLength>16000)return Response.json({error:'Inquiry is too large.'},{status:413});
  let input:unknown;try{const body=await request.text();if(body.length>16000)return Response.json({error:'Inquiry is too large.'},{status:413});input=JSON.parse(body);}catch{return Response.json({error:'Provide a valid inquiry.'},{status:400});}
  const parsed=inquirySchema.safeParse(input);if(!parsed.success)return Response.json({error:'Check your contact details, project brief, and budget.',fields:parsed.error.flatten().fieldErrors},{status:400});
+ if(parsed.data.whatsapp_opt_in && !parsed.data.phone)return Response.json({error:'Add your phone number to request WhatsApp updates.',fields:{phone:['A phone number is required for WhatsApp updates.']}},{status:400});
  // The Edge function derives the rate-limit key itself and applies a persistent
  // database limit, preventing a public caller from choosing an arbitrary key.
  try{await submitInquiry(parsed.data);return Response.json({success:true},{status:201});}catch(error){const message=error instanceof Error?error.message:'We could not save your inquiry.';return Response.json({error:message},{status:message.includes('Too many')?429:503});}

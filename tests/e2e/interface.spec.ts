@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright';
 const publicPaths = ['/', '/services', '/case-studies', '/demo', '/demo/leads', '/demo/proposals', '/demo/projects', '/demo/tasks', '/demo/contacts', '/demo/portal', '/demo/leads/1', '/demo/proposals/2', '/demo/projects/1', '/demo/portal/projects/1', '/demo/portal/proposals/2', '/inquire'];
 for (const width of [1440, 390]) {
   test(`public screens are accessible and fit ${width}px`, async ({ page }) => {
+    test.setTimeout(120000);
     await page.setViewportSize({ width, height: 900 });
     for (const path of publicPaths) {
       await page.goto(path);

@@ -2,7 +2,7 @@ import 'server-only';
 import { supabaseEnvironment } from '@/lib/env';
 import { reportFailure } from '@/lib/operational-log';
 
-export async function submitInquiry(payload: { contact_name: string; email: string; service: string; brief: string; budget_cents: number; request_key?: string }) {
+export async function submitInquiry(payload: { contact_name: string; email: string; service: string; brief: string; budget_cents: number; phone?:string; email_opt_in?:boolean; whatsapp_opt_in?:boolean; request_key?: string }) {
   const { url, key } = supabaseEnvironment();
   const anon = process.env.SUPABASE_EDGE_ANON_KEY;
   if (!anon) throw new Error('Public inquiry service is not configured.');

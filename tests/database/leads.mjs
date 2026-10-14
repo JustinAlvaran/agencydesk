@@ -1,0 +1,134 @@
+import assert from 'node:assert/strict';
+import { readFile, readdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+const {PGlite} = createRequire(new URL('../../package.json',import.meta.url))('@electric-sql/pglite');
+const db = new PGlite();
+await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+ create schema auth; create table auth.users(id uuid primary key,email text);
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth,public to anon,authenticated,service_role;
+ grant execute on function auth.uid() to anon,authenticated,service_role;`);
+const directory = new URL('../../supabase/migrations/',import.meta.url);
+for (const name of (await readdir(directory)).filter(name=>name.endsWith('.sql')).sort()) await db.exec(await readFile(new URL(name,directory),'utf8'));
+const staff='30000000-0000-4000-8000-000000000001',owner='30000000-0000-4000-8000-000000000002',client='30000000-0000-4000-8000-000000000003';
+const fresh='30000000-0000-4000-8000-000000000004',qualified='30000000-0000-4000-8000-000000000005',won='30000000-0000-4000-8000-000000000006',lost='30000000-0000-4000-8000-000000000007',archived='30000000-0000-4000-8000-000000000008';
+await db.exec(`insert into auth.users(id) values('${staff}'),('${owner}'),('${client}');
+ insert into public.staff_members(user_id,role,active) values('${staff}','admin',true),('${owner}','staff',true);
+ insert into public.leads(id,contact_name,email,service,brief,status,source,owner_id) values
+ ('${fresh}','New fictional lead','new@example.test','Website','Original fictional brief','new','manual','${owner}'),
+ ('${qualified}','Qualified fictional lead','qualified@example.test','Website','Original fictional brief','qualified','manual',null),
+ ('${won}','Won fictional lead','won@example.test','Website','Original fictional brief','won','manual',null),
+ ('${lost}','Lost fictional lead','lost@example.test','Website','Original fictional brief','lost','manual',null);
+ insert into public.leads(id,contact_name,email,service,brief,status,source,archived_at) values('${archived}','Archived fictional lead','archived@example.test','Website','Original fictional brief','new','manual',now());`);
+let checks=0;
+async function actor(id,role='authenticated'){await db.exec(`reset role;select set_config('request.jwt.claim.sub','${id??''}',false);set role ${role};`);}
+async function eq(sql,want,message){assert.deepEqual((await db.query(sql)).rows[0]?.value,want,message);checks++;}
+async function deny(sql,message){await assert.rejects(db.query(sql),undefined,message);checks++;}
+await actor(null,'anon');
+await deny(`select public.log_lead_call('${fresh}','connected')`,'Anonymous call rejected');
+await actor(client);
+await deny(`select public.log_lead_call('${fresh}','connected')`,'Client call rejected');
+await actor(staff);
+await deny(`update public.leads set status='won' where id='${fresh}'`,'Existing accepted-proposal guard stays active');
+await deny(`select public.log_lead_call('${fresh}','unknown')`,'Unknown outcome rejected');
+await deny(`select public.log_lead_call('${fresh}','callback')`,'Missing callback time rejected');
+await deny(`select public.log_lead_call('${fresh}','callback','','2000-01-01')`,'Past callback time rejected');
+await deny(`select public.log_lead_call('${archived}','connected')`,'Archived lead cannot acquire activity');
+const action='40000000-0000-4000-8000-000000000001';
+const sql=`select public.log_lead_call('${fresh}','connected','Reached contact',null,'${action}') as value`;
+const result=(await db.query(sql)).rows[0].value;checks++;
+await eq(sql,result,'Retry returns original call event');
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${fresh}' and event_type='lead_call_logged'`,1,'Retry does not duplicate calls');
+await eq(`select status as value from public.leads where id='${fresh}'`,'contacted','Connected moves only a new lead');
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${fresh}' and event_type='lead_stage_changed'`,1,'Stage event written atomically');
+await deny(`select public.log_lead_call('${qualified}','connected','Reached contact',null,'${action}')`,'Same actor cannot reuse action for different lead');
+const callbackAction='40000000-0000-4000-8000-000000000002';
+const callback=`select public.log_lead_call('${fresh}','callback','Try Friday','2099-01-01T01:00:00Z','${callbackAction}') as value`;
+const callbackId=(await db.query(callback)).rows[0].value;checks++;
+await eq(callback,callbackId,'Callback retry returns original event');
+await eq(`select count(*)::integer as value from public.follow_up_tasks where lead_id='${fresh}'`,1,'Exactly one callback task');
+await eq(`select assigned_to::text as value from public.follow_up_tasks where lead_id='${fresh}'`,owner,'Callback assigned to current owner');
+await db.query(`select public.log_lead_call('${qualified}','callback','','2099-01-02')`);checks++;
+await eq(`select assigned_to::text as value from public.follow_up_tasks where lead_id='${qualified}'`,staff,'Unassigned callback belongs to calling staff');
+await eq(`select status as value from public.leads where id='${qualified}'`,'qualified','Callback does not regress an advanced stage');
+await db.query(`select public.log_lead_call('${qualified}','no_answer')`);checks++;
+await eq(`select status as value from public.leads where id='${qualified}'`,'qualified','No answer preserves manual advanced stage');
+for(const lead of [won,lost]) {
+ for(const outcome of ['connected','no_answer','invalid_number','not_interested']) await db.query(`select public.log_lead_call('${lead}','${outcome}')`);
+ await eq(`select status as value from public.leads where id='${lead}'`,lead===won?'won':'lost','Closed leads stay closed');
+}
+await db.query(`select public.log_lead_call('${qualified}','invalid_number')`);
+await eq(`select status as value from public.leads where id='${qualified}'`,'lost','Invalid number closes an open lead');
+await actor(owner);
+await db.query(`select public.log_lead_call('${fresh}','connected','Reached contact',null,'${action}')`);
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${fresh}' and event_type='lead_call_logged'`,3,'Action keys are scoped by actor, not shared across staff');
+await actor(staff);
+await db.query(`update public.leads set email_opt_in=true where id='${fresh}'`);
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${fresh}' and event_type='lead_permission_changed'`,1,'Permission edits have an audit event');
+await db.exec(`reset role;create function private.reject_call_ledger() returns trigger language plpgsql as $$begin raise exception 'Injected late failure';end$$;create trigger reject_call_ledger before insert on private.lead_call_actions for each row execute function private.reject_call_ledger();`);
+await actor(staff);
+await deny(`select public.log_lead_call('${fresh}','callback','','2099-01-03')`,'Late failure aborts the complete callback transaction');
+await eq(`select count(*)::integer as value from public.follow_up_tasks where lead_id='${fresh}'`,1,'Late failure rolled back task');
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${fresh}' and event_type='lead_call_logged'`,3,'Late failure rolled back call event');
+await db.exec('reset role;drop trigger reject_call_ledger on private.lead_call_actions;drop function private.reject_call_ledger();');
+// Staff intake is retry-safe, type-strict, and audited inside the transaction.
+const intakeAction='50000000-0000-4000-8000-000000000001';
+const intake={contact_name:'Manual fictional contact',email:'manual@example.test',phone:null,service:'Website',brief:'Original manual brief',source:'manual',budget_cents:10000,email_opt_in:false,whatsapp_opt_in:false,owner_id:owner,company_id:null};
+const intakeSQL=`select public.create_manual_lead($1::uuid,$2::jsonb) as value`;
+async function createManual(action=intakeAction,details=intake){return db.query(intakeSQL,[action,JSON.stringify(details)]);}
+await actor(null,'anon');await assert.rejects(createManual());checks++;
+await actor(client);await assert.rejects(createManual());checks++;
+await actor(staff);
+const manualId=(await createManual()).rows[0].value;checks++;
+assert.equal((await createManual()).rows[0].value,manualId,'Manual intake retry returns the original lead');checks++;
+await eq(`select count(*)::integer as value from public.leads where email='manual@example.test'`,1,'Manual retry creates exactly one lead');
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${manualId}' and event_type='lead_created'`,1,'Manual retry creates exactly one lead event');
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${manualId}' and event_type='inquiry_received'`,0,'Manual contact does not masquerade as a public inquiry');
+await assert.rejects(createManual(intakeAction,{...intake,brief:'Different lead request'}));checks++;
+await actor(owner);await assert.rejects(createManual());checks++;
+await actor(staff);
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000002',{...intake,email_opt_in:'false'}));checks++;
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000003',{...intake,phone:'+1234567'}));checks++;
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000004',{...intake,whatsapp_opt_in:true}));checks++;
+await db.exec(`reset role;create function private.reject_intake_ledger() returns trigger language plpgsql as $$begin raise exception 'Injected late intake failure';end$$;create trigger reject_intake_ledger before insert on private.manual_lead_actions for each row execute function private.reject_intake_ledger();`);
+await actor(staff);
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000005',{...intake,email:'rollback-manual@example.test'}));checks++;
+await eq(`select count(*)::integer as value from public.leads where email='rollback-manual@example.test'`,0,'Late intake ledger failure rolls back lead and activity');
+await db.exec(`reset role;drop trigger reject_intake_ledger on private.manual_lead_actions;drop function private.reject_intake_ledger();update public.staff_members set active=false where user_id='${owner}';`);
+await actor(staff);
+await deny(`update public.leads set owner_id='${owner}' where id='${qualified}'`,'Reassignment to inactive staff is blocked');
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000006',{...intake,email:'inactive-owner@example.test'}));checks++;
+await db.query(`update public.leads set brief='Updated manual brief with original inactive owner' where id='${manualId}'`);
+await eq(`select owner_id::text as value from public.leads where id='${manualId}'`,owner,'Unrelated update preserves inactive current owner');
+await db.query(`select public.log_lead_call('${manualId}','callback','','2099-01-04')`);
+await eq(`select assigned_to::text as value from public.follow_up_tasks where lead_id='${manualId}'`,staff,'Callback falls back to active calling staff when current owner is inactive');
+// A separate workspace must not receive calls, tasks, owners, or intake from this staff account.
+const otherAgency='60000000-0000-4000-8000-000000000001',otherStaff='60000000-0000-4000-8000-000000000002',otherLead='60000000-0000-4000-8000-000000000003',otherCompany='60000000-0000-4000-8000-000000000004';
+await db.exec(`reset role;insert into public.agencies(id,name,slug) values('${otherAgency}','Other Agency','other-agency');
+ insert into auth.users(id) values('${otherStaff}');
+ insert into public.staff_members(user_id,role,active,agency_id) values('${otherStaff}','admin',true,'${otherAgency}');
+ insert into public.companies(id,name,agency_id) values('${otherCompany}','Other Company','${otherAgency}');
+ insert into public.leads(id,agency_id,contact_name,email,service,brief,source) values('${otherLead}','${otherAgency}','Other fictional lead','other@example.test','Website','Other fictional lead brief','manual');`);
+await actor(staff);
+await deny(`select public.log_lead_call('${otherLead}','connected')`,'Staff cannot log calls against another agency lead');
+await deny(`select public.log_lead_call('${otherLead}','callback','','2099-01-05')`,'Staff cannot create another agency callback');
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000007',{...intake,owner_id:otherStaff}));checks++;
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000008',{...intake,owner_id:null,company_id:otherCompany}));checks++;
+await actor(otherStaff);
+await deny(`select public.log_lead_call('${fresh}','connected')`,'Other agency cannot log calls against the first lead');
+await assert.rejects(createManual('50000000-0000-4000-8000-000000000009',{...intake,owner_id:staff}));checks++;
+const otherManual=(await createManual('50000000-0000-4000-8000-000000000010',{...intake,email:'own-other@example.test',owner_id:otherStaff,company_id:otherCompany})).rows[0].value;checks++;
+await eq(`select agency_id::text as value from public.leads where id='${otherManual}'`,otherAgency,'Manual intake is stamped with authenticated staff workspace');
+await db.query(`select public.log_lead_call('${otherManual}','callback','','2099-01-05')`);checks++;
+await eq(`select agency_id::text as value from public.follow_up_tasks where lead_id='${otherManual}'`,otherAgency,'Callback task remains in owning workspace');
+await actor(staff);
+await eq(`select count(*)::integer as value from public.leads where id='${otherManual}'`,0,'First staff cannot inspect other manual intake');
+await db.exec('reset role');
+await eq(`select count(*)::integer as value from public.activity_events where lead_id='${otherLead}' and event_type='lead_call_logged'`,0,'Rejected crossagency calls leave no activity');
+await eq(`select count(*)::integer as value from public.follow_up_tasks where lead_id='${otherLead}'`,0,'Rejected crossagency callbacks leave no tasks');
+await actor(staff);
+await db.exec(`update public.staff_members set active=false where user_id='${staff}'`);
+await actor(staff);
+await deny(`select public.log_lead_call('${fresh}','connected')`,'Deactivated staff cannot use existing session');
+await db.close();
+console.log(`Passed ${checks} lead workflow database assertions using embedded PostgreSQL.`);

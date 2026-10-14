@@ -7,7 +7,7 @@ const { PGlite } = createRequire(new URL('../../package.json',import.meta.url))(
 // Docker-backed `supabase test db` is still required before hosted rollout.
 const db = new PGlite();
 await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
- create schema auth; create table auth.users(id uuid primary key);
+ create schema auth; create table auth.users(id uuid primary key,email text);
  create function auth.uid() returns uuid language sql stable as
  $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
  grant usage on schema auth,public to anon,authenticated,service_role;
@@ -17,10 +17,10 @@ for (const name of (await readdir(migrationDirectory)).filter(name=>name.endsWit
   await db.exec(await readFile(new URL(name,migrationDirectory),'utf8'));
 }
 const ids = Object.fromEntries(['staff','a','b','companyA','companyB','lead','series','revision','update'].map((key, i) => [key, `00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`]));
-await db.exec(`insert into auth.users values('${ids.staff}'),('${ids.a}'),('${ids.b}');
- insert into public.staff_members values('${ids.staff}','admin',true);
+await db.exec(`insert into auth.users(id) values('${ids.staff}'),('${ids.a}'),('${ids.b}');
+ insert into public.staff_members(user_id,role,active) values('${ids.staff}','admin',true);
  insert into public.companies(id,name) values('${ids.companyA}','Fictional A'),('${ids.companyB}','Fictional B');
- insert into public.client_memberships values('${ids.a}','${ids.companyA}',true,true),('${ids.b}','${ids.companyB}',true,true);
+ insert into public.client_memberships(user_id,company_id,active,can_accept_proposals) values('${ids.a}','${ids.companyA}',true,true),('${ids.b}','${ids.companyB}',true,true);
  insert into public.leads(id,company_id,contact_name,email,service,brief) values('${ids.lead}','${ids.companyA}','Fictional Contact','a@example.test','Web app','An original fictional app brief');
  insert into public.proposal_series(id,lead_id,company_id,title) values('${ids.series}','${ids.lead}','${ids.companyA}','Fictional Portal');
  insert into public.proposal_revisions(id,series_id,version,scope,expires_at) values('${ids.revision}','${ids.series}',1,'A published original scope',now()+interval '7 days');

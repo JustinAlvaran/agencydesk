@@ -14,8 +14,173 @@ export type Database = {
   }
   public: {
     Tables: {
+      agencies: {
+        Row: { id: string; name: string; slug: string; intake_enabled: boolean; created_at: string }
+        Insert: { id?: string; name: string; slug: string; intake_enabled?: boolean; created_at?: string }
+        Update: { id?: string; name?: string; slug?: string; intake_enabled?: boolean; created_at?: string }
+        Relationships: []
+      }
+      automation_rules: {
+        Row: {
+          agency_id: string
+          id: string
+          name: string
+          event_type: string
+          channel: string
+          template_key: string
+          delay_minutes: number
+          approval_required: boolean
+          enabled: boolean
+          created_at: string
+        }
+        Insert: {
+          agency_id?: string
+          id?: string
+          name: string
+          event_type: string
+          channel?: string
+          template_key: string
+          delay_minutes?: number
+          approval_required?: boolean
+          enabled?: boolean
+          created_at?: string
+        }
+        Update: {
+          agency_id?: string
+          id?: string
+          name?: string
+          event_type?: string
+          channel?: string
+          template_key?: string
+          delay_minutes?: number
+          approval_required?: boolean
+          enabled?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      message_jobs: {
+        Row: {
+          agency_id: string
+          id: string
+          rule_id: string
+          event_id: string
+          lead_id: string
+          revision_id: string | null
+          channel: string
+          recipient: string
+          subject: string
+          body: string
+          status: string
+          due_at: string
+          portal_path: string | null
+          attempts: number
+          lease_token: string | null
+          lease_expires_at: string | null
+          provider_message_id: string | null
+          last_error: string | null
+          approved_by: string | null
+          approved_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id?: string
+          id?: string
+          rule_id: string
+          event_id: string
+          lead_id: string
+          revision_id?: string | null
+          channel: string
+          recipient: string
+          subject: string
+          body: string
+          status: string
+          due_at: string
+          portal_path?: string | null
+          attempts?: number
+          lease_token?: string | null
+          lease_expires_at?: string | null
+          provider_message_id?: string | null
+          last_error?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          id?: string
+          rule_id?: string
+          event_id?: string
+          lead_id?: string
+          revision_id?: string | null
+          channel?: string
+          recipient?: string
+          subject?: string
+          body?: string
+          status?: string
+          due_at?: string
+          portal_path?: string | null
+          attempts?: number
+          lease_token?: string | null
+          lease_expires_at?: string | null
+          provider_message_id?: string | null
+          last_error?: string | null
+          approved_by?: string | null
+          approved_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          { foreignKeyName: "message_jobs_rule_id_fkey"; columns: ["rule_id"]; isOneToOne: false; referencedRelation: "automation_rules"; referencedColumns: ["id"] },
+          { foreignKeyName: "message_jobs_event_id_fkey"; columns: ["event_id"]; isOneToOne: false; referencedRelation: "activity_events"; referencedColumns: ["id"] },
+          { foreignKeyName: "message_jobs_lead_id_fkey"; columns: ["lead_id"]; isOneToOne: false; referencedRelation: "leads"; referencedColumns: ["id"] },
+          { foreignKeyName: "message_jobs_revision_id_fkey"; columns: ["revision_id"]; isOneToOne: false; referencedRelation: "proposal_revisions"; referencedColumns: ["id"] },
+        ]
+      }
+      message_attempts: {
+        Row: {
+          agency_id: string
+          id: string
+          job_id: string
+          attempt_number: number
+          lease_token: string
+          started_at: string
+          finished_at: string | null
+          outcome: string
+          provider_message_id: string | null
+          error_code: string | null
+        }
+        Insert: {
+          agency_id?: string
+          id?: string
+          job_id: string
+          attempt_number: number
+          lease_token: string
+          started_at?: string
+          finished_at?: string | null
+          outcome?: string
+          provider_message_id?: string | null
+          error_code?: string | null
+        }
+        Update: {
+          agency_id?: string
+          id?: string
+          job_id?: string
+          attempt_number?: number
+          lease_token?: string
+          started_at?: string
+          finished_at?: string | null
+          outcome?: string
+          provider_message_id?: string | null
+          error_code?: string | null
+        }
+        Relationships: [{ foreignKeyName: "message_attempts_job_id_fkey"; columns: ["job_id"]; isOneToOne: false; referencedRelation: "message_jobs"; referencedColumns: ["id"] }]
+      }
       activity_events: {
         Row: {
+          agency_id: string
           actor_id: string | null
           created_at: string
           detail: Json
@@ -25,6 +190,7 @@ export type Database = {
           project_id: string | null
         }
         Insert: {
+          agency_id?: string
           actor_id?: string | null
           created_at?: string
           detail?: Json
@@ -34,6 +200,7 @@ export type Database = {
           project_id?: string | null
         }
         Update: {
+          agency_id?: string
           actor_id?: string | null
           created_at?: string
           detail?: Json
@@ -61,18 +228,21 @@ export type Database = {
       }
       client_memberships: {
         Row: {
+          agency_id: string
           active: boolean
           can_accept_proposals: boolean
           company_id: string
           user_id: string
         }
         Insert: {
+          agency_id?: string
           active?: boolean
           can_accept_proposals?: boolean
           company_id: string
           user_id: string
         }
         Update: {
+          agency_id?: string
           active?: boolean
           can_accept_proposals?: boolean
           company_id?: string
@@ -90,6 +260,7 @@ export type Database = {
       }
       comments: {
         Row: {
+          agency_id: string
           author_id: string
           body: string
           created_at: string
@@ -97,6 +268,7 @@ export type Database = {
           update_id: string
         }
         Insert: {
+          agency_id?: string
           author_id: string
           body: string
           created_at?: string
@@ -104,6 +276,7 @@ export type Database = {
           update_id: string
         }
         Update: {
+          agency_id?: string
           author_id?: string
           body?: string
           created_at?: string
@@ -122,16 +295,19 @@ export type Database = {
       }
       companies: {
         Row: {
+          agency_id: string
           created_at: string
           id: string
           name: string
         }
         Insert: {
+          agency_id?: string
           created_at?: string
           id?: string
           name: string
         }
         Update: {
+          agency_id?: string
           created_at?: string
           id?: string
           name?: string
@@ -140,6 +316,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          agency_id: string
           company_id: string
           created_at: string
           email: string
@@ -147,6 +324,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          agency_id?: string
           company_id: string
           created_at?: string
           email: string
@@ -154,6 +332,7 @@ export type Database = {
           name: string
         }
         Update: {
+          agency_id?: string
           company_id?: string
           created_at?: string
           email?: string
@@ -172,6 +351,7 @@ export type Database = {
       }
       follow_up_tasks: {
         Row: {
+          agency_id: string
           assigned_to: string | null
           completed_at: string | null
           created_at: string
@@ -181,6 +361,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          agency_id?: string
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
@@ -190,6 +371,7 @@ export type Database = {
           title: string
         }
         Update: {
+          agency_id?: string
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string
@@ -217,6 +399,7 @@ export type Database = {
       }
       lead_notes: {
         Row: {
+          agency_id: string
           author_id: string
           body: string
           created_at: string
@@ -224,6 +407,7 @@ export type Database = {
           lead_id: string
         }
         Insert: {
+          agency_id?: string
           author_id: string
           body: string
           created_at?: string
@@ -231,6 +415,7 @@ export type Database = {
           lead_id: string
         }
         Update: {
+          agency_id?: string
           author_id?: string
           body?: string
           created_at?: string
@@ -249,6 +434,11 @@ export type Database = {
       }
       leads: {
         Row: {
+          agency_id: string
+          phone: string | null
+          source: string
+          email_opt_in: boolean
+          whatsapp_opt_in: boolean
           archived_at: string | null
           brief: string
           budget_cents: number
@@ -263,6 +453,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agency_id?: string
+          phone?: string | null
+          source?: string
+          email_opt_in?: boolean
+          whatsapp_opt_in?: boolean
           archived_at?: string | null
           brief: string
           budget_cents?: number
@@ -277,6 +472,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agency_id?: string
+          phone?: string | null
+          source?: string
+          email_opt_in?: boolean
+          whatsapp_opt_in?: boolean
           archived_at?: string | null
           brief?: string
           budget_cents?: number
@@ -309,6 +509,7 @@ export type Database = {
       }
       milestones: {
         Row: {
+          agency_id: string
           due_at: string | null
           id: string
           position: number
@@ -317,6 +518,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          agency_id?: string
           due_at?: string | null
           id?: string
           position?: number
@@ -325,6 +527,7 @@ export type Database = {
           title: string
         }
         Update: {
+          agency_id?: string
           due_at?: string | null
           id?: string
           position?: number
@@ -344,18 +547,21 @@ export type Database = {
       }
       project_updates: {
         Row: {
+          agency_id: string
           body: string
           created_at: string
           id: string
           project_id: string
         }
         Insert: {
+          agency_id?: string
           body: string
           created_at?: string
           id?: string
           project_id: string
         }
         Update: {
+          agency_id?: string
           body?: string
           created_at?: string
           id?: string
@@ -373,6 +579,7 @@ export type Database = {
       }
       projects: {
         Row: {
+          agency_id: string
           accepted_revision_id: string
           company_id: string
           created_at: string
@@ -383,6 +590,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          agency_id?: string
           accepted_revision_id: string
           company_id: string
           created_at?: string
@@ -393,6 +601,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          agency_id?: string
           accepted_revision_id?: string
           company_id?: string
           created_at?: string
@@ -428,6 +637,7 @@ export type Database = {
       }
       proposal_items: {
         Row: {
+          agency_id: string
           description: string
           id: string
           position: number
@@ -436,6 +646,7 @@ export type Database = {
           unit_price_cents: number
         }
         Insert: {
+          agency_id?: string
           description: string
           id?: string
           position?: number
@@ -444,6 +655,7 @@ export type Database = {
           unit_price_cents: number
         }
         Update: {
+          agency_id?: string
           description?: string
           id?: string
           position?: number
@@ -463,6 +675,7 @@ export type Database = {
       }
       proposal_revisions: {
         Row: {
+          agency_id: string
           accepted_at: string | null
           accepted_by: string | null
           created_at: string
@@ -476,6 +689,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          agency_id?: string
           accepted_at?: string | null
           accepted_by?: string | null
           created_at?: string
@@ -489,6 +703,7 @@ export type Database = {
           version: number
         }
         Update: {
+          agency_id?: string
           accepted_at?: string | null
           accepted_by?: string | null
           created_at?: string
@@ -513,6 +728,7 @@ export type Database = {
       }
       proposal_series: {
         Row: {
+          agency_id: string
           company_id: string
           created_at: string
           id: string
@@ -520,6 +736,7 @@ export type Database = {
           title: string
         }
         Insert: {
+          agency_id?: string
           company_id: string
           created_at?: string
           id?: string
@@ -527,6 +744,7 @@ export type Database = {
           title: string
         }
         Update: {
+          agency_id?: string
           company_id?: string
           created_at?: string
           id?: string
@@ -552,16 +770,19 @@ export type Database = {
       }
       staff_members: {
         Row: {
+          agency_id: string
           active: boolean
           role: string
           user_id: string
         }
         Insert: {
+          agency_id?: string
           active?: boolean
           role: string
           user_id: string
         }
         Update: {
+          agency_id?: string
           active?: boolean
           role?: string
           user_id?: string
@@ -573,6 +794,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      agency_intake_info: { Args: { agency_slug: string }; Returns: Json }
+      provision_agency: { Args: { agency_name: string; agency_slug: string; owner_user_id: string }; Returns: string }
+      workspace_account: { Args: { account_email: string }; Returns: string }
+      create_business_contact: { Args: { contact_name: string; contact_email: string; company_id?: string | null; company_name?: string | null }; Returns: string }
+      create_manual_lead: { Args: { p_action_id: string; p_details: Json }; Returns: string }
+      record_message_receipts: { Args: { p_receipts: Json }; Returns: number }
+      retry_message_job: { Args: { p_job_id: string }; Returns: boolean }
+      log_lead_call: {
+        Args: { p_lead_id: string; p_outcome: string; p_note?: string; p_callback_at?: string | null; p_action_id?: string }
+        Returns: string
+      }
+      configure_automation_rule: {
+        Args: { p_rule_id: string; p_enabled: boolean; p_delay_minutes: number; p_approval_required: boolean; p_channel: string }
+        Returns: undefined
+      }
+      approve_message_job: { Args: { p_job_id: string }; Returns: boolean }
+      cancel_message_job: { Args: { p_job_id: string }; Returns: boolean }
+      claim_message_jobs: { Args: { p_limit?: number; p_agency_id?: string }; Returns: Database["public"]["Tables"]["message_jobs"]["Row"][] }
+      revalidate_message_job: { Args: { p_job_id: string; p_lease_token: string }; Returns: boolean }
+      finish_message_job: {
+        Args: { p_job_id: string; p_lease_token: string; p_outcome: string; p_provider_message_id?: string | null; p_error_code?: string | null; p_retry_after_seconds?: number | null }
+        Returns: boolean
+      }
+      record_message_receipt: {
+        Args: { p_provider: string; p_event_id: string; p_provider_message_id: string; p_status: string }
+        Returns: boolean
+      }
+      submit_inquiry_with_preferences: {
+        Args: { contact_name: string; email: string; service: string; brief: string; budget_cents: number; request_key: string; phone: string | null; email_opt_in: boolean; whatsapp_opt_in: boolean; target_agency_id?: string }
+        Returns: string
+      }
       accept_proposal_revision: {
         Args: { revision_id: string }
         Returns: string

@@ -32,7 +32,19 @@ SQL migrations own grants, RLS, guards, and transactional RPCs. Acceptance deriv
 
 Version one excludes payments, invoicing, uploads, campaigns, AI features, and multiple agency workspaces. Prices use USD integer cents. Scheduling inputs use Asia/Manila; Postgres stores `timestamptz`.
 
-## Setup
+## Leads and automation, October 14, 2026
+
+The live lead workspace now supports a paginated board/table view, owner filters, manual capture, explicit channel permissions, call outcomes, callback tasks, and an activity timeline. Manual creation and call logging use actor-scoped idempotent database commands; ordinary contact creation never starts an inquiry acknowledgment.
+
+The Automations screen manages four rules: inquiry acknowledgment, proposal publication notice, a delayed proposal follow-up, and accepted-project confirmation. Rules start disabled and approval is required by default. CRM events queue frozen messages transactionally. Workers recheck consent, contact details, current proposal and membership; claim with leases; and track simulation, provider acceptance, and signed delivery receipts separately. Failed configuration or known rejection can be reset by an administrator; ambiguous sends require reconciliation.
+
+Email uses an own-account Resend adapter. WhatsApp uses own-account Meta approved positional templates. The worker defaults to dry-run mode. Hermes Agent is optional for future drafts/triage and is not installed or connected. Inbound replies and AI conversation handling are not implemented. No ApartmentHub credentials, infrastructure, recipients, or i18n were imported.
+
+See [messaging setup](docs/messaging-setup.md) for the exact own-account settings. Apply the three new October 14 migrations to the AgencyDesk database, deploy the updated `inquiry`, `automation-worker`, and `message-receipts` functions, configure secrets, and schedule the worker before enabling live delivery. Provider secrets live in Edge Functions; Next.js still needs no service-role key. [Explore the sample preview](http://localhost:3000/demo/automations).
+
+New local checks: `pnpm test:database` includes all four isolated PostgreSQL suites; `pnpm test:edge` requires Deno 2 and executes the worker tests without network permission. Tests use only fictional records and fake providers. Hosted/provider delivery remains a separate test using the user's own account.
+
+## Local setup
 
 Use Node.js 22.18 or newer in the 22.x line and pnpm 10.28.1.
 

@@ -39,18 +39,21 @@ and private draft preview are verified. The publishing hook still awaits
 explicit approval; the diagram includes that pending step. Until it is
 connected, production Git/CLI deployments fetch fresh published CMS content.
 
-## Future analytics and automation
+## Business automation and future analytics
+
+The October 14 implementation adds lead activity/callback commands and a transactional message queue using existing committed activity events. Four disabled rules cover inquiry acknowledgment, proposal notice, delayed follow-up, and acceptance confirmation. An Edge worker delivers dry-run simulations or own-account Resend/Meta messages, and verified callbacks record delivery separately. See [messaging setup](messaging-setup.md) for migration, worker deployment, secret, and scheduler configuration. Hermes and inbound-reply automation remain future extensions.
 
 Use browser analytics for page views and interface interactions. Use confirmed
 server/database events for business outcomes: inquiry received, proposal
 published, proposal accepted, project created and milestone completed. A browser
 click alone cannot establish that an acceptance transaction succeeded.
 
-For n8n or Zapier, introduce an outbox alongside the committed Supabase
-transaction. Each event should have a unique ID, event type, record ID,
-occurrence time and schema version. A worker delivers authenticated webhooks
-with retries; consumers use the event ID to prevent duplicate reminders or
-notifications. Automation failures should not roll back accepted proposals.
+The message outbox is created alongside the committed Supabase transaction.
+Jobs reference a unique activity event, rule and channel; workers use leases,
+current eligibility checks, bounded known-safe retries, and provider receipts.
+External delivery failures cannot roll back accepted proposals. Future n8n or
+Zapier consumers should receive narrowly scoped authenticated events and use
+the same event identity for deduplication.
 
 Keep content publication events in Directus and business events in Supabase.
 Grant each integration only the access it needs. Do not give analytics or

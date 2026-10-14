@@ -1,6 +1,6 @@
 export const leadStatuses = ['new', 'contacted', 'qualified', 'proposal_sent', 'won', 'lost'] as const;
 export type LeadStatus = typeof leadStatuses[number];
-export interface Lead { id: string; company_id?:string|null; contact_name: string; email: string; service: string; brief: string; budget_cents: number; status: LeadStatus; owner_id: string | null; archived_at: string | null; created_at: string }
+export interface Lead { id: string; company_id?:string|null; contact_name: string; email: string; phone?:string|null; source?:string; email_opt_in?:boolean; whatsapp_opt_in?:boolean; service: string; brief: string; budget_cents: number; status: LeadStatus; owner_id: string | null; archived_at: string | null; created_at: string }
 export interface Contact { id: string; name: string; email: string; company_id: string | null; created_at: string }
 export interface Task { id: string; title: string; due_at: string | null; completed_at: string | null; lead_id: string | null; assigned_to: string | null; created_at: string }
 export interface Proposal { id: string; title: string; lead_id: string; company_id: string; created_at: string; status?: string; total_cents?: number; client_name?: string }

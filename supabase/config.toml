@@ -408,6 +408,13 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # Set enabled = false to fall back to the legacy migra engine.
 [experimental.pgdelta]
 enabled = true
+
+# Both functions verify caller credentials/signatures inside their handlers.
+[functions.automation-worker]
+verify_jwt = false
+
+[functions.message-receipts]
+verify_jwt = false
 # Directory under `supabase/` where declarative files are written.
 # declarative_schema_path = "./schemas"
 # JSON string passed through to pg-delta SQL formatting. When omitted, SQL is

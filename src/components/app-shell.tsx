@@ -2,12 +2,12 @@
 import Link from "next/link";
 import {usePathname} from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import {BriefcaseBusiness,CheckSquare,FileText,LayoutDashboard,Menu,PanelsTopLeft,Users,X} from "lucide-react";
+import {BriefcaseBusiness,CheckSquare,FileText,LayoutDashboard,Menu,PanelsTopLeft,Users,X,Workflow} from "lucide-react";
 import {useState,type ReactNode} from "react";
 import {signOut} from "@/app/login/actions";
 import {cn} from "./ui/primitives";
 
-const navigation=[{name:"Overview",path:"",icon:LayoutDashboard},{name:"Lead pipeline",path:"/leads",icon:PanelsTopLeft},{name:"Proposals",path:"/proposals",icon:FileText},{name:"Projects",path:"/projects",icon:BriefcaseBusiness},{name:"Tasks",path:"/tasks",icon:CheckSquare},{name:"Contacts",path:"/contacts",icon:Users}];
+const navigation=[{name:"Overview",path:"",icon:LayoutDashboard},{name:"Lead pipeline",path:"/leads",icon:PanelsTopLeft},{name:"Proposals",path:"/proposals",icon:FileText},{name:"Projects",path:"/projects",icon:BriefcaseBusiness},{name:"Tasks",path:"/tasks",icon:CheckSquare},{name:"Contacts",path:"/contacts",icon:Users},{name:"Automations",path:"/automations",icon:Workflow}];
 export function AppShell({children,mode="demo",role="staff",title,description}:{children:ReactNode;mode?:"demo"|"live";role?:"staff"|"client";title?:string;description?:string}){
  const pathname=usePathname();const [open,setOpen]=useState(false);
  const base=role==="client"?(mode==="demo"?"/demo/portal":"/portal"):(mode==="demo"?"/demo":"/crm");
