@@ -107,6 +107,70 @@ describe('message delivery boundaries', () => {
     expect(renderDeliveryBody(job.body,path,'https://user:secret@agency.example.test')).toBeNull();
     const request=vi.fn();expect(await deliverMessage({...job,portal_path:path},config,request)).toMatchObject({errorCode:'portal_origin_not_configured'});expect(request).not.toHaveBeenCalled();
   });
+  const wahaJob = { ...job, channel:'whatsapp', recipient:'+639171234567', provider:'waha' };
+  const ownWaha = { mode:'live', whatsappProvider:'waha', wahaURL:'https://waha.example.test', wahaKey:'own-private-waha-key-'.repeat(3), wahaSession:'default' };
+  const wahaAck = { id:'true_639171234567@c.us_ABCDEF123456', fromMe:true, ack:0 };
+  it('uses WAHA sendText with its own key and an individual chat, without Meta templates',async()=>{
+    const request=asFetch(async(url,init)=>{
+      expect(String(url)).toBe('https://waha.example.test/api/sendText');
+      expect(new Headers(init?.headers).get('X-Api-Key')).toBe(ownWaha.wahaKey);
+      expect(new Headers(init?.headers).has('authorization')).toBe(false);
+      expect(init?.redirect).toBe('error');
+      expect(init?.signal).toBeInstanceOf(AbortSignal);
+      expect(JSON.parse(String(init?.body))).toEqual({session:'default',chatId:'639171234567@c.us',text:job.body,linkPreview:false});
+      return Response.json(wahaAck);
+    });
+    expect(await deliverMessage(wahaJob,ownWaha,request)).toEqual({outcome:'accepted',providerMessageId:wahaAck.id});
+  });
+  it('does not contact WAHA during dry runs or reroute another provider into WAHA',async()=>{
+    const request=vi.fn();
+    expect(await deliverMessage(wahaJob,{...ownWaha,mode:'dry_run'},request)).toEqual({outcome:'simulated'});
+    expect(await deliverMessage({...wahaJob,provider:'whatsapp'},ownWaha,request)).toMatchObject({errorCode:'message_provider_mismatch'});
+    expect(await deliverMessage({...zokoJob,provider:'waha'},ownZoko,request)).toMatchObject({errorCode:'message_provider_mismatch'});
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('requires a private WAHA key, HTTPS origin and explicit bounded session before a request',async()=>{
+    const request=vi.fn();
+    for(const invalid of [{wahaKey:undefined},{wahaKey:'short'},{wahaKey:'a'.repeat(32)+'\n'},{wahaSession:undefined},{wahaSession:'../other'},{wahaSession:'a'.repeat(65)},...['http://localhost:3000','https://user:secret@example.test','https://example.test/path','https://example.test?token=secret','https://example.test#secret','invalid'].map(wahaURL=>({wahaURL}))]) {
+      expect(await deliverMessage(wahaJob,{...ownWaha,...invalid},request)).toMatchObject({outcome:'failed',errorCode:'waha_not_configured'});
+    }
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('never turns a group/chat identifier into a WAHA recipient or sends an invalid phone',async()=>{
+    const request=vi.fn();
+    for(const recipient of ['639171234567','120123456@g.us','+639171234567@c.us','+01234567890']) {
+      expect(await deliverMessage({...wahaJob,recipient},ownWaha,request)).toMatchObject({errorCode:'invalid_phone'});
+    }
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('does not retry ambiguous WAHA requests or infer acceptance from malformed messages',async()=>{
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>{throw new Error('private-key');}))).toEqual({outcome:'uncertain',errorCode:'network_result_unknown'});
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>new Response('',{status:503})))).toEqual({outcome:'uncertain',errorCode:'provider_result_unknown'});
+    for(const invalid of [{},{...wahaAck,fromMe:false},{...wahaAck,ack:-1},{...wahaAck,ack:undefined},{...wahaAck,ack:5},{...wahaAck,id:'true_chat_message\n'},{...wahaAck,id:'a'.repeat(301)},{...wahaAck,id:'false_639171234567@c.us_ABC'}]) {
+      expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>Response.json(invalid)))).toMatchObject({outcome:'uncertain'});
+    }
+  });
+  it('supports WAHA LID message identifiers and treats every positive ACK as accepted only',async()=>{
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>Response.json({...wahaAck,id:{_serialized:wahaAck.id,fromMe:true,remote:'639171234567@c.us',id:'ABCDEF123456'}})))).toEqual({outcome:'accepted',providerMessageId:wahaAck.id});
+    for(const ack of [0,1,2,3,4]) {
+      const id='true_123456789012345@lid_ABC123';
+      expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>Response.json({...wahaAck,id,ack})))).toEqual({outcome:'accepted',providerMessageId:id});
+    }
+  });
+  it('sanitizes WAHA rejections and honors explicit rate-limit pacing',async()=>{
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>new Response('private-session-details',{status:401})))).toEqual({outcome:'failed',errorCode:'provider_authentication_failed'});
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>new Response('',{status:429,headers:{'retry-after':'120'}})))).toMatchObject({outcome:'retry',retryAfterSeconds:120});
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>new Response('',{status:429,headers:{'retry-after':'999999'}})))).toMatchObject({outcome:'uncertain'});
+  });
+  it('bounds WAHA acknowledgment parsing and keeps configured portal links in text',async()=>{
+    expect(await deliverMessage(wahaJob,ownWaha,asFetch(async()=>new Response('x'.repeat(65537))))).toEqual({outcome:'uncertain',errorCode:'provider_acknowledgment_invalid'});
+    const path=`/portal/proposals/${job.id}`;
+    const request=asFetch(async(_url,init)=>{
+      expect(JSON.parse(String(init?.body)).text).toContain(`https://agency.example.test${path}`);
+      return Response.json(wahaAck);
+    });
+    expect(await deliverMessage({...wahaJob,portal_path:path},{...ownWaha,appURL:'https://agency.example.test'},request)).toMatchObject({outcome:'accepted'});
+  });
   it('normalizes WhatsApp parameter whitespace while preserving email line breaks',()=>{
     const path=`/portal/proposals/${job.id}`;
     expect(renderDeliveryBody('Own\nproject\tupdate',path,'https://agency.example.test','whatsapp')).not.toMatch(/[\r\n\t]/);

@@ -1,0 +1,25 @@
+name: agencydesk-whatsapp
+services:
+  waha:
+    # Public upstream image, pinned to the digest inspected on 15 October 2026.
+    image: devlikeapro/waha@sha256:280bdc8f860267a2488a45d00ec88529646f7468c0bf0283c595d6efdd1b5e3b
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      WAHA_API_KEY: "${WAHA_API_KEY:?Run prepare.ps1 first}"
+      WAHA_DASHBOARD_ENABLED: "false"
+      WHATSAPP_SWAGGER_ENABLED: "false"
+      WHATSAPP_DEFAULT_ENGINE: WEBJS
+      WAHA_LOG_LEVEL: warn
+    volumes:
+      - sessions:/app/.sessions
+      - media:/app/.media
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "2"
+volumes:
+  sessions:
+  media:

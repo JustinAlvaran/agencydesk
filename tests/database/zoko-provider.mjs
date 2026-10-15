@@ -87,5 +87,28 @@ try {
  await actor(admin);await eq(`select public.retry_message_job('${failed.id}') as value`,false,'Ambiguous Zoko submission cannot be blindly resent');
  await owner();await denied(`update public.message_jobs set provider='resend' where id='${failed.id}'`,'No direct configuration rewrite can reroute a frozen job');
  await actor(admin);await denied(`select public.record_message_receipt('zoko','forged','${sharedId}','delivered')`,'Staff cannot forge trusted Zoko receipt');
- console.log(`Passed ${count} Zoko provider database assertions using embedded PostgreSQL.`);
+ // Upgrade an existing provider history to WAHA without modifying old routes.
+ await owner();
+ const wahaMigration=migrations.find(x=>x.endsWith('_waha_provider.sql'));
+ assert.ok(wahaMigration);count++;
+ await db.exec(await readFile(new URL(wahaMigration,directory),'utf8'));
+ await configure('whatsapp','waha');
+ const waha=await event();const[wahaLease]=await claim();
+ assert.equal(wahaLease.provider,'waha');count++;
+ assert.equal(await finish(wahaLease,'accepted',sharedId),true);count++;
+ await owner();await eq(`select status as value from public.message_jobs where id='${historical.id}'`,'accepted','WAHA upgrade preserves original email history');
+ await actor(null,'service_role');
+ await eq(`select public.record_message_receipt('waha','waha-delivered','${sharedId}','delivered') as value`,true,'Trusted WAHA receipt matches its own provider');
+ await owner();await eq(`select status as value from public.message_jobs where id='${waha.id}'`,'delivered','WAHA identity cannot consume another provider receipt');
+ await actor(admin);await denied(`select public.record_message_receipt('waha','forged-waha','${sharedId}','read')`,'Staff cannot forge WAHA receipts');
+ await actor(otherAdmin);await denied(`select public.configure_automation_rule('${rule}',true,0,false,'whatsapp','waha')`,'Other agency cannot configure this WAHA route');
+ await configure('whatsapp','waha');const wahaStale=await event();await configure('whatsapp','whatsapp');
+ assert.equal((await claim()).length,0,'Changing provider never reroutes queued WAHA message');count++;
+ await owner();await eq(`select provider as value from public.message_jobs where id='${wahaStale.id}'`,'waha','Skipped WAHA job preserves provider');
+ await configure('whatsapp','waha');const wahaFailed=await event();const[wahaFailedLease]=await claim();
+ assert.equal(await finish(wahaFailedLease,'failed',null,'waha_not_configured'),true);count++;
+ await actor(admin);await eq(`select public.retry_message_job('${wahaFailed.id}') as value`,true,'Known unsent WAHA configuration failure can be reviewed again');
+ const[wahaRetry]=await claim();assert.equal(await finish(wahaRetry,'uncertain',null,'network_result_unknown'),true);count++;
+ await actor(admin);await eq(`select public.retry_message_job('${wahaFailed.id}') as value`,false,'Ambiguous WAHA result cannot be blindly resent');
+ console.log(`Passed ${count} provider routing database assertions using embedded PostgreSQL.`);
 }catch(error){console.error(error.message);process.exitCode=1;}finally{await db.close();}

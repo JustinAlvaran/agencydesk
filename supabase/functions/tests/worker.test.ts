@@ -50,3 +50,18 @@ Deno.test('worker reports a lost lease instead of claiming a successful result',
 Deno.test('worker ignores caller attempts to change dry-run mode or recipients',async()=>{
   await usingFetch(async()=>{const input=new Request('https://agency-test.invalid/worker',{method:'POST',headers:{'x-automation-secret':secret},body:JSON.stringify({mode:'live',recipient:'changed@example.test'})});const response=await worker(input);assert.equal((await response.json()).mode,'dry_run');});
 });
+Deno.test('worker never lends the linked WAHA sender to another agency',async()=>{
+ environment();Deno.env.set('AUTOMATION_DELIVERY_MODE','live');
+ Deno.env.set('WAHA_AGENCY_ID','b0000000-0000-4000-8000-000000000002');
+ Deno.env.set('WAHA_API_URL','https://own-waha.invalid');Deno.env.set('WAHA_API_KEY','own-fictional-waha-key-12345678901234567890');Deno.env.set('WAHA_SESSION','default');
+ const original=fetch;let claims=0;let completed=false;
+ globalThis.fetch=async(input,init)=>{
+   const url=new URL(String(input));assert.equal(url.hostname,'agency-test.invalid','A mismatched agency must never reach WAHA');
+   if(url.pathname.endsWith('/automation_rules'))return Response.json([{id:job.rule_id,template_key:'inquiry_acknowledgment'}]);
+   if(url.pathname.endsWith('/claim_message_jobs'))return Response.json(claims++===0?[{...job,channel:'whatsapp',provider:'waha',recipient:'+639123456789'}]:[]);
+   if(url.pathname.endsWith('/revalidate_message_job'))return Response.json(true);
+   if(url.pathname.endsWith('/finish_message_job')){const data=JSON.parse(String(init?.body));assert.equal(data.p_outcome,'failed');assert.equal(data.p_error_code,'waha_not_configured');completed=true;return Response.json(true);}
+   throw new Error('Unexpected request');
+ };
+ try{assert.equal((await worker(request())).status,200);assert.equal(completed,true);}finally{globalThis.fetch=original;Deno.env.delete('WAHA_API_KEY');Deno.env.delete('WAHA_AGENCY_ID');environment();}
+});

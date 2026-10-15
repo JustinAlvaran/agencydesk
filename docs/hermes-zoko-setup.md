@@ -34,7 +34,19 @@ HERMES_DRAFT_PROFILE_READY=true
 
 The endpoint accepts only `{ "lead_id": "<UUID>", "purpose": "reply|follow_up|summary" }`. It requests model alias `hermes-agent` and returns `{ "draft": "...", "requires_approval": true }`. The response must complete within 20 seconds. Missing configuration, enabled tools and truncated responses fail closed. Manual drafts remain available when Hermes is unavailable.
 
-## Optional Zoko adapter
+## WAHA preparation (15 October)
+
+The source includes an optional WAHA sender adapter, frozen provider routing and a rule selector entry. Server-only settings are `WAHA_API_URL` (the authenticated HTTPS send-only gateway), `WAHA_API_KEY` (its separate gateway key), `WAHA_SESSION` and `WAHA_AGENCY_ID`. The worker refuses to lend this sender to another agency. The full WAHA API stays on localhost. The adapter retains approval/consent checks and treats uncertain send outcomes conservatively; acceptance is separate from delivery.
+
+Local WAHA is paired to the user's own sender. Its signed callback is `https://<your-project-ref>.supabase.co/functions/v1/message-receipts?provider=waha`, using SHA-512 raw-body HMAC with `WAHA_WEBHOOK_SECRET`. `WAHA_SESSION` and `WAHA_SENDER_ID` must match the signed event. Only outgoing individual message acknowledgments update receipt state; incoming chats are ignored. ACK 2 means delivered, 3/4 read, 0/1 are ignored. Stable event IDs are deduplicated. Never point WAHA at the Meta callback provider parameter.
+
+An approved one-message test through the temporary HTTPS gateway succeeded and its signed read receipt reached the own Supabase project. Customer automation rules remain disabled and worker delivery mode remains dry-run. The test was a gateway send, not an automatically triggered lead job. A real CRM workflow test still requires an explicitly approved lead/message.
+
+`infra/waha/` contains the Docker configuration and authenticated send-only proxy. Private files are ignored and keys have restricted Windows access. A Cloudflare Quick Tunnel is a temporary development connection: its hostname changes after restart and there is no uptime guarantee. Keep the PC awake; configure a stable authenticated host before relying on unattended production sending. See [the repository comparison](../analysis/open-source-messaging.md).
+
+The local Hermes audit found that the warmed draft proxy can respond within the timeout, but the small local model invented business facts during fictional tests and an earlier call timed out. Keep human review required; the hosted Hermes connection is not activated.
+
+## Optional Zoko adapter details
 
 The worker includes Zoko template sending. CRM rules, jobs and attempts store provider separately from channel. A provider change never reroutes an existing job; eligibility checks skip jobs whose rule provider changed. Provider message identities and receipt matching are scoped by provider.
 

@@ -1,6 +1,6 @@
 export type DeliveryOutcome = { outcome: 'simulated' | 'accepted' | 'retry' | 'failed' | 'uncertain'; providerMessageId?: string; errorCode?: string; retryAfterSeconds?: number };
 export type DeliveryJob = { id: string; channel: string; recipient: string; subject: string; body: string; template_key: string; portal_path?: string | null; provider?: string | null };
-export type DeliveryConfig = { mode?: string; emailProvider?: string; resendKey?: string; fromEmail?: string; whatsappProvider?: string; whatsappToken?: string; whatsappPhoneId?: string; graphVersion?: string; templateMap?: string; zokoKey?: string; zokoTemplateMap?: string; appURL?: string };
+export type DeliveryConfig = { mode?: string; emailProvider?: string; resendKey?: string; fromEmail?: string; whatsappProvider?: string; whatsappToken?: string; whatsappPhoneId?: string; graphVersion?: string; templateMap?: string; zokoKey?: string; zokoTemplateMap?: string; wahaURL?: string; wahaKey?: string; wahaSession?: string; appURL?: string };
 type Template = { name: string; language: string; body_parameters: Array<'body' | 'subject'> };
 const failure = (errorCode: string): DeliveryOutcome => ({ outcome: 'failed', errorCode });
 
@@ -53,25 +53,39 @@ export async function deliverMessage(job: DeliveryJob, config: DeliveryConfig, r
     payload = { from: config.fromEmail, to: [job.recipient], subject: job.subject, text: body, tags: [{ name: 'agencydesk_job_id', value: job.id }] };
   } else if (job.channel === 'whatsapp') {
     const provider = config.whatsappProvider ?? 'meta';
-    if (provider !== 'meta' && provider !== 'zoko') return failure('unsupported_whatsapp_provider');
-    if (provider === 'zoko' ? !config.zokoKey || /[\r\n]/.test(config.zokoKey) : !config.whatsappToken || !/^\d{5,30}$/.test(config.whatsappPhoneId ?? '') || !/^v\d+\.\d+$/.test(config.graphVersion ?? '')) return failure('whatsapp_not_configured');
+    if (provider !== 'meta' && provider !== 'zoko' && provider !== 'waha') return failure('unsupported_whatsapp_provider');
     if (!/^\+[1-9]\d{7,14}$/.test(job.recipient)) return failure('invalid_phone');
-    const template = templateFor(provider === 'zoko' ? config.zokoTemplateMap : config.templateMap, job.template_key);
-    if (!template) return failure('whatsapp_template_not_configured');
-    const parameters = template.body_parameters.map(field => (field === 'body' ? body : job.subject).replace(/\s+/g,' ').trim());
-    if (parameters.some(value => !value || value.length > 1024)) return failure('whatsapp_parameter_too_long');
-    if (provider === 'zoko') {
-      url = 'https://chat.zoko.io/v2/message';
-      headers = { apikey: config.zokoKey!, 'Content-Type': 'application/json' };
-      payload = { channel: 'whatsapp', recipient: job.recipient.slice(1), type: 'template', templateId: template.name, templateLanguage: template.language, templateArgs: parameters };
+    if (provider === 'waha') {
+      // The origin is operator configuration, never a lead-controlled URL. Hosted delivery
+      // requires HTTPS; a localhost-only Docker instance cannot be reached from an Edge Function.
+      if (!config.wahaKey || config.wahaKey.length < 32 || config.wahaKey.length > 4096 || /[^\x21-\x7e]/.test(config.wahaKey) || !/^[A-Za-z0-9_-]{1,64}$/.test(config.wahaSession ?? '')) return failure('waha_not_configured');
+      try {
+        const origin = new URL(config.wahaURL ?? '');
+        if (origin.protocol !== 'https:' || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) return failure('waha_not_configured');
+        url = new URL('/api/sendText', origin).href;
+      } catch { return failure('waha_not_configured'); }
+      headers = { 'X-Api-Key': config.wahaKey, 'Content-Type': 'application/json' };
+      // WAHA MessageTextRequest: no generated message ID or idempotency guarantee is assumed.
+      payload = { session: config.wahaSession, chatId: `${job.recipient.slice(1)}@c.us`, text: body, linkPreview: false };
     } else {
-      url = `https://graph.facebook.com/${config.graphVersion}/${config.whatsappPhoneId}/messages`;
-      headers = { Authorization: `Bearer ${config.whatsappToken}`, 'Content-Type': 'application/json' };
-      payload = { messaging_product: 'whatsapp', to: job.recipient.slice(1), type: 'template', template: { name: template.name, language: { code: template.language }, components: parameters.length ? [{ type: 'body', parameters: parameters.map(text => ({ type: 'text', text })) }] : [] } };
+      if (provider === 'zoko' ? !config.zokoKey || /[\r\n]/.test(config.zokoKey) : !config.whatsappToken || !/^\d{5,30}$/.test(config.whatsappPhoneId ?? '') || !/^v\d+\.\d+$/.test(config.graphVersion ?? '')) return failure('whatsapp_not_configured');
+      const template = templateFor(provider === 'zoko' ? config.zokoTemplateMap : config.templateMap, job.template_key);
+      if (!template) return failure('whatsapp_template_not_configured');
+      const parameters = template.body_parameters.map(field => (field === 'body' ? body : job.subject).replace(/\s+/g,' ').trim());
+      if (parameters.some(value => !value || value.length > 1024)) return failure('whatsapp_parameter_too_long');
+      if (provider === 'zoko') {
+        url = 'https://chat.zoko.io/v2/message';
+        headers = { apikey: config.zokoKey!, 'Content-Type': 'application/json' };
+        payload = { channel: 'whatsapp', recipient: job.recipient.slice(1), type: 'template', templateId: template.name, templateLanguage: template.language, templateArgs: parameters };
+      } else {
+        url = `https://graph.facebook.com/${config.graphVersion}/${config.whatsappPhoneId}/messages`;
+        headers = { Authorization: `Bearer ${config.whatsappToken}`, 'Content-Type': 'application/json' };
+        payload = { messaging_product: 'whatsapp', to: job.recipient.slice(1), type: 'template', template: { name: template.name, language: { code: template.language }, components: parameters.length ? [{ type: 'body', parameters: parameters.map(text => ({ type: 'text', text })) }] : [] } };
+      }
     }
   } else return failure('unsupported_channel');
   // The queue freezes the provider. Changing configuration must never reroute a queued job.
-  const provider = job.channel === 'email' ? 'resend' : config.whatsappProvider === 'zoko' ? 'zoko' : 'whatsapp';
+  const provider = job.channel === 'email' ? 'resend' : config.whatsappProvider === 'waha' ? 'waha' : config.whatsappProvider === 'zoko' ? 'zoko' : 'whatsapp';
   if (job.provider !== undefined && job.provider !== null && job.provider !== provider) return failure('message_provider_mismatch');
   try {
     const response = await request(url, { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), redirect: 'error' });
@@ -82,6 +96,15 @@ export async function deliverMessage(job: DeliveryJob, config: DeliveryConfig, r
     const raw = await response.text();
     if (raw.length > 65536) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
     const data = JSON.parse(raw);
+    if (provider === 'waha') {
+      // WAHA WAMessage is acceptance only. A negative/missing ACK is not proof
+      // that a resend is safe, and incoming/foreign message objects are not send ACKs.
+      // WEBJS sendText returns its native Message with id._serialized; the
+      // WAMessage response used by other engines exposes the same ID as a string.
+      const id = typeof data?.id === 'string' ? data.id : data?.id?._serialized;
+      if (typeof id !== 'string' || id.length > 300 || !/^true_[1-9]\d{7,19}@(c\.us|lid)_[A-Za-z0-9_-]{1,200}$/.test(id) || data.fromMe !== true || !Number.isInteger(data.ack) || data.ack < 0 || data.ack > 4) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
+      return { outcome: 'accepted', providerMessageId: id };
+    }
     const zoko = job.channel === 'whatsapp' && config.whatsappProvider === 'zoko';
     // Zoko's response body has its own status. Never infer acceptance from HTTP alone.
     if (zoko && !['200', '201', '202'].includes(String(data.status))) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
