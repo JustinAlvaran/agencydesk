@@ -1,6 +1,6 @@
 # AgencyDesk messaging setup
 
-Updated 15 October 2026. WAHA is linked for controlled testing; the worker remains in dry-run and customer sending is not enabled. Gmail is optional and is not connected. See [free-first setup](hermes-zoko-setup.md). Use your own accounts throughout. ApartmentHub supplies workflow ideas only; its credentials, destinations, sender identities, customer records, and sending app must never be imported.
+Updated 15 October 2026. WAHA is linked for controlled testing, and Gmail's send-only OAuth connection is configured and authenticated. The worker remains in dry-run; live customer sending is off and no Gmail email has been sent. See [free-first setup](hermes-zoko-setup.md). Use your own accounts throughout. ApartmentHub supplies workflow ideas only; its credentials, destinations, sender identities, customer records, and sending app must never be imported.
 
 Current hosted AgencyDesk rules: **Inquiry acknowledgment** is enabled for WhatsApp via WAHA, with no delay and staff approval required. It can queue a website inquiry acknowledgment for approval and simulation; `AUTOMATION_DELIVERY_MODE=dry_run` keeps live customer delivery off. The other three AgencyDesk rules are disabled. All four rules in the other agency remain disabled. No scheduler is configured; an administrator processes approved dry-run jobs manually.
 
@@ -13,7 +13,7 @@ Current hosted AgencyDesk rules: **Inquiry acknowledgment** is enabled for Whats
 | Preview rules and follow-ups | AgencyDesk; no messaging key | Local demo or your own live CRM |
 | Store and process live jobs | Your AgencyDesk database, deployed worker, scheduler | Your AgencyDesk infrastructure |
 | Send email | Your Resend API key, verified sending domain, sender address | Your Resend account |
-| Send from your own Gmail | Your own OAuth client, send-only consent, refresh token and sender address | Your Google Cloud project and Google account; not connected yet |
+| Send from your own Gmail | Your own OAuth client, send-only consent, refresh token and sender address | Configured and token refresh verified; message-send test still pending |
 | Send through linked WAHA | Own paired sender, authenticated send-only HTTPS gateway and agency binding | Own local WAHA host; currently dry-run with approval required |
 | Send WhatsApp reminders | Your Meta app, WABA, sender ID, access token, approved template | Your Meta business/developer accounts |
 | Reviewed manual WhatsApp drafts | Customer phone, WhatsApp permission and staff review | Lead detail page; staff press Send in WhatsApp |
@@ -40,15 +40,17 @@ This is not an inbound unsubscribe parser. Incoming WhatsApp chats are not store
 
 The worker must reuse the same idempotency key and frozen payload on an eligible retry. Resend retains those keys for 24 hours; an unresolved attempt outside that window requires reconciliation instead of blind resend. [Resend idempotency](https://resend.com/docs/dashboard/emails/idempotency-keys).
 
-## Optional Gmail sender — not connected
+## Optional Gmail sender — authenticated, send test pending
 
-The own free Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) was created on 15 October 2026. Gmail API is enabled; OAuth credentials have not been created and the sender is not connected.
+The own free Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) has Gmail API enabled, OAuth consent configured and a Desktop client created with user approval. The account `kinggucci195@gmail.com` was verified on Google's consent screen and granted only `https://www.googleapis.com/auth/gmail.send`. The official SDK helper completed authorization, and an actual refresh succeeded with that exact send-only scope. All five `GMAIL_*` values were saved directly to the own Supabase project and their SHA-256 digests matched the private local configuration. No credential values are published here. See [the operator helper](../infra/gmail/README.md).
+
+The consent project remains **External/Testing**. Its send-scope refresh token expires after seven days unless the appropriate production consent requirements are addressed. This setup has activated no paid plan. Authorization verifies access, not message delivery: no email was sent, no Gmail rule was selected or enabled, and the enabled acknowledgment still uses WAHA. Delivery remains `dry_run`.
 
 The optional Gmail adapter uses the account owner's OAuth consent, including a personal Gmail account. It does not require ApartmentHub's Google Workspace domain-wide delegation or a service-account impersonation setup. No reference credentials or mailbox identities are reused. Create an AgencyDesk-owned Google Cloud OAuth client, enable Gmail API and authorize only `https://www.googleapis.com/auth/gmail.send` for sending. Gmail authorization is separate from Google login to AgencyDesk. [Google's scope reference](https://developers.google.com/workspace/gmail/api/auth/scopes).
 
 Obtain the account owner's offline refresh token through the OAuth authorization-code flow and store it only in your AgencyDesk Edge secrets. Follow Google's applicable consent-screen/testing/verification requirements; an OAuth app left in testing can have refresh-token lifetime restrictions. Do not paste tokens into chat, tracked files or screenshots. [Google OAuth server flow](https://developers.google.com/identity/protocols/oauth2/web-server#offline).
 
-The configuration starts blank; blank values deliberately prevent live Gmail sending:
+Tracked examples remain blank; the actual values are configured privately in Edge secrets:
 
 ```dotenv
 GMAIL_CLIENT_ID=
@@ -60,7 +62,9 @@ GMAIL_AGENCY_ID=
 
 Use a single bare authorized mailbox for `GMAIL_FROM_EMAIL`, and your AgencyDesk agency UUID for `GMAIL_AGENCY_ID`. The worker withholds the client secret if the processing agency does not match. Choose **Email · Gmail** on the intended rule; provider identity is frozen into new jobs, so changing a rule does not reroute older messages. Retain dry-run and staff approval while connecting. The current adapter sends plain-text MIME through Google's `users.messages.send`. A Gmail message ID means **accepted**, not delivered or read. Gmail receipts, bounce reconciliation and mailbox reply sync are not integrated. Ambiguous send outcomes require reconciliation; there is no assumed Gmail send-idempotency guarantee. [Gmail sending format](https://developers.google.com/workspace/gmail/api/guides/sending).
 
-No Gmail Codex plugin is needed for the deployed CRM runtime. A plugin connection would authorize this assistant separately and does not provision the application's OAuth secrets. Gmail has account/API sending limits; this is not an unlimited bulk-email service. Gmail remains **not connected** until the user's own OAuth authorization and a reviewed test are completed.
+No Gmail Codex plugin is needed for the deployed CRM runtime. A plugin connection would authorize this assistant separately and does not provision the application's OAuth secrets. Gmail has account/API sending limits; this is not an unlimited bulk-email service. The runtime connection is configured and authenticated; a separately approved end-to-end send test remains outstanding.
+
+Live staff Google login was verified for `kinggucci195@gmail.com` as an administrator in the own agency. That agency currently has **zero leads**; the 11 existing leads belong to the other agency and were preserved. Login does not merge tenants or grant the own agency access to those records.
 
 ## Prepare your own WhatsApp account
 

@@ -4,7 +4,7 @@ Updated 15 October 2026. Use your own accounts. Never import ApartmentHub keys, 
 
 ## Recommended route
 
-Keep AgencyDesk as the CRM and automation engine. Zoko is optional. WAHA is now linked for controlled testing, with worker dry-run and staff approval retained; no customer sending is enabled. Reviewed manual drafts remain available. Optional Gmail sending is implemented in source but **not connected**. Official Meta production messaging may have usage charges even without an inbox subscription; verify your actual WhatsApp Manager rate card before activation.
+Keep AgencyDesk as the CRM and automation engine. Zoko is optional. WAHA is linked for controlled testing, with worker dry-run and staff approval retained; live customer sending is off. Reviewed manual drafts remain available. Optional Gmail is configured and authenticated with send-only OAuth, but no email has been sent or Gmail rule activated. Official Meta production messaging may have usage charges even without an inbox subscription; verify your actual WhatsApp Manager rate card before activation.
 
 Only AgencyDesk's **Inquiry acknowledgment** rule is enabled: WhatsApp via WAHA, immediate, with approval required. It queues for review/simulation while `AUTOMATION_DELIVERY_MODE=dry_run`; live customer delivery is off. Its other three rules and all four rules in the other agency are disabled. No scheduler is configured.
 
@@ -25,9 +25,9 @@ Recipient suppression blocks a withdrawn email address or WhatsApp number across
 
 Gmail uses your own Google OAuth client and the account owner's `gmail.send` consent, suitable for a personal account. ApartmentHub's Workspace delegation is not reused. Google sign-in to the CRM does not grant Gmail sending access. No Gmail plugin is required for the CRM runtime.
 
-The free Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) was created on 15 October 2026. Gmail API is enabled, and OAuth credentials have not been created. Creating the project does not connect the sender.
+The free own Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) has Gmail API enabled, a configured consent screen and a user-approved Desktop OAuth client. Google's consent screen verified `kinggucci195@gmail.com`; only `gmail.send` was granted. The official SDK helper completed authorization and an actual refresh returned the exact send-only scope. The five `GMAIL_*` settings are saved in the own Supabase project and their SHA-256 digests matched the private local configuration. No email was sent and no Gmail rule was selected or enabled; acknowledgment still uses WAHA in dry-run. [Operator helper](../infra/gmail/README.md).
 
-Configure blank `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_FROM_EMAIL` and `GMAIL_AGENCY_ID` only after your own OAuth setup; actual values belong in Edge secrets. Choose Gmail on the rule, keep approval and dry-run, and review a test before activation. Gmail currently is **not connected**. Provider acceptance is recorded; delivery/read receipts and mailbox sync are not implemented. [Configuration and limitations](messaging-setup.md#optional-gmail-sender--not-connected).
+Tracked `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_FROM_EMAIL` and `GMAIL_AGENCY_ID` examples stay blank; actual values live only in private configuration and Edge secrets. `GMAIL_AGENCY_ID` binds the sender to the own agency. The runtime is configured and authenticated; an approved end-to-end send test remains pending. The Google project is External/Testing, so the send-scope refresh token expires after seven days unless production consent requirements are addressed. No paid plan was activated. Provider acceptance is distinct from delivery; delivery/read receipts and mailbox sync are not implemented. [Configuration and limitations](messaging-setup.md#optional-gmail-sender--authenticated-send-test-pending).
 
 ## Hermes drafts
 
@@ -74,4 +74,4 @@ The adapter sends HTTPS POST to `https://chat.zoko.io/v2/message` using the `api
 
 ## Login
 
-AgencyDesk has `/login` with Supabase password and Google sign-in. Staff need an active `staff_members` record; portal users need an active `client_memberships` record. Public signup is disabled. Verify the real user's sign-in and membership separately; a visible Google button alone does not prove those work.
+AgencyDesk has `/login` with Supabase password and Google sign-in. Live staff Google login was verified for `kinggucci195@gmail.com` as an administrator in the own agency. It currently contains zero leads; the 11 existing leads belong to the other agency and were preserved. Staff need an active `staff_members` record; portal users need an active `client_memberships` record. Public signup is disabled. This confirms the tested Google staff login, not every password/client login path.

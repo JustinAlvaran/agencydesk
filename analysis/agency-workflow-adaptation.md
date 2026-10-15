@@ -24,11 +24,15 @@ An administrator can clear a suppression after renewed permission is verified. C
 
 The reference has Google Workspace delegation and mailbox-draft flows. AgencyDesk instead prepares an optional Gmail API sender using the user's own OAuth client and a send-only `https://www.googleapis.com/auth/gmail.send` grant, including personal Gmail. It requests no inbox-read permission. OAuth sending authorization is separate from CRM Google login. [Google scopes](https://developers.google.com/workspace/gmail/api/auth/scopes).
 
-`GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_FROM_EMAIL` and `GMAIL_AGENCY_ID` are blank until the user's own setup. Secrets belong only in the AgencyDesk Edge environment. The worker binds the credential to its agency. No Gmail Codex plugin is needed by the deployed application.
+Tracked examples for `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_FROM_EMAIL` and `GMAIL_AGENCY_ID` remain blank. Actual values are saved privately in the own Supabase Edge environment, and their SHA-256 digests matched the local private configuration. The worker binds the sender to the own agency (`a0000000-0000-4000-8000-000000000001`). No Gmail Codex plugin is needed by the deployed application.
 
-The own free Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) was created on 15 October 2026. Gmail API is enabled. OAuth credentials have not been created; the Google project alone is not a connected sender.
+The own free Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) has Gmail API enabled, consent configured and a user-approved Desktop OAuth client. The account `kinggucci195@gmail.com` was verified on Google's consent screen; only `gmail.send` was granted. The official SDK local helper completed authorization and an actual token refresh succeeded with the exact send-only scope. [Operator helper](../infra/gmail/README.md). No paid plan was activated.
 
-The sender refreshes its OAuth access token, builds plain-text MIME and posts to Gmail's send endpoint. A returned provider message ID records acceptance; receipt/bounce reconciliation, mailbox reply sync and Gmail draft creation are not integrated. Ambiguous sends are not blindly resent. **Gmail is not connected, and no Gmail test/customer email has been sent by this setup.** See [the setup guide](../docs/messaging-setup.md#optional-gmail-sender--not-connected).
+The sender refreshes its OAuth access token, builds plain-text MIME and posts to Gmail's send endpoint. A returned provider message ID records acceptance; receipt/bounce reconciliation, mailbox reply sync and Gmail draft creation are not integrated. Ambiguous sends are not blindly resent. **Gmail is configured and authenticated; no email has been sent and the end-to-end send test is pending.** No Gmail rule was selected or enabled. Acknowledgment remains WAHA and delivery stays dry-run. The Google consent project is External/Testing; the send-scope refresh token expires after seven days unless production consent requirements are addressed. See [the setup guide](../docs/messaging-setup.md#optional-gmail-sender--authenticated-send-test-pending).
+
+## Verified login and agency records
+
+Live Google staff login for `kinggucci195@gmail.com` was verified as administrator of the own agency. That agency has zero leads. The 11 existing leads belong to the other agency and were preserved; they were not moved into the user's agency or exposed by the login verification.
 
 ## Current WhatsApp and AI boundary
 

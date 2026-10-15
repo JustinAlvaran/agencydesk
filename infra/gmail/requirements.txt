@@ -1,0 +1,2 @@
+# Official Google SDK; version verified against PyPI on 2026-10-15.
+google-auth-oauthlib==1.5.0
