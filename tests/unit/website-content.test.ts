@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import fixtures from '../../content/fixtures.json';
 import { websiteContentSchema, sampleProjectSchema } from '../../src/lib/website-schema';
 describe('website content contract', () => {
-  it('accepts the original fictional content without credentials', () => {
-    expect(websiteContentSchema.parse(fixtures).services).toHaveLength(3);
+  it('accepts the service catalog and illustrative projects without credentials', () => {
+    expect(websiteContentSchema.parse(fixtures).services).toHaveLength(4);
   });
   it('rejects CMS-controlled navigation destinations', () => {
     expect(sampleProjectSchema.safeParse({ ...fixtures.sample_projects[0], scenario: 'https://attacker.example' }).success).toBe(false);

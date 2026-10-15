@@ -2,7 +2,7 @@ import { websiteContent } from "@/lib/website-content";
 import { SampleProjectContent } from "@/components/website-content";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing";
 
-export const metadata = { title: "Sample projects" };
+export const metadata = { title: "Sample projects", description: "Illustrative website, application, and client portal scenarios. Explore how AgencyDesk handles inquiries, proposals, and project delivery.", alternates: { canonical: '/case-studies' } };
 export default function Page() {
   return (
     <div className="marketing">

@@ -19,7 +19,7 @@ export function MarketingHeader() {
 export function MarketingFooter() {
   return (
     <footer className="site-footer">
-      <p>Portfolio demo. Sample projects and records are fictional.</p>
+      <p>AgencyDesk · Websites, applications, and connected workflows. Sample projects and demo records are illustrative.</p>
       <nav className="site-footer-links" aria-label="Footer navigation">
         <Link href="/demo">Explore demo</Link>
         <Link href="/crm">Staff CRM</Link>

@@ -3,8 +3,16 @@ const text = z.string().trim().min(1).max(4000);
 const id = z.string().regex(/^[a-z0-9-]{1,80}$/);
 export const siteSettingsSchema = z.object({ id, seo_title: text, seo_description: text, contact_heading: text, contact_description: text });
 export const homePageSchema = z.object({ id, heading: text, description: text, section_heading: text, leads_heading: text, leads_description: text, proposals_heading: text, proposals_description: text, portal_heading: text, portal_description: text });
-export const serviceSchema = z.object({ id, sort: z.number().int().nonnegative(), visibility: z.enum(['visible', 'archived']), title: text, description: text, bullet_1: text, bullet_2: text, bullet_3: text });
+export const serviceSchema = z.object({ id, sort: z.number().int().nonnegative(), visibility: z.enum(['visible', 'archived']), title: z.string().trim().min(1).max(100), description: text, bullet_1: text, bullet_2: text, bullet_3: text });
 export const sampleProjectSchema = z.object({ id, sort: z.number().int().nonnegative(), visibility: z.enum(['visible', 'archived']), title: text, service: text, description: text, scenario: z.enum(['portal', 'proposals', 'leads']) });
-export const websiteContentSchema = z.object({ site_settings: siteSettingsSchema, home_page: homePageSchema, services: z.array(serviceSchema).min(1).max(100), sample_projects: z.array(sampleProjectSchema).min(1).max(100) });
+export const websiteContentSchema = z.object({ site_settings: siteSettingsSchema, home_page: homePageSchema, services: z.array(serviceSchema).min(1).max(100), sample_projects: z.array(sampleProjectSchema).min(1).max(100) }).superRefine((content, context) => {
+  for (const collection of ['services', 'sample_projects'] as const) {
+    const ids = new Set<string>();
+    content[collection].forEach((item, index) => {
+      if (ids.has(item.id)) context.addIssue({ code: 'custom', path: [collection, index, 'id'], message: 'Published items must have unique IDs.' });
+      ids.add(item.id);
+    });
+  }
+});
 export type WebsiteContent = z.infer<typeof websiteContentSchema>;
 export const contentCollections = ['site_settings', 'home_page', 'services', 'sample_projects'] as const;

@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { signIn, signInWithGoogle } from './actions';
 import { isDemo } from '@/lib/env';
+export const metadata = { title: 'Sign in', robots: { index: false, follow: false } };
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;

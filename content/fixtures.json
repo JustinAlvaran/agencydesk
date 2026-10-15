@@ -1,16 +1,16 @@
 {
   "site_settings": {
     "id": "main",
-    "seo_title": "AgencyDesk",
-    "seo_description": "An original agency CRM and client portal. Bring inquiries, proposals, and project delivery into one workspace.",
+    "seo_title": "AgencyDesk — Websites, applications and automation",
+    "seo_description": "Business websites, redesigns, web applications, client portals, and CRM automation. Plan your project with AgencyDesk and follow delivery in one workspace.",
     "contact_heading": "Start a project inquiry",
     "contact_description": "Share your requirements, budget, and timeline."
   },
   "home_page": {
     "id": "main",
-    "heading": "Manage inquiries, proposals, and projects.",
-    "description": "A shared workspace for an agency and its clients. Keep lead follow-ups, agreed scope, milestones, and project updates together.",
-    "section_heading": "What you can do",
+    "heading": "Websites and workflows built around your business.",
+    "description": "Launch a business website, improve an existing experience, or connect your CRM and follow-ups. Agree on the scope, then track delivery with clear proposals and a private client portal.",
+    "section_heading": "A clear path from inquiry to delivery",
     "leads_heading": "Follow up on leads",
     "leads_description": "Review new inquiries, record internal notes, and schedule the next conversation.",
     "proposals_heading": "Prepare proposals",
@@ -48,6 +48,16 @@
       "bullet_1": "Workflow and role-based access",
       "bullet_2": "Database-backed records",
       "bullet_3": "Project milestones and updates"
+    },
+    {
+      "id": "crm-automation",
+      "sort": 4,
+      "visibility": "visible",
+      "title": "CRM and automation setup",
+      "description": "Connect lead intake, follow-up tasks, and reviewed email or WhatsApp workflows around your agency’s process.",
+      "bullet_1": "Lead pipeline, contact preferences, and task ownership",
+      "bullet_2": "Email or WhatsApp integration using your own accounts",
+      "bullet_3": "Approval controls, delivery tracking, and workflow handover"
     }
   ],
   "sample_projects": [
