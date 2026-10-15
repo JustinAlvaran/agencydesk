@@ -38,6 +38,9 @@ importers:
       react:
         specifier: 19.2.8
         version: 19.2.8
+      react-chatbotify:
+        specifier: 2.5.0
+        version: 2.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
@@ -2281,6 +2284,12 @@ packages:
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
+
+  react-chatbotify@2.5.0:
+    resolution: {integrity: sha512-NN7Tpv/JU0vrrt68KaRvJRWRP5NjuTYd630f5tTAVEdt82r3x7xSos08eL6HkTqzhRmQ0a1iAZtgVoNhkvvFJw==}
+    peerDependencies:
+      react: '>=16.14.0'
+      react-dom: '>=16.14.0'
 
   react-dom@19.2.8:
     resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
@@ -4860,6 +4869,11 @@ snapshots:
   punycode@2.3.1: {}
 
   queue-microtask@1.2.3: {}
+
+  react-chatbotify@2.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   react-dom@19.2.8(react@19.2.8):
     dependencies:

@@ -1,5 +1,8 @@
 import Link from "next/link";
 import { Button } from "./ui/primitives";
+import { ServiceAssistant } from './service-assistant';
+import { publicServices } from '@/lib/website-content';
+import { isDemo } from '@/lib/env';
 
 export function MarketingHeader() {
   return (
@@ -24,6 +27,7 @@ export function MarketingFooter() {
         <Link href="/demo">Explore demo</Link>
         <Link href="/crm">Staff CRM</Link>
       </nav>
+      <ServiceAssistant services={publicServices.map(({id,title,description,bullet_1,bullet_2,bullet_3})=>({id,title,description,bullet_1,bullet_2,bullet_3}))} available={!isDemo()}/>
     </footer>
   );
 }

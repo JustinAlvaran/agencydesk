@@ -1,0 +1,13 @@
+[build]
+command = "pnpm build"
+publish = ".next"
+
+[build.environment]
+NODE_VERSION = "22"
+PNPM_VERSION = "10.28.1"
+CONTENT_SOURCE = "fixtures"
+NEXT_TELEMETRY_DISABLED = "1"
+
+# Netlify automatically supplies its maintained OpenNext adapter.
+# Set APP_MODE, APP_URL and this app's own Supabase environment values in
+# Netlify project settings; never place credentials in this file.
