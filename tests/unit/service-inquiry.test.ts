@@ -41,4 +41,15 @@ describe('published service handoff', () => {
     vi.stubEnv('APP_MODE', 'live'); submit.mockResolvedValue({ id: 'fictional' });
     expect((await POST(request('Not sure yet'))).status).toBe(201);
   });
+  it('accepts the configured public origin when a host reconstructs an internal request URL', async () => {
+    vi.stubEnv('APP_MODE', 'live'); vi.stubEnv('APP_URL', 'https://agency.example'); submit.mockResolvedValue({ id: 'fictional' });
+    const proxied = new Request('http://internal-host/api/inquiries', { method: 'POST', headers: { Origin: 'https://agency.example', 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    expect((await POST(proxied)).status).toBe(201);
+  });
+  it('does not trust a reflected Host and Origin over the configured public origin', async () => {
+    vi.stubEnv('APP_MODE', 'live'); vi.stubEnv('APP_URL', 'https://agency.example');
+    const reflected = new Request('https://untrusted.example/api/inquiries', { method: 'POST', headers: { Origin: 'https://untrusted.example', 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    expect((await POST(reflected)).status).toBe(403);
+    expect(submit).not.toHaveBeenCalled();
+  });
 });

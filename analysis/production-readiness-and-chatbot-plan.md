@@ -2,6 +2,11 @@
 
 Research date: 15 October 2026. Status: proposal only; no chatbot installed, application implementation, database migration, live configuration change, commit, push or deployment performed for this plan.
 
+Implementation was subsequently authorized on 15 October 2026. This document
+preserves the original research snapshot; see [the service assistant guide](../docs/service-assistant.md)
+for the implemented design and hosting configuration. Wider production gates below
+remain separate from deploying the website assistant.
+
 ## Recommendation
 
 Launch a single-agency product first: public service pages and guided website chat feed AgencyDesk's existing lead pipeline; invited staff qualify inquiries, prepare proposals and manage projects; invited clients use the portal. Public SaaS registration and WhatsApp account login are separate future features.

@@ -6,7 +6,10 @@ import {undecidedService} from '@/lib/service-catalog';
 import {InquiryError,readInquiry} from '../../../../supabase/functions/_shared/inquiry';
 export async function POST(request:Request){
  if(isDemo())return Response.json({error:'Inquiry submission is unavailable in this read-only demo.'},{status:503});
- const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)return Response.json({error:'Request origin is not allowed.'},{status:403});
+ // Hosting adapters may reconstruct request.url with an internal proxy origin.
+ // Prefer the explicitly configured public origin over a caller-controlled Host.
+ let expectedOrigin:string;try{expectedOrigin=new URL(process.env.APP_URL||request.url).origin;}catch{return Response.json({error:'Inquiry service is unavailable.'},{status:503});}
+ const origin=request.headers.get('origin');if(origin&&origin!==expectedOrigin)return Response.json({error:'Request origin is not allowed.'},{status:403});
  let input:unknown;try{input=await readInquiry(request);}catch(error){return Response.json({error:'Provide a valid inquiry within the size limit.'},{status:error instanceof InquiryError?error.status:400});}
  const parsed=inquirySchema.safeParse(input);if(!parsed.success)return Response.json({error:'Check your contact details, project brief, and budget.',fields:parsed.error.flatten().fieldErrors},{status:400});
  if(parsed.data.service!==undecidedService&&!publicServices.some(service=>service.title===parsed.data.service))return Response.json({error:'Choose an available service or select Not sure yet.',fields:{service:['Choose a service from the current catalog.']}},{status:400});

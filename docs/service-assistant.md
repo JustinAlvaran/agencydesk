@@ -66,10 +66,21 @@ Supabase redirect allowlist before relying on login at a new host. Review other
 configured origins and do not remove a working origin during a preview trial.
 
 Vercel Hobby was verified in the billing UI on 15 October 2026; it is restricted to
-personal noncommercial use. Netlify Free permits commercial projects but has a
-usage cap and can pause on exhaustion. No paid upgrade or automatic recharge is
-part of this setup. Treat a successful build as preparation, not evidence of a
-working hosted chatbot: verify the deployed browser flow and real inquiry boundary.
+personal noncommercial use. The existing Netlify team was verified as **Free Legacy**,
+with no payment method saved. It was retained without a paid upgrade or a switch to
+credit-based billing. Consult that team's actual legacy allowances rather than
+applying the newer Free plan's 300-credit limit to it.
+
+The deployed origin is https://agencydesk-crm.netlify.app. The production branch is
+`codex/services-assistant`; this branch disables automatic Vercel deployment. The
+two exact Netlify authentication callbacks were explicitly approved and added to
+Supabase. Edge `APP_URL` and the invitation origin allowlist are aligned with this
+host while retaining the earlier allowed origin. No messaging credential changed.
+
+API origin checks use the configured public `APP_URL` because host adapters can
+reconstruct a request with an internal URL. Invitation redirects use that same
+configured origin and return no-store/no-referrer headers. A browser-supplied Host
+or return URL cannot override it.
 
 ## Verification and remaining gates
 
