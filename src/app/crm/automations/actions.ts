@@ -12,8 +12,8 @@ function checked(error: unknown) { if (error) { reportFailure('automation_comman
 function refresh() { revalidatePath('/crm/automations'); }
 export async function configureRule(form: FormData): Promise<CommandResult> {
   live(); const { supabase } = await requireAdmin();
-  const data = z.object({ id: uuid, provider: z.enum(['resend','whatsapp','zoko','waha']), delay_minutes: z.coerce.number().int().min(0).max(43200), enabled: z.string().optional(), approval_required: z.string().optional() }).parse(formObject(form));
-  const { error } = await supabase.rpc('configure_automation_rule', { p_rule_id: data.id, p_channel: data.provider === 'resend' ? 'email' : 'whatsapp', p_provider: data.provider, p_delay_minutes: data.delay_minutes, p_enabled: data.enabled === 'on', p_approval_required: data.approval_required === 'on' });
+  const data = z.object({ id: uuid, provider: z.enum(['resend','gmail','whatsapp','zoko','waha']), delay_minutes: z.coerce.number().int().min(0).max(43200), enabled: z.string().optional(), approval_required: z.string().optional() }).parse(formObject(form));
+  const { error } = await supabase.rpc('configure_automation_rule', { p_rule_id: data.id, p_channel: ['resend','gmail'].includes(data.provider) ? 'email' : 'whatsapp', p_provider: data.provider, p_delay_minutes: data.delay_minutes, p_enabled: data.enabled === 'on', p_approval_required: data.approval_required === 'on' });
   checked(error); refresh(); return { ok: true, message: 'Rule saved. Changes apply to new events; existing jobs are rechecked before dispatch.' };
 }
 export async function approveJob(form: FormData): Promise<CommandResult> {

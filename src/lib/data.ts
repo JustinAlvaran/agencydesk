@@ -5,6 +5,23 @@ import {uuid} from './validation';
 import type {Database} from './supabase/database.types';
 type TableName=keyof Database['public']['Tables'];
 export type SearchParams=Record<string,string|string[]|undefined>;
+export type FollowUpTask = Task & { lead: { id: string; contact_name: string } | null };
+export async function listFollowUpTasks(params:SearchParams={}) {
+ const {supabase,user}=await requireStaff();
+ const {page,from,to}=pagination(params);
+ const status=params.status==='completed'||params.status==='all'||params.status==='overdue'?params.status:'open';
+ const owner=params.owner==='mine'||params.owner==='unassigned'?params.owner:'';
+ const queriedAt=new Date().toISOString();
+ let query=supabase.from('follow_up_tasks').select('id,title,due_at,completed_at,lead_id,assigned_to,created_at,lead:leads(id,contact_name)',{count:'exact'});
+ if(status==='completed')query=query.not('completed_at','is',null);
+ else if(status!=='all')query=query.is('completed_at',null);
+ if(status==='overdue')query=query.lt('due_at',queriedAt);
+ if(owner==='mine')query=query.eq('assigned_to',user.id);
+ else if(owner==='unassigned')query=query.is('assigned_to',null);
+ const {data,error,count}=await query.order('due_at',{ascending:true,nullsFirst:false}).order('id',{ascending:true}).range(from,to);
+ if(error)throw new Error('Could not load follow-up tasks. Please try again.');
+ return {rows:(data??[]) as FollowUpTask[],count:count??0,page,status,owner,userId:user.id,queriedAt};
+}
 export function pagination(params:SearchParams) {const page=Math.min(10000,Math.max(1,parseInt(String(params.page||'1'),10)||1));return {page,from:(page-1)*25,to:page*25-1};}
 export async function listRows<T>(table:TableName,params:SearchParams={},client=false) {
  const {supabase}=client?await requireUser():await requireStaff();

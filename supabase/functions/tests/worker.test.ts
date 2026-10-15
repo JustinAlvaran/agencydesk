@@ -65,3 +65,67 @@ Deno.test('worker never lends the linked WAHA sender to another agency',async()=
  };
  try{assert.equal((await worker(request())).status,200);assert.equal(completed,true);}finally{globalThis.fetch=original;Deno.env.delete('WAHA_API_KEY');Deno.env.delete('WAHA_AGENCY_ID');environment();}
 });
+
+for (const binding of ['missing', 'different', 'own'] as const) {
+  Deno.test(`worker Gmail credentials require the own agency binding (${binding})`, async () => {
+    const names = ['GMAIL_AGENCY_ID', 'GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'GMAIL_FROM_EMAIL', 'EMAIL_PROVIDER'];
+    const previous = new Map(names.map(name => [name, Deno.env.get(name)]));
+    environment();
+    Deno.env.set('AUTOMATION_DELIVERY_MODE', 'live');
+    // Frozen Gmail jobs must select Gmail even when the legacy global default is Resend.
+    Deno.env.set('EMAIL_PROVIDER', 'resend');
+    Deno.env.set('GMAIL_CLIENT_ID', 'fictional-own-google-client');
+    Deno.env.set('GMAIL_CLIENT_SECRET', 'fictional-own-google-secret');
+    Deno.env.set('GMAIL_REFRESH_TOKEN', 'fictional-own-google-refresh');
+    Deno.env.set('GMAIL_FROM_EMAIL', 'owner@example.test');
+    if (binding === 'missing') Deno.env.delete('GMAIL_AGENCY_ID');
+    else Deno.env.set('GMAIL_AGENCY_ID', binding === 'own' ? agencyId : 'b0000000-0000-4000-8000-000000000002');
+    const original = globalThis.fetch;
+    let claims = 0, tokenCalls = 0, sendCalls = 0, completed = false;
+    globalThis.fetch = async (input, init) => {
+      const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+      if (url.hostname === 'oauth2.googleapis.com') {
+        assert.equal(binding, 'own', 'Other or missing agency binding must never refresh a Google token');
+        assert.equal(url.pathname, '/token');
+        assert.equal(new URLSearchParams(String(init?.body)).get('client_secret'), 'fictional-own-google-secret');
+        tokenCalls++;
+        return Response.json({ access_token: 'fictional-own-access-token', token_type: 'Bearer' });
+      }
+      if (url.hostname === 'gmail.googleapis.com') {
+        assert.equal(binding, 'own', 'Other or missing agency binding must never send through Google');
+        assert.equal(url.pathname, '/gmail/v1/users/me/messages/send');
+        assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer fictional-own-access-token');
+        sendCalls++;
+        return Response.json({ id: 'fictional_message_123' });
+      }
+      assert.equal(url.hostname, 'agency-test.invalid', 'Only mocked Supabase and Google endpoints are permitted');
+      if (url.pathname.endsWith('/automation_rules')) return Response.json([{ id: job.rule_id, template_key: 'inquiry_acknowledgment' }]);
+      if (url.pathname.endsWith('/claim_message_jobs')) {
+        assert.equal(JSON.parse(String(init?.body)).p_agency_id, agencyId);
+        return Response.json(claims++ === 0 ? [{ ...job, provider: 'gmail' }] : []);
+      }
+      if (url.pathname.endsWith('/revalidate_message_job')) return Response.json(true);
+      if (url.pathname.endsWith('/finish_message_job')) {
+        const data = JSON.parse(String(init?.body));
+        assert.equal(data.p_outcome, binding === 'own' ? 'accepted' : 'failed');
+        assert.equal(data.p_error_code, binding === 'own' ? null : 'gmail_not_configured');
+        assert.equal(data.p_provider_message_id, binding === 'own' ? 'fictional_message_123' : null);
+        completed = true;
+        return Response.json(true);
+      }
+      throw new Error('Unexpected test request');
+    };
+    try {
+      const response = await worker(request());
+      assert.equal(response.status, 200);
+      assert.deepEqual((await response.json()).processed, binding === 'own' ? { accepted: 1 } : { failed: 1 });
+      assert.equal(completed, true);
+      assert.equal(tokenCalls, binding === 'own' ? 1 : 0);
+      assert.equal(sendCalls, binding === 'own' ? 1 : 0);
+    } finally {
+      globalThis.fetch = original;
+      for (const [name, value] of previous) { if (value === undefined) Deno.env.delete(name); else Deno.env.set(name, value); }
+      environment();
+    }
+  });
+}

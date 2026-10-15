@@ -8,7 +8,7 @@ import { leadStatuses, statusLabel, type Note } from '@/lib/domain';
 import type { WorkflowLead } from '@/lib/leads/query';
 import { activitySummary, callOutcomes } from '@/lib/leads/workflow';
 import { addNote, updateLead } from '@/app/actions';
-import { recordLeadCall, saveLeadDetails } from '../../lead-actions';
+import { recordLeadCall, saveLeadDetails, suppressLeadRecipient, clearLeadRecipientSuppression } from '../../lead-actions';
 import { Heading, Panel, Area, Submit } from '../../workspace-ui';
 import { ContactFields } from '../contact-fields';
 import { HermesDraft } from '@/components/hermes-draft';
@@ -18,18 +18,20 @@ export default async function Page({params}:{params:Promise<{id:string}>}) {
  const {id} = await params;
  const lead = await row<WorkflowLead>('leads',id);
  if (!lead) notFound();
- const {supabase,user} = await requireStaff();
- const [options,events,notesResult] = await Promise.all([
+ const {supabase,user,staff} = await requireStaff();
+ const [options,events,notesResult,suppressionResult] = await Promise.all([
   choices(),
   supabase.from('activity_events').select('id,event_type,created_at,actor_id,detail').eq('lead_id',id).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(100),
   supabase.from('lead_notes').select('id,lead_id,body,author_id,created_at').eq('lead_id',id).order('created_at',{ascending:false}).limit(100),
+  lead.archived_at ? Promise.resolve({data:[],error:null}) : supabase.rpc('lead_message_suppression',{p_lead_id:id}),
  ]);
- if (events.error || notesResult.error) throw new Error('Could not load lead activity.');
+ if (events.error || notesResult.error || suppressionResult.error) throw new Error('Could not load lead activity and messaging permissions.');
  const notes = (notesResult.data??[]) as Note[];
  const timeline = [...(events.data??[]) as Activity[],...notes.map(note=>({id:note.id,event_type:'internal_note',created_at:note.created_at,actor_id:note.author_id,detail:{},body:note.body}))].sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
  return <>
   <Heading title={lead.contact_name} description={[lead.email,lead.phone].filter(Boolean).join(' · ')}/><Link href="/crm/leads" className="button button-secondary" style={{marginBottom:20}}>Back to leads</Link>
   <Panel title="Contact and preferences"><ActionForm action={saveLeadDetails}><input type="hidden" name="id" value={id}/><ContactFields lead={lead}/><Submit>Save contact details</Submit></ActionForm></Panel>
+  {!lead.archived_at ? <Panel title="Recipient message controls"><p className="muted">Stopping a channel blocks this recipient across duplicate leads in your agency and cancels unsent messages. Clearing a block does not restore permission or replay cancelled messages.</p>{(suppressionResult.data??[]).filter(item=>item.channel==='email'||!!lead.phone).map(item=><section key={item.channel} style={{marginBottom:16}}><h3>{item.channel==='email'?'Email':'WhatsApp'} · {item.suppressed?'Stopped':'No recipient block'}</h3>{item.suppressed ? staff.role==='admin' ? <ActionForm action={clearLeadRecipientSuppression}><input type="hidden" name="lead_id" value={id}/><input type="hidden" name="channel" value={item.channel}/><label className="checkbox-label"><input type="checkbox" name="renewed_permission" required/>I have verified renewed permission from this recipient</label><Submit>Clear recipient block</Submit></ActionForm> : <p className="muted">An administrator must verify renewed permission before clearing this block.</p> : <ActionForm action={suppressLeadRecipient}><input type="hidden" name="lead_id" value={id}/><input type="hidden" name="channel" value={item.channel}/><Submit>Stop {item.channel==='email'?'email':'WhatsApp'} messages</Submit></ActionForm>}</section>)}</Panel> : null}
   <Panel title="Manage lead"><ActionForm action={updateLead}><input type="hidden" name="id" value={id}/>
    <label className="field" style={{marginBottom:16}}>Pipeline stage<select className="input" name="status" defaultValue={lead.status}>{leadStatuses.map(stage=><option key={stage} value={stage} disabled={lead.status==='won'?stage!=='won':stage==='won'}>{statusLabel(stage)}</option>)}</select></label>
    <p className="muted">Won is set when the client accepts a proposal.</p>
@@ -45,7 +47,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}) {
    <label className="field" style={{marginBottom:16}}>Callback time (Asia/Manila)<input className="input" name="callback_at" type="datetime-local"/></label>
    <p className="muted">Select Callback and choose a future time to create a follow-up task for the owner. This records a reminder; it does not send a message.</p><Submit>Record call</Submit>
   </ActionForm></Panel>
-  {!lead.archived_at ? <Panel title="Message drafts"><HermesDraft key={id} leadId={id} phone={lead.phone} whatsappPermitted={lead.whatsapp_opt_in === true}/></Panel> : null}
+  {!lead.archived_at ? <Panel title="Message drafts"><HermesDraft key={id} leadId={id} phone={lead.phone} whatsappPermitted={lead.whatsapp_opt_in === true && !(suppressionResult.data??[]).some(item=>item.channel==='whatsapp'&&item.suppressed)}/></Panel> : null}
   <Panel title="Internal notes"><ActionForm action={addNote}><input type="hidden" name="lead_id" value={id}/><Area label="New internal note" name="body"/><Submit>Add note</Submit></ActionForm></Panel>
   <Panel title="Activity history"><p className="muted">Most recent first · latest 100 events and 100 notes.</p>{timeline.length?<ol style={{paddingLeft:20}}>{timeline.map(event=><li key={event.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)',overflowWrap:'anywhere'}}><strong>{statusLabel(event.event_type)}</strong><p className="muted"><time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-US',{timeZone:'Asia/Manila'})}</time> · {event.actor_id===user.id?'You':event.actor_id?`Actor ${event.actor_id.slice(0,8)}`:'System'}</p>{'body' in event?<p style={{whiteSpace:'pre-wrap'}}>{String(event.body)}</p>:activitySummary(event)?<p style={{whiteSpace:'pre-wrap'}}>{activitySummary(event)}</p>:null}</li>)}</ol>:<p>No activity yet.</p>}</Panel>
  </>;

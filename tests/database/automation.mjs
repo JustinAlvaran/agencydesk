@@ -52,8 +52,10 @@ try {
     await configure('inquiry_acknowledgment',approval,channel);
     await owner();
     const lead=id(sequence++),event=id(sequence++);
+    // Each scenario represents a different person. Shared-recipient withdrawal
+    // persistence is exercised separately in recipient-suppression.mjs.
     await db.query(`insert into public.leads(id,contact_name,email,service,brief,email_opt_in,whatsapp_opt_in,phone,status,archived_at)
-      values($1,'Fictional Lead','client@example.test','Web app','Fictional test brief',$2,$3,$4,$5,$6)`,[lead,emailConsent,whatsappConsent,phone,status,archived?new Date():null]);
+      values($1,'Fictional Lead',$7,'Web app','Fictional test brief',$2,$3,$4,$5,$6)`,[lead,emailConsent,whatsappConsent,phone,status,archived?new Date():null,`inquiry-${lead}@example.test`]);
     await db.query("insert into public.activity_events(id,lead_id,event_type) values($1,$2,'inquiry_received')",[event,lead]);
     const [job]=await get(`select * from public.message_jobs where event_id='${event}'`);
     return {lead,event,job};
@@ -149,7 +151,7 @@ try {
   assert.equal((await claim()).length,0); assertions++;
   await owner();
   await eq(`select last_error as value from public.message_jobs where id='${scenario.job.id}'`,'recipient_changed','Stale recipient cannot be dispatched');
-  for (const [change,reason] of [["status='lost'",'lead_closed'],["archived_at=now()",'lead_archived'],["email_opt_in=false",'email_consent_missing']]) {
+  for (const [change,reason] of [["status='lost'",'lead_closed'],["archived_at=now()",'lead_archived'],["email_opt_in=false",'recipient_suppressed']]) {
     scenario=await inquiry();
     await db.exec(`update public.leads set ${change} where id='${scenario.lead}'`);
     assert.equal((await claim()).length,0,'Queue rechecks changed lead eligibility'); assertions++;
@@ -160,7 +162,7 @@ try {
   await db.exec(`update public.leads set email_opt_in=false where id='${scenario.lead}'`);
   await actor(staff);
   await eq(`select public.approve_message_job('${scenario.job.id}') as value`,false,'Approval rechecks consent');
-  await eq(`select status as value from public.message_jobs where id='${scenario.job.id}'`,'skipped','Rejected approval records skip');
+  await eq(`select status as value from public.message_jobs where id='${scenario.job.id}'`,'cancelled','Withdrawal immediately cancels a pending approval');
   scenario=await inquiry();
   [leased]=await claim();
   await owner();

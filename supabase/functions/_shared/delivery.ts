@@ -1,6 +1,6 @@
 export type DeliveryOutcome = { outcome: 'simulated' | 'accepted' | 'retry' | 'failed' | 'uncertain'; providerMessageId?: string; errorCode?: string; retryAfterSeconds?: number };
 export type DeliveryJob = { id: string; channel: string; recipient: string; subject: string; body: string; template_key: string; portal_path?: string | null; provider?: string | null };
-export type DeliveryConfig = { mode?: string; emailProvider?: string; resendKey?: string; fromEmail?: string; whatsappProvider?: string; whatsappToken?: string; whatsappPhoneId?: string; graphVersion?: string; templateMap?: string; zokoKey?: string; zokoTemplateMap?: string; wahaURL?: string; wahaKey?: string; wahaSession?: string; appURL?: string };
+export type DeliveryConfig = { mode?: string; emailProvider?: string; resendKey?: string; fromEmail?: string; gmailClientId?: string; gmailClientSecret?: string; gmailRefreshToken?: string; gmailFromEmail?: string; whatsappProvider?: string; whatsappToken?: string; whatsappPhoneId?: string; graphVersion?: string; templateMap?: string; zokoKey?: string; zokoTemplateMap?: string; wahaURL?: string; wahaKey?: string; wahaSession?: string; appURL?: string };
 type Template = { name: string; language: string; body_parameters: Array<'body' | 'subject'> };
 const failure = (errorCode: string): DeliveryOutcome => ({ outcome: 'failed', errorCode });
 
@@ -34,6 +34,80 @@ function templateFor(config: string | undefined, key: string): Template | null {
   } catch { return null; }
 }
 
+function utf8Base64(value: string): string {
+  return btoa(Array.from(new TextEncoder().encode(value), byte => String.fromCharCode(byte)).join(''));
+}
+
+function mimeSubject(subject: string): string {
+  const chunks: string[] = [];
+  let chunk = '';
+  for (const character of subject) {
+    if (new TextEncoder().encode(chunk + character).length > 42) { chunks.push(chunk); chunk = ''; }
+    chunk += character;
+  }
+  if (chunk) chunks.push(chunk);
+  return chunks.map(value => `=?UTF-8?B?${utf8Base64(value)}?=`).join('\r\n ');
+}
+
+async function boundedJSON(response: Response): Promise<Record<string, unknown>> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('missing_body');
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.length;
+      if (size > 65536) { await reader.cancel(); throw new Error('response_too_large'); }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  const value = JSON.parse(new TextDecoder().decode(bytes));
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('invalid_response');
+  return value;
+}
+
+async function deliverGmail(job: DeliveryJob, body: string, config: DeliveryConfig, request: typeof fetch): Promise<DeliveryOutcome> {
+  if (job.provider != null && job.provider !== 'gmail') return failure('message_provider_mismatch');
+  const credentials = [config.gmailClientId, config.gmailClientSecret, config.gmailRefreshToken];
+  if (credentials.some(value => !value || value.length > 4096 || /[\r\n\u0000]/.test(value)) || !config.gmailFromEmail) return failure('gmail_not_configured');
+  // A single bare ASCII mailbox only: no display names, address lists, or header injection.
+  const mailbox = /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+  if ([job.recipient, config.gmailFromEmail].some(value => value.length > 254 || !mailbox.test(value)) || !job.subject || job.subject.length > 200 || /[\r\n\u0000-\u001f\u007f]/.test(job.subject)) return failure('invalid_email');
+  let accessToken: string;
+  try {
+    const response = await request('https://oauth2.googleapis.com/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: config.gmailClientId!, client_secret: config.gmailClientSecret!, refresh_token: config.gmailRefreshToken!, grant_type: 'refresh_token' }).toString(),
+      redirect: 'error', signal: AbortSignal.timeout(10000),
+    });
+    if (!response.ok) return failure(response.status === 400 || response.status === 401 || response.status === 403 ? 'gmail_authentication_failed' : 'gmail_token_unavailable');
+    const token = await boundedJSON(response);
+    if (typeof token.access_token !== 'string' || !/^[\x21-\x7e]{1,4096}$/.test(token.access_token) || String(token.token_type).toLowerCase() !== 'bearer') return failure('gmail_token_unavailable');
+    accessToken = token.access_token;
+  } catch { return failure('gmail_token_unavailable'); } // No message request occurred: safe to correct config and retry.
+  const encodedBody = utf8Base64(body.replace(/\r?\n/g, '\r\n')).match(/.{1,76}/g)?.join('\r\n') ?? '';
+  const mime = [`From: ${config.gmailFromEmail}`, `To: ${job.recipient}`, `Subject: ${mimeSubject(job.subject)}`, 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', encodedBody, ''].join('\r\n');
+  const raw = utf8Base64(mime).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  try {
+    const response = await request('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw }), redirect: 'error', signal: AbortSignal.timeout(10000),
+    });
+    // Gmail has no send idempotency key. Ambiguous results must never be blindly resent.
+    if (response.status >= 500 || response.status === 408) return { outcome: 'uncertain', errorCode: 'provider_result_unknown' };
+    if (response.status === 429) { const delay = retryDelay(response.headers.get('retry-after')); return delay !== undefined && delay > 86400 ? { outcome: 'uncertain', errorCode: 'provider_retry_window_exceeded' } : { outcome: 'retry', errorCode: 'provider_rate_limited', retryAfterSeconds: delay }; }
+    if (!response.ok) return failure(response.status === 401 || response.status === 403 ? 'provider_authentication_failed' : 'provider_rejected');
+    const data = await boundedJSON(response);
+    if (typeof data.id !== 'string' || !/^[A-Za-z0-9_-]{1,300}$/.test(data.id)) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
+    return { outcome: 'accepted', providerMessageId: data.id };
+  } catch { return { outcome: 'uncertain', errorCode: 'network_result_unknown' }; }
+}
+
 export async function deliverMessage(job: DeliveryJob, config: DeliveryConfig, request: typeof fetch = fetch): Promise<DeliveryOutcome> {
   // No missing or misspelled mode can accidentally enable live delivery.
   if (!config.mode || config.mode === 'dry_run') return { outcome: 'simulated' };
@@ -45,6 +119,7 @@ export async function deliverMessage(job: DeliveryJob, config: DeliveryConfig, r
   let headers: Record<string, string>;
   let payload: Record<string, unknown>;
   if (job.channel === 'email') {
+    if (config.emailProvider === 'gmail') return deliverGmail(job, body, config, request);
     if ((config.emailProvider ?? 'resend') !== 'resend') return failure('unsupported_email_provider');
     if (!config.resendKey || !config.fromEmail) return failure('email_not_configured');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(job.recipient) || /[\r\n]/.test(config.fromEmail) || job.subject.length > 200) return failure('invalid_email');

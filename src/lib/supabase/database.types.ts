@@ -803,6 +803,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      suppress_lead_recipient: { Args: { p_lead_id: string; p_channel: string }; Returns: boolean }
+      admin_clear_lead_recipient_suppression: { Args: { p_lead_id: string; p_channel: string }; Returns: boolean }
+      lead_message_suppression: { Args: { p_lead_id: string }; Returns: { channel: string; suppressed: boolean; reason: string | null }[] }
       agency_intake_info: { Args: { agency_slug: string }; Returns: Json }
       provision_agency: { Args: { agency_name: string; agency_slug: string; owner_user_id: string }; Returns: string }
       workspace_account: { Args: { account_email: string }; Returns: string }

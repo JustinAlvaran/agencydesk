@@ -110,5 +110,13 @@ try {
  await actor(admin);await eq(`select public.retry_message_job('${wahaFailed.id}') as value`,true,'Known unsent WAHA configuration failure can be reviewed again');
  const[wahaRetry]=await claim();assert.equal(await finish(wahaRetry,'uncertain',null,'network_result_unknown'),true);count++;
  await actor(admin);await eq(`select public.retry_message_job('${wahaFailed.id}') as value`,false,'Ambiguous WAHA result cannot be blindly resent');
+ await owner();const gmailMigration=migrations.find(x=>x.endsWith('_gmail_provider.sql'));assert.ok(gmailMigration);count++;
+ await db.exec(await readFile(new URL(gmailMigration,directory),'utf8'));
+ await configure('email','gmail');await event();const[gmailLease]=await claim();assert.equal(gmailLease.provider,'gmail');count++;
+ assert.equal(await finish(gmailLease,'accepted',sharedId),true);count++;
+ await owner();await eq(`select status as value from public.message_jobs where id='${historical.id}'`,'accepted','Gmail acknowledgment does not alter colliding Resend history');
+ await actor(admin);await denied(`select public.configure_automation_rule('${rule}',true,0,false,'whatsapp','gmail')`,'Gmail cannot become a WhatsApp provider');
+ await configure('email','gmail');const gmailStale=await event();await configure('email','resend');assert.equal((await claim()).length,0,'Gmail jobs cannot be rerouted through Resend');count++;
+ await owner();await eq(`select provider as value from public.message_jobs where id='${gmailStale.id}'`,'gmail','Skipped Gmail job preserves its provider');
  console.log(`Passed ${count} provider routing database assertions using embedded PostgreSQL.`);
 }catch(error){console.error(error.message);process.exitCode=1;}finally{await db.close();}

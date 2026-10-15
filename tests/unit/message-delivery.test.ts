@@ -184,6 +184,82 @@ describe('message delivery boundaries', () => {
 });
 
 async function signature(body:string,key:Uint8Array){const imported=await crypto.subtle.importKey('raw',key as BufferSource,{name:'HMAC',hash:'SHA-256'},false,['sign']);return new Uint8Array(await crypto.subtle.sign('HMAC',imported,new TextEncoder().encode(body)));}
+describe('own Gmail API delivery',()=>{
+  const gmailJob={...job,provider:'gmail'};
+  const gmailConfig={mode:'live',emailProvider:'gmail',gmailClientId:'own-google-client',gmailClientSecret:'own-google-secret',gmailRefreshToken:'own-google-refresh',gmailFromEmail:'owner@example.test'};
+  const token=()=>Response.json({access_token:'own-access-token',token_type:'Bearer'});
+  it('refreshes the own account token and sends UTF-8 MIME to exactly one recipient',async()=>{
+    const unicode={...gmailJob,subject:'Proposal — café 👋',body:'Hello café 👋\nPlease review.'};
+    const request=asFetch(async(url,init)=>{
+      expect(init?.redirect).toBe('error');expect(init?.signal).toBeInstanceOf(AbortSignal);
+      if(String(url)==='https://oauth2.googleapis.com/token'){
+        expect(Object.fromEntries(new URLSearchParams(String(init?.body)))).toEqual({client_id:gmailConfig.gmailClientId,client_secret:gmailConfig.gmailClientSecret,refresh_token:gmailConfig.gmailRefreshToken,grant_type:'refresh_token'});return token();
+      }
+      expect(String(url)).toBe('https://gmail.googleapis.com/gmail/v1/users/me/messages/send');
+      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer own-access-token');
+      const raw=JSON.parse(String(init?.body)).raw;expect(raw).toMatch(/^[A-Za-z0-9_-]+$/);
+      const mime=Buffer.from(raw,'base64url').toString('utf8');
+      expect(mime).toContain(`From: ${gmailConfig.gmailFromEmail}\r\nTo: ${job.recipient}\r\n`);
+      expect(mime).not.toMatch(/\r\n(?:Bcc|Cc):/);
+      const subject=mime.match(/Subject: =\?UTF-8\?B\?([^?]+)\?=/)![1];
+      expect(Buffer.from(subject,'base64').toString('utf8')).toBe(unicode.subject);
+      expect(Buffer.from(mime.split('\r\n\r\n')[1].replace(/\s/g,''),'base64').toString('utf8')).toBe('Hello café 👋\r\nPlease review.');
+      return Response.json({id:'18ab1234'});
+    });
+    expect(await deliverMessage(unicode,gmailConfig,request)).toEqual({outcome:'accepted',providerMessageId:'18ab1234'});
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+  it('does not refresh or send during simulation, provider mismatch or incomplete configuration',async()=>{
+    const request=vi.fn();
+    expect(await deliverMessage(gmailJob,{...gmailConfig,mode:'dry_run'},request)).toEqual({outcome:'simulated'});
+    expect(await deliverMessage({...gmailJob,provider:'resend'},gmailConfig,request)).toMatchObject({errorCode:'message_provider_mismatch'});
+    expect(await deliverMessage(gmailJob,config,request)).toMatchObject({errorCode:'message_provider_mismatch'});
+    for(const field of ['gmailClientId','gmailClientSecret','gmailRefreshToken','gmailFromEmail']){
+      expect(await deliverMessage(gmailJob,{...gmailConfig,[field]:undefined},request)).toMatchObject({errorCode:'gmail_not_configured'});
+    }
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('folds long Unicode subjects into valid encoded words without splitting a character',async()=>{
+    const subject='👋 café — '.repeat(15);
+    let calls=0;const request=asFetch(async(_url,init)=>{
+      if(++calls===1)return token();
+      const mime=Buffer.from(JSON.parse(String(init?.body)).raw,'base64url').toString('utf8');
+      const words=Array.from(mime.matchAll(/=\?UTF-8\?B\?([^?]+)\?=/g));
+      expect(words.length).toBeGreaterThan(1);
+      expect(words.every(word=>word[0].length<=75)).toBe(true);
+      expect(words.map(word=>Buffer.from(word[1],'base64').toString('utf8')).join('')).toBe(subject);
+      return Response.json({id:'18abc'});
+    });
+    expect(await deliverMessage({...gmailJob,subject},gmailConfig,request)).toMatchObject({outcome:'accepted'});
+  });
+  it('rejects address lists and header injection before any network request',async()=>{
+    const request=vi.fn();
+    for(const recipient of ['first@example.test,second@example.test','a@example.test\r\nBcc:other@example.test','Name <a@example.test>','bad@-example.test']){
+      expect(await deliverMessage({...gmailJob,recipient},gmailConfig,request)).toMatchObject({errorCode:'invalid_email'});
+    }
+    expect(await deliverMessage({...gmailJob,subject:'Hello\r\nBcc:other@example.test'},gmailConfig,request)).toMatchObject({errorCode:'invalid_email'});
+    expect(await deliverMessage(gmailJob,{...gmailConfig,gmailFromEmail:'owner@example.test\r\nCc:other@example.test'},request)).toMatchObject({errorCode:'invalid_email'});
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('does not issue a message request after rejected, oversized or uncertain token refresh',async()=>{
+    for(const reply of [()=>new Response('private-refresh',{status:400}),()=>Response.json({access_token:'private-token'}),()=>new Response('x'.repeat(65537)),()=>{throw new Error('private-secret');}]){
+      const request=asFetch(async()=>reply());
+      expect(await deliverMessage(gmailJob,gmailConfig,request)).toMatchObject({outcome:'failed'});expect(request).toHaveBeenCalledTimes(1);
+    }
+  });
+  it('keeps ambiguous Gmail sends for review without replaying the send request',async()=>{
+    for(const reply of [()=>new Response('',{status:503}),()=>Response.json({threadId:'not-message-id'}),()=>new Response('x'.repeat(65537)),()=>{throw new Error('own-access-token');}]){
+      let calls=0;const request=asFetch(async()=>++calls===1?token():reply());
+      const result=await deliverMessage(gmailJob,gmailConfig,request);expect(result.outcome).toBe('uncertain');expect(JSON.stringify(result)).not.toContain('own-access-token');expect(request).toHaveBeenCalledTimes(2);
+    }
+  });
+  it('treats explicit send authentication rejection as safe failure and rate limits as paced retry',async()=>{
+    for(const status of [401,403,429]){
+      let calls=0;const request=asFetch(async()=>++calls===1?token():new Response('private-data',{status,headers:{'retry-after':'120'}}));
+      expect(await deliverMessage(gmailJob,gmailConfig,request)).toMatchObject(status===429?{outcome:'retry',retryAfterSeconds:120}:{outcome:'failed',errorCode:'provider_authentication_failed'});
+    }
+  });
+});
 describe('signed delivery receipts',()=>{
   it('verifies the raw Meta body and rejects altered payloads or missing signatures',async()=>{
     const body='{"object":"whatsapp_business_account"}', key='own-webhook-secret';

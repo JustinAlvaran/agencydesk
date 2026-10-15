@@ -4,7 +4,9 @@ Updated 15 October 2026. Use your own accounts. Never import ApartmentHub keys, 
 
 ## Recommended route
 
-Keep AgencyDesk as the CRM and automation engine. Zoko is optional. Start with reviewed WhatsApp drafts and Meta's test sender. Official production messaging may have usage charges even without an inbox subscription; verify your actual WhatsApp Manager rate card before activation.
+Keep AgencyDesk as the CRM and automation engine. Zoko is optional. WAHA is now linked for controlled testing, with worker dry-run and staff approval retained; no customer sending is enabled. Reviewed manual drafts remain available. Optional Gmail sending is implemented in source but **not connected**. Official Meta production messaging may have usage charges even without an inbox subscription; verify your actual WhatsApp Manager rate card before activation.
+
+Only AgencyDesk's **Inquiry acknowledgment** rule is enabled: WhatsApp via WAHA, immediate, with approval required. It queues for review/simulation while `AUTOMATION_DELIVERY_MODE=dry_run`; live customer delivery is off. Its other three rules and all four rules in the other agency are disabled. No scheduler is configured.
 
 - **Reviewed drafts:** staff can write text manually or request Hermes, review it and open a customer chat in WhatsApp. Staff press Send there. No Meta or Zoko key is needed; this is manual and creates no delivery receipt. A valid international customer phone and WhatsApp permission are required. Staff summaries cannot be opened as customer messages.
 - **Direct Meta Cloud API:** the template-capable adapter exists. Use a free test sender first. Do not delete or migrate a number registered in regular WhatsApp during test setup.
@@ -12,6 +14,20 @@ Keep AgencyDesk as the CRM and automation engine. Zoko is optional. Start with r
 - **Hosted trials:** Chatwoot offers 15 days, but its permanent free cloud plan supports live chat only. respond.io offers seven days without a credit card. Their hosted WhatsApp service is paid after the trial. [Chatwoot](https://www.chatwoot.com/pricing), [respond.io](https://respond.io/pricing).
 
 Do not activate paid Shopify, Zoko, messaging or model-provider plans under a free-only budget.
+
+## CRM work and contact preferences
+
+ApartmentHub contributed workflow concepts only: lead stages, staff assignment, call outcomes, callback tasks and activity history. Its sender application, credentials, staff identities, recipients and i18n layer were not imported. AgencyDesk's Tasks page defaults to open follow-ups in due order and supports overdue/completed/all and mine/unassigned filters, owner labels and lead links.
+
+Recipient suppression blocks a withdrawn email address or WhatsApp number across duplicate leads in the same agency and channel. It cancels unsent queued/pending-approval jobs and is checked again before sending and before manual WhatsApp handoff. Staff can record a block; only an administrator may clear it after renewed permission is verified. Clearing a block does not restore consent or resend cancelled jobs. Incoming chats do not automatically record an opt-out. No-answer recovery and a general contact cooldown remain future work. [Adaptation details](../analysis/agency-workflow-adaptation.md).
+
+## Optional own Gmail connection
+
+Gmail uses your own Google OAuth client and the account owner's `gmail.send` consent, suitable for a personal account. ApartmentHub's Workspace delegation is not reused. Google sign-in to the CRM does not grant Gmail sending access. No Gmail plugin is required for the CRM runtime.
+
+The free Google Cloud project **AgencyDesk Gmail** (`smooth-graph-511708-m4`) was created on 15 October 2026. Gmail API is enabled, and OAuth credentials have not been created. Creating the project does not connect the sender.
+
+Configure blank `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_FROM_EMAIL` and `GMAIL_AGENCY_ID` only after your own OAuth setup; actual values belong in Edge secrets. Choose Gmail on the rule, keep approval and dry-run, and review a test before activation. Gmail currently is **not connected**. Provider acceptance is recorded; delivery/read receipts and mailbox sync are not implemented. [Configuration and limitations](messaging-setup.md#optional-gmail-sender--not-connected).
 
 ## Hermes drafts
 
@@ -40,7 +56,7 @@ The source includes an optional WAHA sender adapter, frozen provider routing and
 
 Local WAHA is paired to the user's own sender. Its signed callback is `https://<your-project-ref>.supabase.co/functions/v1/message-receipts?provider=waha`, using SHA-512 raw-body HMAC with `WAHA_WEBHOOK_SECRET`. `WAHA_SESSION` and `WAHA_SENDER_ID` must match the signed event. Only outgoing individual message acknowledgments update receipt state; incoming chats are ignored. ACK 2 means delivered, 3/4 read, 0/1 are ignored. Stable event IDs are deduplicated. Never point WAHA at the Meta callback provider parameter.
 
-An approved one-message test through the temporary HTTPS gateway succeeded and its signed read receipt reached the own Supabase project. Customer automation rules remain disabled and worker delivery mode remains dry-run. The test was a gateway send, not an automatically triggered lead job. A real CRM workflow test still requires an explicitly approved lead/message.
+An approved one-message test through the temporary HTTPS gateway succeeded and its signed read receipt reached the own Supabase project. Only the immediate WAHA Inquiry acknowledgment rule is now enabled for approval/simulation; the worker remains in dry-run and no scheduler is configured. The other three AgencyDesk rules remain disabled, as do all four rules in the other agency. The test was a gateway send, not an automatically triggered lead job. A real CRM workflow test still requires an explicitly approved lead/message; live customer delivery is off.
 
 `infra/waha/` contains the Docker configuration and authenticated send-only proxy. Private files are ignored and keys have restricted Windows access. A Cloudflare Quick Tunnel is a temporary development connection: its hostname changes after restart and there is no uptime guarantee. Keep the PC awake; configure a stable authenticated host before relying on unattended production sending. See [the repository comparison](../analysis/open-source-messaging.md).
 
