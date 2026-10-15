@@ -1,6 +1,6 @@
 export type DeliveryOutcome = { outcome: 'simulated' | 'accepted' | 'retry' | 'failed' | 'uncertain'; providerMessageId?: string; errorCode?: string; retryAfterSeconds?: number };
-export type DeliveryJob = { id: string; channel: string; recipient: string; subject: string; body: string; template_key: string; portal_path?: string | null };
-export type DeliveryConfig = { mode?: string; emailProvider?: string; resendKey?: string; fromEmail?: string; whatsappToken?: string; whatsappPhoneId?: string; graphVersion?: string; templateMap?: string; appURL?: string };
+export type DeliveryJob = { id: string; channel: string; recipient: string; subject: string; body: string; template_key: string; portal_path?: string | null; provider?: string | null };
+export type DeliveryConfig = { mode?: string; emailProvider?: string; resendKey?: string; fromEmail?: string; whatsappProvider?: string; whatsappToken?: string; whatsappPhoneId?: string; graphVersion?: string; templateMap?: string; zokoKey?: string; zokoTemplateMap?: string; appURL?: string };
 type Template = { name: string; language: string; body_parameters: Array<'body' | 'subject'> };
 const failure = (errorCode: string): DeliveryOutcome => ({ outcome: 'failed', errorCode });
 
@@ -28,7 +28,7 @@ function templateFor(config: string | undefined, key: string): Template | null {
     const map = JSON.parse(config);
     if (!map || typeof map !== 'object' || !Object.hasOwn(map, key)) return null;
     const value = map[key];
-    if (!value || !/^[a-z0-9_]{1,512}$/.test(value.name) || !/^[a-z]{2,3}(?:_[A-Z]{2})?$/.test(value.language)) return null;
+    if (!value || typeof value.name !== 'string' || typeof value.language !== 'string' || !/^[a-z0-9_]{1,512}$/.test(value.name) || !/^[a-z]{2,3}(?:_[A-Z]{2})?$/.test(value.language)) return null;
     if (!Array.isArray(value.body_parameters) || value.body_parameters.length > 10 || value.body_parameters.some((field: unknown) => field !== 'body' && field !== 'subject')) return null;
     return value as Template;
   } catch { return null; }
@@ -52,15 +52,27 @@ export async function deliverMessage(job: DeliveryJob, config: DeliveryConfig, r
     headers = { Authorization: `Bearer ${config.resendKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `agencydesk/message/${job.id}` };
     payload = { from: config.fromEmail, to: [job.recipient], subject: job.subject, text: body, tags: [{ name: 'agencydesk_job_id', value: job.id }] };
   } else if (job.channel === 'whatsapp') {
-    if (!config.whatsappToken || !/^\d{5,30}$/.test(config.whatsappPhoneId ?? '') || !/^v\d+\.\d+$/.test(config.graphVersion ?? '')) return failure('whatsapp_not_configured');
+    const provider = config.whatsappProvider ?? 'meta';
+    if (provider !== 'meta' && provider !== 'zoko') return failure('unsupported_whatsapp_provider');
+    if (provider === 'zoko' ? !config.zokoKey || /[\r\n]/.test(config.zokoKey) : !config.whatsappToken || !/^\d{5,30}$/.test(config.whatsappPhoneId ?? '') || !/^v\d+\.\d+$/.test(config.graphVersion ?? '')) return failure('whatsapp_not_configured');
     if (!/^\+[1-9]\d{7,14}$/.test(job.recipient)) return failure('invalid_phone');
-    const template = templateFor(config.templateMap, job.template_key);
+    const template = templateFor(provider === 'zoko' ? config.zokoTemplateMap : config.templateMap, job.template_key);
     if (!template) return failure('whatsapp_template_not_configured');
-    if (template.body_parameters.some(field => (field === 'body' ? body : job.subject).replace(/\s+/g,' ').trim().length > 1024)) return failure('whatsapp_parameter_too_long');
-    url = `https://graph.facebook.com/${config.graphVersion}/${config.whatsappPhoneId}/messages`;
-    headers = { Authorization: `Bearer ${config.whatsappToken}`, 'Content-Type': 'application/json' };
-    payload = { messaging_product: 'whatsapp', to: job.recipient.slice(1), type: 'template', template: { name: template.name, language: { code: template.language }, components: template.body_parameters.length ? [{ type: 'body', parameters: template.body_parameters.map(field => ({ type: 'text', text: (field === 'body' ? body : job.subject).replace(/\s+/g,' ').trim() })) }] : [] } };
+    const parameters = template.body_parameters.map(field => (field === 'body' ? body : job.subject).replace(/\s+/g,' ').trim());
+    if (parameters.some(value => !value || value.length > 1024)) return failure('whatsapp_parameter_too_long');
+    if (provider === 'zoko') {
+      url = 'https://chat.zoko.io/v2/message';
+      headers = { apikey: config.zokoKey!, 'Content-Type': 'application/json' };
+      payload = { channel: 'whatsapp', recipient: job.recipient.slice(1), type: 'template', templateId: template.name, templateLanguage: template.language, templateArgs: parameters };
+    } else {
+      url = `https://graph.facebook.com/${config.graphVersion}/${config.whatsappPhoneId}/messages`;
+      headers = { Authorization: `Bearer ${config.whatsappToken}`, 'Content-Type': 'application/json' };
+      payload = { messaging_product: 'whatsapp', to: job.recipient.slice(1), type: 'template', template: { name: template.name, language: { code: template.language }, components: parameters.length ? [{ type: 'body', parameters: parameters.map(text => ({ type: 'text', text })) }] : [] } };
+    }
   } else return failure('unsupported_channel');
+  // The queue freezes the provider. Changing configuration must never reroute a queued job.
+  const provider = job.channel === 'email' ? 'resend' : config.whatsappProvider === 'zoko' ? 'zoko' : 'whatsapp';
+  if (job.provider !== undefined && job.provider !== null && job.provider !== provider) return failure('message_provider_mismatch');
   try {
     const response = await request(url, { method: 'POST', headers, body: JSON.stringify(payload), signal: AbortSignal.timeout(10000), redirect: 'error' });
     if (response.status === 429) { const delay = retryDelay(response.headers.get('retry-after')); return delay !== undefined && delay > 86400 ? { outcome: 'uncertain', errorCode: 'provider_retry_window_exceeded' } : { outcome: 'retry', errorCode: 'provider_rate_limited', retryAfterSeconds: delay }; }
@@ -70,8 +82,12 @@ export async function deliverMessage(job: DeliveryJob, config: DeliveryConfig, r
     const raw = await response.text();
     if (raw.length > 65536) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
     const data = JSON.parse(raw);
-    const id = job.channel === 'email' ? data.id : data.messages?.[0]?.id;
+    const zoko = job.channel === 'whatsapp' && config.whatsappProvider === 'zoko';
+    // Zoko's response body has its own status. Never infer acceptance from HTTP alone.
+    if (zoko && !['200', '201', '202'].includes(String(data.status))) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
+    const id = job.channel === 'email' ? data.id : zoko ? data.messageId : data.messages?.[0]?.id;
     if (typeof id !== 'string' || id.length < 1 || id.length > 300) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_missing' };
+    if (zoko && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return { outcome: 'uncertain', errorCode: 'provider_acknowledgment_invalid' };
     return { outcome: 'accepted', providerMessageId: id };
   } catch { return { outcome: 'uncertain', errorCode: 'network_result_unknown' }; }
 }

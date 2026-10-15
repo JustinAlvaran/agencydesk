@@ -22,6 +22,7 @@ export type Database = {
       }
       automation_rules: {
         Row: {
+          provider: string
           agency_id: string
           id: string
           name: string
@@ -34,6 +35,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
+          provider?: string
           agency_id?: string
           id?: string
           name: string
@@ -46,6 +48,7 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          provider?: string
           agency_id?: string
           id?: string
           name?: string
@@ -61,6 +64,7 @@ export type Database = {
       }
       message_jobs: {
         Row: {
+          provider: string
           agency_id: string
           id: string
           rule_id: string
@@ -85,6 +89,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          provider?: string
           agency_id?: string
           id?: string
           rule_id: string
@@ -109,6 +114,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          provider?: string
           agency_id?: string
           id?: string
           rule_id?: string
@@ -141,6 +147,7 @@ export type Database = {
       }
       message_attempts: {
         Row: {
+          provider: string
           agency_id: string
           id: string
           job_id: string
@@ -153,6 +160,7 @@ export type Database = {
           error_code: string | null
         }
         Insert: {
+          provider?: string
           agency_id?: string
           id?: string
           job_id: string
@@ -165,6 +173,7 @@ export type Database = {
           error_code?: string | null
         }
         Update: {
+          provider?: string
           agency_id?: string
           id?: string
           job_id?: string
@@ -806,7 +815,7 @@ export type Database = {
         Returns: string
       }
       configure_automation_rule: {
-        Args: { p_rule_id: string; p_enabled: boolean; p_delay_minutes: number; p_approval_required: boolean; p_channel: string }
+        Args: { p_rule_id: string; p_enabled: boolean; p_delay_minutes: number; p_approval_required: boolean; p_channel: string; p_provider?: string }
         Returns: undefined
       }
       approve_message_job: { Args: { p_job_id: string }; Returns: boolean }

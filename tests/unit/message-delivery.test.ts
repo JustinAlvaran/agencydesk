@@ -44,6 +44,62 @@ describe('message delivery boundaries', () => {
     expect(await deliverMessage({...job,channel:'whatsapp',recipient:'+639171234567'},ownMeta,request)).toMatchObject({outcome:'accepted'});
     expect(await deliverMessage({...job,channel:'whatsapp',recipient:'+639171234567'},{...ownMeta,templateMap:'{}'},request)).toMatchObject({errorCode:'whatsapp_template_not_configured'});
   });
+  const zokoJob = { ...job, channel:'whatsapp', recipient:'+639171234567' };
+  const ownZoko = { mode:'live', whatsappProvider:'zoko', zokoKey:'own-zoko-test-key', zokoTemplateMap:JSON.stringify({proposal_notice:{name:'own_proposal_notice',language:'en',body_parameters:['subject','body']}}) };
+  const zokoId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
+  it('uses the documented Zoko template API and only its own provider credentials',async()=>{
+    const request=asFetch(async(url,init)=>{
+      expect(String(url)).toBe('https://chat.zoko.io/v2/message');
+      const headers=new Headers(init?.headers);expect(headers.get('apikey')).toBe(ownZoko.zokoKey);expect(headers.has('authorization')).toBe(false);
+      expect(init?.redirect).toBe('error');
+      expect(JSON.parse(String(init?.body))).toEqual({channel:'whatsapp',recipient:'639171234567',type:'template',templateId:'own_proposal_notice',templateLanguage:'en',templateArgs:[job.subject,job.body]});
+      return Response.json({status:'202',statusText:'Accepted',messageId:zokoId});
+    });
+    expect(await deliverMessage(zokoJob,{...ownZoko,whatsappToken:'other-provider-token'},request)).toEqual({outcome:'accepted',providerMessageId:zokoId});
+  });
+  it('keeps Zoko dry-run mode free of network calls even with configured credentials',async()=>{
+    const request=vi.fn();
+    expect(await deliverMessage(zokoJob,{...ownZoko,mode:undefined},request)).toEqual({outcome:'simulated'});
+    expect(await deliverMessage(zokoJob,{...ownZoko,mode:'dry_run'},request)).toEqual({outcome:'simulated'});
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('fails closed for unknown WhatsApp providers, missing Zoko keys or unusable mappings',async()=>{
+    const request=vi.fn();
+    expect(await deliverMessage(zokoJob,{...ownZoko,whatsappProvider:'unknown'},request)).toMatchObject({errorCode:'unsupported_whatsapp_provider'});
+    expect(await deliverMessage(zokoJob,{...ownZoko,zokoKey:undefined,whatsappToken:'meta-key'},request)).toMatchObject({errorCode:'whatsapp_not_configured'});
+    for (const map of ['{}','invalid',JSON.stringify({proposal_notice:{name:123,language:'en',body_parameters:['body']}}),JSON.stringify({proposal_notice:{name:'own_notice',language:'en',body_parameters:['other']}})]) {
+      expect(await deliverMessage(zokoJob,{...ownZoko,zokoTemplateMap:map},request)).toMatchObject({errorCode:'whatsapp_template_not_configured'});
+    }
+    expect(request).not.toHaveBeenCalled();
+  });
+  it('does not accept a Zoko message acknowledgment without its UUID and successful body status',async()=>{
+    for (const response of [{status:'202'},{status:'202',messageId:'not-a-uuid'},{status:'400',messageId:zokoId},{messageId:zokoId}]) {
+      expect(await deliverMessage(zokoJob,ownZoko,asFetch(async()=>Response.json(response)))).toMatchObject({outcome:'uncertain'});
+    }
+  });
+  it('accepts documented Zoko 200 acknowledgments without asserting delivered or read',async()=>{
+    expect(await deliverMessage(zokoJob,ownZoko,asFetch(async()=>Response.json({status:'200',statusText:'Accepted',messageId:zokoId})))).toEqual({outcome:'accepted',providerMessageId:zokoId});
+  });
+  it('keeps ambiguous Zoko results for manual reconciliation instead of resending',async()=>{
+    expect(await deliverMessage(zokoJob,ownZoko,asFetch(async()=>{throw new Error('own-private-key');}))).toEqual({outcome:'uncertain',errorCode:'network_result_unknown'});
+    expect(await deliverMessage(zokoJob,ownZoko,asFetch(async()=>new Response('own-private-key',{status:503})))).toEqual({outcome:'uncertain',errorCode:'provider_result_unknown'});
+    expect(await deliverMessage(zokoJob,ownZoko,asFetch(async()=>new Response('own-private-key',{status:403})))).toEqual({outcome:'failed',errorCode:'provider_authentication_failed'});
+    expect(await deliverMessage(zokoJob,ownZoko,asFetch(async()=>new Response('',{status:429,headers:{'Retry-After':'120'}})))).toMatchObject({outcome:'retry',retryAfterSeconds:120});
+  });
+  it('normalizes Zoko placeholders and blocks oversized parameters or invalid recipients',async()=>{
+    const request=asFetch(async(_url,init)=>{expect(JSON.parse(String(init?.body)).templateArgs).toEqual([job.subject,'Own proposal update']);return Response.json({status:'202',messageId:zokoId});});
+    expect(await deliverMessage({...zokoJob,body:'Own\nproposal\tupdate'},ownZoko,request)).toMatchObject({outcome:'accepted'});
+    const blocked=vi.fn();
+    expect(await deliverMessage({...zokoJob,body:'a'.repeat(1025)},ownZoko,blocked)).toMatchObject({errorCode:'whatsapp_parameter_too_long'});
+    expect(await deliverMessage({...zokoJob,recipient:'639171234567'},ownZoko,blocked)).toMatchObject({errorCode:'invalid_phone'});
+    expect(blocked).not.toHaveBeenCalled();
+  });
+  it('cannot reroute a job frozen to another provider when configuration changes',async()=>{
+    const blocked=vi.fn();
+    expect(await deliverMessage({...zokoJob,provider:'whatsapp'},ownZoko,blocked)).toMatchObject({errorCode:'message_provider_mismatch'});
+    expect(await deliverMessage({...job,provider:'zoko'},config,blocked)).toMatchObject({errorCode:'message_provider_mismatch'});
+    expect(blocked).not.toHaveBeenCalled();
+  });
   it('keeps portal links on the configured own origin and rejects injected destinations', async () => {
     const path=`/portal/proposals/${job.id}`;
     expect(renderDeliveryBody(job.body,path,'https://agency.example.test')).toContain(`https://agency.example.test${path}`);

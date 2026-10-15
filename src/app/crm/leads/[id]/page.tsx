@@ -11,6 +11,7 @@ import { addNote, updateLead } from '@/app/actions';
 import { recordLeadCall, saveLeadDetails } from '../../lead-actions';
 import { Heading, Panel, Area, Submit } from '../../workspace-ui';
 import { ContactFields } from '../contact-fields';
+import { HermesDraft } from '@/components/hermes-draft';
 
 type Activity = {id:string;event_type:string;created_at:string;actor_id:string|null;detail:unknown};
 export default async function Page({params}:{params:Promise<{id:string}>}) {
@@ -44,6 +45,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}) {
    <label className="field" style={{marginBottom:16}}>Callback time (Asia/Manila)<input className="input" name="callback_at" type="datetime-local"/></label>
    <p className="muted">Select Callback and choose a future time to create a follow-up task for the owner. This records a reminder; it does not send a message.</p><Submit>Record call</Submit>
   </ActionForm></Panel>
+  {!lead.archived_at ? <Panel title="Message drafts"><HermesDraft key={id} leadId={id} phone={lead.phone} whatsappPermitted={lead.whatsapp_opt_in === true}/></Panel> : null}
   <Panel title="Internal notes"><ActionForm action={addNote}><input type="hidden" name="lead_id" value={id}/><Area label="New internal note" name="body"/><Submit>Add note</Submit></ActionForm></Panel>
   <Panel title="Activity history"><p className="muted">Most recent first · latest 100 events and 100 notes.</p>{timeline.length?<ol style={{paddingLeft:20}}>{timeline.map(event=><li key={event.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)',overflowWrap:'anywhere'}}><strong>{statusLabel(event.event_type)}</strong><p className="muted"><time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-US',{timeZone:'Asia/Manila'})}</time> · {event.actor_id===user.id?'You':event.actor_id?`Actor ${event.actor_id.slice(0,8)}`:'System'}</p>{'body' in event?<p style={{whiteSpace:'pre-wrap'}}>{String(event.body)}</p>:activitySummary(event)?<p style={{whiteSpace:'pre-wrap'}}>{activitySummary(event)}</p>:null}</li>)}</ol>:<p>No activity yet.</p>}</Panel>
  </>;

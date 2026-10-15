@@ -1,6 +1,6 @@
 # AgencyDesk messaging setup
 
-Researched 14 October 2026. Use your own accounts throughout. ApartmentHub supplies workflow ideas only; its credentials, destinations, sender identities, customer records, and sending app must never be imported.
+Updated 15 October 2026. Start with reviewed manual WhatsApp drafts or Meta’s free test sender; production messaging can have usage charges. See [free-first setup](hermes-zoko-setup.md). Use your own accounts throughout. ApartmentHub supplies workflow ideas only; its credentials, destinations, sender identities, customer records, and sending app must never be imported.
 
 ## What you need first
 
@@ -12,7 +12,8 @@ Researched 14 October 2026. Use your own accounts throughout. ApartmentHub suppl
 | Store and process live jobs | Your AgencyDesk database, deployed worker, scheduler | Your AgencyDesk infrastructure |
 | Send email | Your Resend API key, verified sending domain, sender address | Your Resend account |
 | Send WhatsApp reminders | Your Meta app, WABA, sender ID, access token, approved template | Your Meta business/developer accounts |
-| AI drafts or inbound triage later | Hermes runtime, your model provider, authenticated private connection | Your Hermes installation and provider account |
+| Reviewed manual WhatsApp drafts | Customer phone, WhatsApp permission and staff review | Lead detail page; staff press Send in WhatsApp |
+| AI drafts | Dedicated Hermes profile, local or own model, authenticated HTTPS gateway | Staff-only hermes-draft Edge endpoint |
 
 ApartmentHub patterns to adapt: consent/suppression checks, reminder delays, cancellation on changed state, preview and approval, and an activity timeline. AgencyDesk owns the outbox and rechecks eligibility immediately before sending. Use the existing inquiry → lead → proposal → project lifecycle. Keep English content; no i18n framework is needed.
 
@@ -44,8 +45,8 @@ An English WhatsApp template language code describes your approved provider temp
 Apply the AgencyDesk code and database changes first:
 
 1. Select your own AgencyDesk Supabase project. If this is a new project, follow the base setup in README.md first; the new migration files extend that schema.
-2. Apply `20261014055043_automation.sql`, `20261014055050_lead_workflow.sql`, and `20261014055051_inquiry_preferences.sql` in order from `supabase/migrations/`. These files are prepared locally; no hosted migration was run in this chat.
-3. Deploy all three updated functions with the Supabase CLI, linked to that own project: `supabase functions deploy inquiry`, `supabase functions deploy automation-worker`, and `supabase functions deploy message-receipts`. The checked-in configuration lets the worker and receipts validate their own credentials; the public inquiry retains its gateway JWT check.
+2. Apply `20261014055043_automation.sql`, `20261014055050_lead_workflow.sql`, and `20261014055051_inquiry_preferences.sql` in order from `supabase/migrations/`. These migrations and lead ledger privileges were deployed to the own AgencyDesk project. Apply the checked-in provider routing migration before the updated worker/UI. Verify each environment’s actual migration history first.
+3. Deploy the three sending functions plus optional hermes-draft with the Supabase CLI, linked to that own project: `supabase functions deploy inquiry`, `supabase functions deploy automation-worker`, and `supabase functions deploy message-receipts`. The checked-in configuration lets the worker and receipts validate their own credentials; the public inquiry retains its gateway JWT check.
 4. Configure Next.js with `APP_MODE=live`, your own `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_EDGE_ANON_KEY`, and HTTPS `APP_URL`. Provider keys go in Edge secrets below. The publishable key is public; the legacy inquiry gateway JWT remains a server setting. Use the existing admin/client invitation setup to create live memberships.
 5. Open `/crm/automations`, enable only the rule being tested, record the recipient's explicit permission, and review its queued preview. Manual lead creation records a lead; it does not create an inquiry acknowledgment. The acknowledgment trigger comes from a submitted website inquiry.
 
@@ -64,7 +65,7 @@ APP_URL=https://your-agencydesk.example
 
 After the automation migration and functions are deployed to your own AgencyDesk project, schedule a POST to `/functions/v1/automation-worker` using the `x-automation-secret` header with your cron secret. An active administrator can also invoke the worker with their authenticated session. Keep scheduler secrets in its secret store. Periodic processing requires a scheduler; leaving the CRM page open is unnecessary.
 
-Run the schedule once per minute initially. Each invocation processes up to five jobs and claims them one at a time so a stopped worker cannot strand an unsent batch. The request body can be `{}`; it cannot override recipients or the delivery mode.
+Choose a schedule supported by your hosting plan; do not assume minute-by-minute cron is free. An administrator can process dry-run batches manually. Each invocation processes up to five jobs and claims them one at a time so a stopped worker cannot strand an unsent batch. The request body can be `{}`; it cannot override recipients or the delivery mode.
 
 Review the queue and approvals first, then set `AUTOMATION_DELIVERY_MODE=live` for an approved test. Rules and outbound approvals remain separate from the delivery-mode setting.
 
@@ -129,10 +130,10 @@ Hermes offers two WhatsApp connections:
 - **Cloud API:** official Meta transport, your own business sender and credentials, public HTTPS webhook. Guided setup: `hermes whatsapp-cloud`. Its current documentation says approved-template sending is not implemented. That makes it unsuitable as AgencyDesk's delayed reminder sender when the 24-hour reply window has expired. Use the direct template-capable Meta adapter for those jobs. [Hermes Cloud API guide](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/whatsapp-cloud).
 - **Baileys:** a Node bridge paired by QR code that emulates WhatsApp Web. It needs no Meta developer token, but its documentation identifies account restriction and protocol compatibility risks. We recommend the official Cloud API for AgencyDesk customer messaging. [Hermes Baileys guide](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/whatsapp).
 
-Future connection shape: verified inbound event → AgencyDesk activity and sequence stop → scoped context to Hermes → suggested response → staff review → AgencyDesk outbox → provider. Give the agent narrow read/draft tools; sending and lead changes remain checked AgencyDesk operations. No Hermes adapter is implemented in this baseline.
+Future connection shape: verified inbound event → AgencyDesk activity and sequence stop → scoped context to Hermes → suggested response → staff review → AgencyDesk outbox → provider. Give the agent narrow read/draft tools; sending and lead changes remain checked AgencyDesk operations. The staff-only hermes-draft endpoint now implements scoped drafts and summaries. It requires tools and persistent memory disabled; see [the connection contract](hermes-zoko-setup.md). Reviewed customer drafts can be opened manually in WhatsApp; inbound chat storage and automatic replies remain a later extension.
 
 ## Secret placement
 
 Use placeholders in tracked examples. Put actual provider values directly in the AgencyDesk worker's secret environment. Hermes configuration belongs to the Hermes host. Never put provider keys in browser `NEXT_PUBLIC_` variables, repository files, reports, screenshots, or message logs. The Next.js application does not need a service-role key for this setup.
 
-No account creation, Hermes installation, webhook subscription, deployment, or outbound message was performed during this research.
+Consult the environment deployment report for hosted status. Installation and keys alone do not prove live sending or AI drafts work. Keep delivery in dry-run until a separately reviewed test.
