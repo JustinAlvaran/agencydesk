@@ -2,7 +2,7 @@
 
 import ChatBot, { type Flow, type Params, type Settings, type Styles } from 'react-chatbotify';
 import Link from 'next/link';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { InquiryForm } from '@/app/inquire/inquiry-form';
 import { assistantAnswers, assistantServiceAnswer, assistantTopics, type AssistantService } from '@/lib/service-assistant';
 import { undecidedService } from '@/lib/service-catalog';
@@ -14,7 +14,7 @@ const settings: Settings = {
   fileAttachment: { disabled: true }, emoji: { disabled: true },
   botBubble: { animate: false }, userBubble: { animate: false },
   chatInput: { botDelay: 0 },
-  chatWindow: { showScrollbar: true, showMessagePrompt: false },
+  chatWindow: { showScrollbar: true, showMessagePrompt: false, autoJumpToBottom: true },
 };
 const styles: Styles = {
   chatWindowStyle: { width: '100%', height: '100%', borderRadius: 0, boxShadow: 'none', border: 'none' },
@@ -33,13 +33,15 @@ function InquiryLink({ onInquire, service }: { onInquire: (service: string) => v
 // message UI while providing native controls for keyboard and screen-reader use.
 function GuideChoices({ params, items, children }: { params: Params; items: Array<{ label: string; path: string }>; children?: ReactNode }) {
   const [busy, setBusy] = useState(false);
+  const firstChoice = useRef<HTMLButtonElement>(null);
+  useEffect(() => { firstChoice.current?.focus({ preventScroll: true }); }, []);
   async function choose(label: string, path: string) {
     if (busy) return;
     setBusy(true);
     try { await params.injectMessage(label, 'user'); await params.goToPath(path); }
     finally { setBusy(false); }
   }
-  return <div className="assistant-choice-block">{children}<div className="assistant-choices" aria-label="Guide topics">{items.map(item => <button key={item.path} type="button" className="button button-secondary" disabled={busy} onClick={() => { void choose(item.label, item.path); }}>{item.label}</button>)}</div></div>;
+  return <div className="assistant-choice-block">{children}<div className="assistant-choices" aria-label="Guide topics">{items.map((item,index) => <button key={item.path} ref={index===0?firstChoice:undefined} type="button" className="button button-secondary" disabled={busy} onClick={() => { void choose(item.label, item.path); }}>{item.label}</button>)}</div></div>;
 }
 
 export default function AssistantConversation({ services, available }: { services: AssistantService[]; available: boolean }) {
@@ -61,5 +63,5 @@ export default function AssistantConversation({ services, available }: { service
   }, [services]);
 
   if (inquiryService !== null) return <div className="assistant-inquiry"><button type="button" className="button button-secondary" onClick={() => setInquiryService(null)}>Back to service guide</button><h3>Review your project inquiry</h3><p className="muted">Share the outcome you need and your desired timeline. Submitting saves your contact details and brief in AgencyDesk so the team can review them. Optional update permissions start unchecked.</p><InquiryForm available={available} services={services} initialService={inquiryService} intakeSource="website_chatbot"/></div>;
-  return <div className="assistant-chat"><ChatBot id="agencydesk-services" flow={flow} settings={settings} styles={styles}/><p className="assistant-note">No live agent or automatic quote. <Link href="/inquire">Use the inquiry form</Link> anytime.</p></div>;
+  return <div className="assistant-chat"><div role="log" aria-label="Service conversation" aria-live="polite"><ChatBot id="agencydesk-services" flow={flow} settings={settings} styles={styles}/></div><p className="assistant-note">No live agent or automatic quote. <Link href="/inquire">Use the inquiry form</Link> anytime.</p></div>;
 }
