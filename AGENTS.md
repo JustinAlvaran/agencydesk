@@ -30,3 +30,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - When external sign-in is needed, provide the exact provider login or generated authorization link for the owner to complete. Do not silently switch accounts or treat website login as proof of CLI/MCP authentication.
 
 - Use the isolated personal GitHub CLI profile described in docs/github-account-isolation.md for AgencyDesk. Verify JustinAlvaran and repository push access before publishing. Do not switch the global work login; use per-process configuration and per-command Git credential-helper overrides.
+
+# Independent credential-security review
+
+- Before each substantive application/configuration publication, use one independent read-only security subagent. It may also perform the final code review; keep implementation inline and the team small.
+- Give the reviewer this exact AgencyDesk-only/no-Linear/no-other-project scope. Check secret tracking, client/server environment boundaries, auth and agency isolation, API/webhook permissions, logs/errors, CI, generated browser assets, PR text/screenshots and external MCP requests relevant to the change.
+- Never read or print private credential stores or real env/token values for a routine review. Report suspected secrets only as redacted category, path, line and severity. Public project IDs/publishable keys are not private service-role/OAuth credentials.
+- Before committing/pushing, verify the exact staged allowlist, ignored credential paths and a redacted secret scan. Record tools, scope and limits; an index-only scan is not a history/deployment audit. Keep actual secrets out of commits, PRs, logs, screenshots, build artifacts and design prompts.
+- Block publication on confirmed leaks. If already published, inform the owner with redacted scope and rotation/revocation steps; do not print values, assume file deletion revokes a token, rewrite shared history or rotate credentials without required authorization.

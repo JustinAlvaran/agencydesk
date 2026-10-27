@@ -18,6 +18,10 @@ For visual changes, attach desktop/mobile screenshots with viewport sizes and la
 
 List required configuration/migrations, remaining owner steps, provider gates and any disabled or incomplete features. No secrets or customer data.
 
+## Credential-security review
+
+Record the independent review, redacted staged-secret check, ignored credential paths, relevant browser/server boundaries and any remaining checks. Never paste credential values. State explicitly whether history and generated/deployed artifacts were inspected.
+
 ## Rollback
 
 Explain how to revert the change and disable affected features safely.
