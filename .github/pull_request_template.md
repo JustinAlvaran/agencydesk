@@ -1,3 +1,7 @@
+## Delivery target
+
+Feature/configuration PRs target `preview`. The owner promotes `preview` into `main`; do not merge on the owner's behalf. Record the latest fetched main/preview SHAs and verify both are ancestors of the tested feature head. Resolve integration conflicts and rerun affected checks before publishing.
+
 ## Problem and resulting behavior
 
 Explain the concrete problem and what this change makes possible.
