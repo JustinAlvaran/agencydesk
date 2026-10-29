@@ -11,7 +11,7 @@ import styles from './app-shell.module.css';
 
 const navigation=[{name:'Overview',path:'',icon:LayoutDashboard},{name:'Lead pipeline',path:'/leads',icon:PanelsTopLeft},{name:'Proposals',path:'/proposals',icon:FileText},{name:'Projects',path:'/projects',icon:BriefcaseBusiness},{name:'Tasks',path:'/tasks',icon:CheckSquare},{name:'Contacts',path:'/contacts',icon:Users},{name:'Automations',path:'/automations',icon:Workflow}];
 
-export function AppShell({children,mode='demo',role='staff',title,description}:{children:ReactNode;mode?:'demo'|'live';role?:'staff'|'client';title?:string;description?:string}) {
+export function AppShell({children,mode='demo',role='staff',title,description,demoLabel='Fictional sample data'}:{children:ReactNode;mode?:'demo'|'live';role?:'staff'|'client';title?:string;description?:string;demoLabel?:string}) {
   const pathname=usePathname();
   const [open,setOpen]=useState(false);
   const base=role==='client'?(mode==='demo'?'/demo/portal':'/portal'):(mode==='demo'?'/demo':'/crm');
@@ -50,7 +50,7 @@ export function AppShell({children,mode='demo',role='staff',title,description}:{
         </div>
         <span className={styles.sessionState}><span aria-hidden='true'/>{mode==='demo'?'Demo':'Signed in'}</span>
       </header>
-      {mode==='demo'&&<div className='demo-banner'><span><strong>Fictional sample data</strong><span className={styles.demoDetail}> · Changes are disabled in this demo.</span></span><Link href={role==='client'?'/demo':'/demo/portal'}>{role==='client'?'See staff workspace':'See client experience'} <ArrowUpRight size={13} aria-hidden='true'/></Link></div>}
+      {mode==='demo'&&<div className='demo-banner'><span><strong>{demoLabel}</strong><span className={styles.demoDetail}> · Changes are disabled in this demo.</span></span><Link href={role==='client'?'/demo':'/demo/portal'}>{role==='client'?'See staff workspace':'See client experience'} <ArrowUpRight size={13} aria-hidden='true'/></Link></div>}
       <main id='main-content' className='workspace-content'>{description&&<p className='muted'>{description}</p>}{children}</main>
     </div>
   </div>;

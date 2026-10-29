@@ -6,7 +6,7 @@ import {demoDashboard} from '@/lib/fixtures';
 import {overviewPreview} from '@/lib/workspace-overview';
 import styles from './workspace-dashboard.module.css';
 
-type Props={readOnly?:true;data?:DashboardData}|{readOnly:false;data:DashboardData};
+type Props={readOnly?:true;data?:DashboardData;emptyPreview?:true}|{readOnly:false;data:DashboardData;emptyPreview?:never};
 const formatDate=(value?:string|null)=>value&&Number.isFinite(Date.parse(value))?new Date(value).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',timeZone:'UTC'}):'No due date';
 
 function Empty({title,copy}:{title:string;copy:string}) {
@@ -30,7 +30,7 @@ export function DashboardView(props:Props) {
       <div><p className={styles.eyebrow}>AGENCY OPERATIONS</p><h1 id='overview-title'>Overview</h1><p className={styles.introCopy}>A clearer picture. A better next step.</p></div>
       <Link className={styles.primaryAction} href={`${base}/tasks`}>View tasks <ArrowUpRight size={16} aria-hidden='true'/></Link>
     </section>
-    <section aria-label='Workspace totals'><dl className={styles.metrics}>{metrics.map(({label,value,icon:Icon,detail},index)=><div className={styles.metric} data-primary={index===0||undefined} key={label}><dt className={styles.metricTop}><span>{label}</span><span className={styles.metricIcon}><Icon size={17} aria-hidden='true'/></span></dt><dd>{value}</dd><dd className={styles.metricDetail}>{detail}</dd></div>)}</dl></section>
+    <section aria-label='Workspace totals'><dl className={styles.metrics}>{metrics.map(({label,value,icon:Icon,detail},index)=><div className={styles.metric} data-primary={index===0||undefined} key={label}><dt className={styles.metricTop}><span>{label}</span><span className={styles.metricIcon}><Icon size={17} aria-hidden='true'/></span></dt><dd>{readOnly&&props.emptyPreview?'—':value}</dd><dd className={styles.metricDetail}>{detail}</dd></div>)}</dl></section>
     <div className={styles.mainGrid}>
       <section className={styles.panel} aria-labelledby='next-moves-title'>
         <header className={styles.panelHeader}><div><p className={styles.eyebrow}>KEEP THINGS MOVING</p><h2 id='next-moves-title'>Your next moves</h2></div><Link href={`${base}/tasks`}>All tasks <ArrowRight size={15} aria-hidden='true'/></Link></header>

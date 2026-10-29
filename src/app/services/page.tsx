@@ -1,3 +1,4 @@
+import {PublicTheme} from '@/components/public-theme';
 import Link from "next/link";
 import { MarketingFooter, MarketingHeader } from "@/components/marketing";
 import { Button } from "@/components/ui/primitives";
@@ -8,7 +9,7 @@ import { ServiceContent } from "@/components/website-content";
 export const metadata = { title: "Services", description: "Business websites, redesigns, web applications, client portals, and CRM automation. Explore the scope and start a project inquiry.", alternates: { canonical: '/services' } };
 export default function Page() {
   return (
-    <div className="marketing">
+    <PublicTheme>
       <MarketingHeader />
       <main id="main-content">
         <section className="service-hero"><h1>Digital services for your next stage</h1><p>Build your website, improve an existing experience, or connect the systems behind your business. Start with a project brief; agree on the scope and price before work begins.</p></section>
@@ -18,6 +19,6 @@ export default function Page() {
         </section>
       </main>
       <MarketingFooter />
-    </div>
+    </PublicTheme>
   );
 }

@@ -5,6 +5,13 @@ import {DashboardView} from '@/components/workspace-dashboard';
 import {demoDashboard} from '@/lib/fixtures';
 
 describe('workspace overview data presentation',()=>{
+  it('keeps the empty design preview free of invented metrics and records',()=>{
+    const data={...demoDashboard,leads:[],tasks:[],projects:[],openLeads:0,pipelineValue:0,acceptedValue:0,overdueTasks:0};
+    const html=renderToStaticMarkup(createElement(DashboardView,{readOnly:true,data,...{emptyPreview:true}}));
+    expect(html).not.toContain('$0');expect(html).not.toContain('Maya Chen');
+    expect(html).toContain('—');
+  });
+
   it('renders explicit empty states for zero leads/tasks and inactive-only projects',()=>{
     const html=renderToStaticMarkup(createElement(DashboardView,{readOnly:false,data:{...demoDashboard,leads:[],tasks:[],projects:demoDashboard.projects.map(project=>({...project,status:'completed'}))}}));
     expect(html).toContain('No open leads in this preview');
