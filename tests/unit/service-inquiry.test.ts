@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import fixtures from '../../content/fixtures.json';
 import { inquiryService, visibleServices } from '../../src/lib/service-catalog';
 import { websiteContentSchema } from '../../src/lib/website-schema';
@@ -8,6 +8,8 @@ vi.mock('@/lib/supabase/inquiry', () => ({ submitInquiry: submit }));
 vi.mock('@/lib/website-content', () => ({ publicServices: fixtures.services.filter(service => service.visibility === 'visible') }));
 import { POST } from '../../src/app/api/inquiries/route';
 
+// Keep fictional requests independent of the hosting/CI public origin.
+beforeEach(() => { vi.stubEnv('APP_URL', 'https://agency.example'); });
 afterEach(() => { vi.unstubAllEnvs(); vi.clearAllMocks(); });
 const services = websiteContentSchema.parse(fixtures).services;
 const payload = { contact_name: 'Fictional inquiry', email: 'inquiry@example.test', service: 'CRM and automation setup', brief: 'Please connect the lead intake and follow-up workflow.', budget_cents: 100000, email_opt_in: false, whatsapp_opt_in: false };
