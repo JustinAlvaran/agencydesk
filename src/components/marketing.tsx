@@ -1,9 +1,15 @@
 import Link from "next/link";
+import {PanelsTopLeft} from 'lucide-react';
+import theme from './public-theme.module.css';
 import { Button } from "./ui/primitives";
+import { ServiceAssistant } from './service-assistant';
+import { publicServices } from '@/lib/website-content';
+import { isDemo } from '@/lib/env';
 
 export function MarketingHeader() {
   return (
     <header className="site-nav">
+      <Link className={theme.brand} href="/" aria-label="AgencyDesk home"><PanelsTopLeft size={25} aria-hidden="true"/>AgencyDesk</Link>
       <nav className="site-nav-links" aria-label="Main navigation">
         <Link href="/">Home</Link>
         <Link href="/services">Services</Link>
@@ -24,6 +30,7 @@ export function MarketingFooter() {
         <Link href="/demo">Explore demo</Link>
         <Link href="/crm">Staff CRM</Link>
       </nav>
+      <ServiceAssistant services={publicServices.map(({id,title,description,bullet_1,bullet_2,bullet_3})=>({id,title,description,bullet_1,bullet_2,bullet_3}))} available={!isDemo()}/>
     </footer>
   );
 }

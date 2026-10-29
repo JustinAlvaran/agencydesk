@@ -1,0 +1,35 @@
+import Link from 'next/link';
+import {ArrowDown,ArrowRight,ArrowUpRight,BriefcaseBusiness,Check,CheckSquare,ChevronRight,Code2,FileText,Globe,Inbox,Layers3,PanelsTopLeft,Plus,Workflow} from 'lucide-react';
+import {publicServices,websiteContent} from '@/lib/website-content';
+import {MarketingFooter,MarketingHeader} from './marketing';
+import {PublicTheme} from './public-theme';
+import {AmbientField,WatchWorkflow} from './launch-effects';
+import {ShineBorder} from './ui/shine-border';
+import styles from './launch-home.module.css';
+/** Empty interface composition: no fixtures, names, counts or invented business data. */
+export function EmptyWorkflowPreview() {
+ return <section className={styles.previewStage} aria-label='AgencyDesk workflow preview'>
+  <div className={styles.rearPanel} aria-hidden='true'><div className={styles.rearHeader}><CheckSquare size={16}/>Next actions</div><div className={styles.ghostRow}/><div className={styles.ghostRow}/><div className={styles.ghostRow}/></div>
+  <div className={styles.mockupFrame}><ShineBorder/><div className={styles.mockup}>
+   <aside className={styles.mockSidebar} aria-hidden='true'><div className={styles.mockLogo}><PanelsTopLeft size={18}/>AgencyDesk</div><div className={styles.mockSelected}><PanelsTopLeft size={14}/>Overview</div><div><Inbox size={14}/>Leads</div><div><FileText size={14}/>Proposals</div><div><BriefcaseBusiness size={14}/>Projects</div><div><CheckSquare size={14}/>Tasks</div><span className={styles.mockSidebarBottom}>One connected workspace</span></aside>
+   <div className={styles.mockMain}><div className={styles.mockTop}><span>Workspace<ChevronRight size={12}/>Overview</span><span className={styles.previewPill}>Interface preview</span></div><div className={styles.mockHeading}><div><p>YOUR AGENCY, IN VIEW</p><h2>Room for your next chapter.</h2></div><span className={styles.mockAdd} aria-hidden='true'><Plus size={14}/></span></div>
+    <div className={styles.mockStats} aria-hidden='true'>{['Lead pipeline','Proposals','Projects'].map(label=><div key={label}><span>{label}</span><strong>—</strong><i/></div>)}</div>
+    <div className={styles.mockBoard}><div className={styles.mockBoardTitle}><strong>Lead pipeline</strong><span>New inquiry<ArrowRight size={12}/>Proposal</span></div><div className={styles.emptyBoard}><div className={styles.emptyIcon}><Inbox size={24}/></div><strong>Your work takes shape here.</strong><p>Empty interface preview. No records shown.</p><div className={styles.skeletonLines} aria-hidden='true'><i/><i/><i/></div></div></div>
+   </div></div></div>
+  <div className={styles.floatingNote} aria-hidden='true'><span><Workflow size={18}/></span><div><strong>From inquiry to handoff</strong><small>One clear next step.</small></div><Check size={15}/></div>
+ </section>;
+}
+export function LaunchHome() {
+ const home=websiteContent.home_page,icons=[Globe,Layers3,Code2,Workflow];
+ const steps=[{title:home.leads_heading,copy:home.leads_description,href:'/demo/leads',action:'View lead pipeline',icon:Inbox},{title:home.proposals_heading,copy:home.proposals_description,href:'/demo/proposals',action:'View proposals',icon:FileText},{title:home.portal_heading,copy:home.portal_description,href:'/demo/portal',action:'View client portal',icon:BriefcaseBusiness}];
+ return <PublicTheme className={styles.home}><MarketingHeader/><main id='main-content'>
+  <section className={styles.hero} aria-labelledby='home-title'><div className={styles.heroGlow} aria-hidden='true'><i/><i/></div><AmbientField/>
+   <div className={styles.heroContent}><p className={styles.eyebrow}><span/>DIGITAL CRAFT. CONNECTED OPERATIONS.</p><h1 id='home-title'>{home.heading}</h1><p className={styles.heroDescription}>{home.description}</p><div className={styles.heroActions}><Link className={styles.primaryAction} href='/inquire'>Discuss your project<ArrowUpRight size={17} aria-hidden='true'/></Link><WatchWorkflow/></div><div className={styles.serviceTags}><span>BUILT AROUND YOUR BUSINESS</span><p>Websites<i/>Applications<i/>Connected workflows</p></div></div>
+   <EmptyWorkflowPreview/><p className={styles.previewCaption}>Empty interface preview<span aria-hidden='true'>·</span>No customer records or performance figures</p>
+  </section>
+  <section className={styles.services} aria-labelledby='services-title'><header className={styles.sectionHeading}><div><p className={styles.eyebrow}>THE RIGHT STARTING POINT</p><h2 id='services-title'>Good ideas deserve<br/><span>thoughtful execution.</span></h2></div><Link className={styles.textLink} href='/services'>Explore services<ArrowUpRight size={16} aria-hidden='true'/></Link></header><div className={styles.serviceGrid}>{publicServices.map((service,index)=>{const Icon=icons[index%icons.length];return <article className={styles.serviceCard} key={service.id}><span className={styles.serviceIcon}><Icon size={22} aria-hidden='true'/></span><h3><Link href={`/services/${service.id}`}>{service.title}</Link></h3><p>{service.description}</p><Link className={styles.cardLink} href={`/services/${service.id}`} aria-label={`Explore ${service.title}`}>Explore scope<ArrowUpRight size={15} aria-hidden='true'/></Link></article>;})}</div></section>
+  <section id='workflow' className={styles.workflow} aria-labelledby='workflow-title'><div className={styles.workflowIntro}><p className={styles.eyebrow}>LESS FRICTION. MORE FORWARD.</p><h2 id='workflow-title'>From first hello<br/>to final handoff.</h2><p>{home.section_heading}</p><Link className={styles.primaryAction} href='/demo'>Open workspace demo<ArrowUpRight size={16} aria-hidden='true'/></Link></div><div className={styles.steps}>{steps.map(({title,copy,href,action,icon:Icon},index)=><article key={href}><span className={styles.stepNumber}>0{index+1}</span><div><span className={styles.stepIcon}><Icon size={19} aria-hidden='true'/></span><h3>{title}</h3><p>{copy}</p><Link href={href}>{action}<ArrowRight size={14} aria-hidden='true'/></Link></div></article>)}</div></section>
+  <section className={styles.faq} aria-labelledby='guide-title'><div><p className={styles.eyebrow}>A CLEARER WAY TO WORK</p><h2 id='guide-title'>Your next step,<br/><span>without the guesswork.</span></h2><p>Explore the workflow before starting your inquiry.</p></div><div>{steps.map(step=><details key={step.href}><summary>{step.title}<Plus size={16} aria-hidden='true'/></summary><p>{step.copy}</p><Link href={step.href}>{step.action}<ArrowUpRight size={13} aria-hidden='true'/></Link></details>)}</div></section>
+  <section className={styles.finalCta}><div className={styles.ctaGlow} aria-hidden='true'/><p className={styles.eyebrow}>YOUR NEXT CHAPTER</p><h2>Make room<br/><span>for what’s next.</span></h2><Link className={styles.primaryAction} href='/inquire'>Start inquiry<ArrowUpRight size={17} aria-hidden='true'/></Link><Link href='/services' className={styles.finalSecondary}>Explore the scope<ArrowDown size={13} aria-hidden='true'/></Link></section>
+ </main><MarketingFooter/></PublicTheme>;
+}
