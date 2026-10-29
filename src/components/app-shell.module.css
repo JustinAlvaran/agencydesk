@@ -1,0 +1,36 @@
+.root,.drawer{--accent:#6652cc;--line:#e2e4ed;--muted:#646b7b;--text:#222738;--foreground:#222738;--background:#f5f6fa}
+.root{background:radial-gradient(ellipse at 90% 0%,#eeebfa 0%,#f5f6fa 52%);min-height:100vh}
+.root :global(.app-sidebar),.drawer{background:#1b2030;color:#f4f5fa;border-color:#303749}
+.root :global(.app-sidebar){width:248px;padding:30px 18px 24px;overflow-y:auto;overscroll-behavior:contain}
+.root :global(.app-sidebar .app-nav),.root :global(.app-sidebar .sidebar-bottom){flex-shrink:0}
+.brand{display:flex;align-items:center;gap:11px;color:#fff;margin:0 8px 36px;font-size:20px;font-weight:650;letter-spacing:-.6px;text-decoration:none!important;flex-shrink:0}
+.brandMark{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#8874ec;color:#fff;box-shadow:0 4px 16px #0003}
+.brandCaption{display:block;font-size:11px;font-weight:400;letter-spacing:.3px;color:#bdc4d6;margin-top:3px}
+.root :global(.workspace-label),.drawer :global(.workspace-label){font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:#aeb8cd;margin:0 13px 12px;font-weight:600}
+.root :global(.app-nav),.drawer :global(.app-nav){display:grid;gap:5px}
+.root :global(.app-nav-link),.drawer :global(.app-nav-link){min-height:46px;border:1px solid transparent;border-radius:9px;color:#c5cbda;padding:11px 12px;font-size:14px}
+.root :global(.app-nav-link:hover),.drawer :global(.app-nav-link:hover){background:#2b3246;color:#fff}
+.root :global(.app-nav-link.active),.drawer :global(.app-nav-link.active){background:#393354;border-color:#52476e;color:#fff;padding:11px 12px;box-shadow:inset 3px 0 #a996ff}
+.root :global(.app-nav-link.active svg),.drawer :global(.app-nav-link.active svg){color:#c0aeff}
+.root :global(.sidebar-bottom),.drawer :global(.sidebar-bottom){padding:24px 9px 0;gap:13px}
+.sidebarNote{display:flex;gap:10px;align-items:flex-start;border-top:1px solid #394052;padding-top:22px;margin-bottom:10px}
+.sidebarNote strong{font-size:11px;font-weight:600;color:#e2e7f3}.sidebarNote p{font-size:10px;color:#aeb8cd;margin-top:4px}
+.smallMark{background:#30384c;padding:8px;border-radius:8px;display:flex;color:#c9bafc}
+.root :global(.back-site),.drawer :global(.back-site){color:#c0c9dc;display:flex;align-items:center;gap:8px;font-size:12px;background:none;border:0;padding:5px 0;min-height:32px}
+.root :global(.session-note),.drawer :global(.session-note){color:#aeb8cd;font-size:10px}
+.root :global(.app-main){margin-left:248px}
+.root :global(.app-topbar){height:76px;background:#ffffffd9;border-color:#e2e4ed;padding:0 38px}
+.root :global(.topbar-breadcrumb){font-size:12px;color:#3c4356;gap:16px}.breadcrumbDivider{color:#8f96a7}
+.sessionState{display:flex;align-items:center;gap:7px;font-size:11px;color:#555d71;border:1px solid #e2e4ed;background:#fff;border-radius:20px;padding:6px 10px;white-space:nowrap}
+.sessionState>span{width:6px;height:6px;border-radius:50%;background:#7261ba}
+.root :global(.demo-banner){background:#f0edfb;border-bottom:1px solid #e2dbf5;color:#574687;padding:10px 38px;font-size:11px;gap:12px}
+.root :global(.demo-banner strong){font-weight:600}.root :global(.demo-banner a){display:inline-flex;align-items:center;gap:5px;font-weight:600}
+.root :global(.workspace-content){padding:36px 38px 56px;max-width:1550px;min-width:0}
+.root :global(.panel){border-radius:14px;box-shadow:0 3px 12px #20273803}.root :global(.kanban-column){background:#eceef5;border-radius:12px}
+.root :global(.button-primary){background:#6652cc}.root :global(.button-primary:hover){background:#5140af}
+.root :global(.page-heading h1){letter-spacing:-1px}.root :global(.badge){border-radius:6px}
+.root :global(:focus-visible){outline:3px solid #8068d8;outline-offset:3px}.drawer :global(:focus-visible),.root :global(.app-sidebar :focus-visible){outline:3px solid #c6b6ff;outline-offset:3px}
+.drawer{width:min(310px,88vw);padding:64px 18px 24px;overflow-y:auto;overscroll-behavior:contain}.drawer :global(.app-nav),.drawer :global(.sidebar-bottom){flex-shrink:0}.drawer :global(.sheet-close){color:#fff}.drawer :global(.icon-button:hover){background:#343c51}
+@media(max-width:1100px){.root :global(.workspace-content){padding:28px 24px 40px}.root :global(.app-topbar),.root :global(.demo-banner){padding-left:24px;padding-right:24px}}
+@media(max-width:900px){.root :global(.app-sidebar){display:none}.root :global(.app-main){margin-left:0}}
+@media(max-width:650px){.root :global(.app-topbar){height:64px;padding:0 16px}.root :global(.topbar-breadcrumb){gap:10px;font-size:11px}.root :global(.workspace-content){padding:24px 16px 36px}.root :global(.demo-banner){padding:10px 16px;align-items:flex-start;gap:6px}.demoDetail{display:none}.sessionState{font-size:10px;padding:5px 8px}}
