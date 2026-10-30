@@ -6,3 +6,44 @@
 @media(max-width:650px){.dashboard{gap:23px}.intro{align-items:flex-start;gap:12px}.intro h1{font-size:30px}.introCopy{font-size:12px;max-width:180px;line-height:1.6}.primaryAction{font-size:11px;padding:11px 12px;gap:9px;margin-top:15px;flex-shrink:0}.eyebrow{font-size:10px;letter-spacing:1.5px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.metric{padding:16px 14px}.metric dd{font-size:25px;margin-top:12px}.metricTop{align-items:flex-start}.metricIcon{width:25px;height:25px}.metric dt{font-size:12px;max-width:83px}.metric .metricDetail{font-size:11px;line-height:1.6}.panelHeader{padding:20px 18px 12px}.panelHeader .eyebrow{font-size:10px;letter-spacing:1px}.panelHeader h2,.sectionHeader h2{font-size:16px}.taskList a{padding:18px;gap:11px}.taskText>strong{font-size:13px}.previewNote{padding:12px 18px;font-size:11px}.leadList a{padding:15px 18px;gap:9px}.leadIdentity strong{font-size:13px}.leadIdentity>span{font-size:12px}.stage{font-size:10px;max-width:95px;padding:4px 6px}.panelFooter{padding:10px 18px;gap:14px}.panelFooter p{font-size:11px}.panelFooter>a{font-size:10px}.projectGrid{grid-template-columns:1fr}.project{padding:20px}.sectionHeader>a{font-size:10px}.projectMeta{font-size:10px}.empty{padding:32px 18px}}
 
 .primaryAction{color:#0b2d19}.metric[data-primary]{background:linear-gradient(130deg,#244c34,#173322);border-color:#467958;color:#edfbf2}.metric[data-primary] dt,.metric[data-primary] .metricDetail{color:#c5e4cf}.metric[data-primary] .metricIcon{background:#376747;color:#d7f5e2}.metric dd{color:#e4f4e9}.metricIcon{background:#254b32;color:#a6dfb7}.project{background:linear-gradient(120deg,#182c1f,#121f17)}
+
+/* A task-first workbench; the summary follows actionable work in reading order. */
+.workbench { display:grid; grid-template-columns:minmax(0,1fr) 214px; gap:20px; align-items:start; min-width:0; }
+.workbench .mainGrid { grid-template-columns:1.18fr 1fr; gap:18px; }
+.summaryRail { border:1px solid #2e3933; border-radius:18px; background:#0d1511; padding:17px; min-width:0; }
+.summaryTitle { color:#a8bbb0; font-size:9px; letter-spacing:1.8px; font-weight:650; margin:2px 0 16px; }
+.summaryRail .metrics { grid-template-columns:1fr; gap:0; }
+.summaryRail .metric { padding:17px 0; border:0; border-radius:0; background:transparent; box-shadow:none; border-top:1px solid #27332c; }
+.summaryRail .metric:first-child { border-top:0; padding-top:0; }
+.summaryRail .metric dd:not(.metricDetail) { font-size:27px; letter-spacing:-1.1px; }
+.summaryRail .metricDetail { font-size:10px; line-height:1.6; color:#9fb3a6; }
+.summaryRail .metric[data-attention] dd:not(.metricDetail) { color:#f0cb91; }
+.dashboard .intro { padding:0 0 10px; }
+.dashboard .intro h1 { font-size:40px; font-weight:550; letter-spacing:-1.7px; }
+.dashboard .panel { background:linear-gradient(150deg,#18221c,#111a15); border-color:#35443a; border-radius:19px; box-shadow:0 1px 0 #acdac313 inset,0 16px 36px #0002; }
+.dashboard .panelHeader { padding:24px 22px 20px; }
+.dashboard .panelHeader h2 { font-size:20px; letter-spacing:-.55px; }
+.dashboard .eyebrow { color:#a0b8a8; letter-spacing:1.7px; font-size:9px; }
+.dashboard .taskList a { min-height:88px; padding:18px 22px; }
+.dashboard .taskIcon { background:#253d2f; border:1px solid #496152; color:#c3efcf; box-shadow:0 1px 0 #c9ebd81c inset; }
+.dashboard .taskText strong { font-size:13px; line-height:1.5; }
+.dashboard .leadList li { padding-top:3px; padding-bottom:3px; }
+.dashboard .empty { padding:36px 22px; background:radial-gradient(ellipse at top,#223d2c55,transparent 75%); }
+.dashboard .empty h3 { color:#e5eee7; line-height:1.5; }
+.dashboard .empty p { color:#adbbb1; }
+.dashboard .project { background:linear-gradient(145deg,#17231b,#111813); border-color:#35463b; border-radius:18px; }
+@media(max-width:1250px) {
+ .workbench { grid-template-columns:1fr; }
+ .summaryRail .metrics { grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+ .summaryRail .metric { border:0; padding:0; }
+ .summaryRail .metric:not(:first-child) { border-left:1px solid #2c3c31; padding-left:16px; }
+}
+@media(max-width:900px) { .workbench .mainGrid { grid-template-columns:1fr; } }
+@media(max-width:560px) {
+ .workbench { gap:16px; }
+ .dashboard .intro h1 { font-size:32px; }
+ .summaryRail .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:22px; }
+ .summaryRail .metric:nth-child(3) { padding-left:0; border-left:0; }
+ .dashboard .panelHeader { padding:22px 18px 18px; }
+ .dashboard .taskList a { padding:17px 18px; }
+}

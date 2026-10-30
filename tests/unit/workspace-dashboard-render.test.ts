@@ -5,6 +5,11 @@ import {DashboardView} from '@/components/workspace-dashboard';
 import {demoDashboard} from '@/lib/fixtures';
 
 describe('workspace overview data presentation',()=>{
+  it('places actionable work before the workspace financial summary in reading order',()=>{
+    const html=renderToStaticMarkup(createElement(DashboardView,{readOnly:false,data:demoDashboard}));
+    expect(html.indexOf('Your next moves')).toBeLessThan(html.indexOf('aria-label="Workspace totals"'));
+  });
+
   it('keeps the empty design preview free of invented metrics and records',()=>{
     const data={...demoDashboard,leads:[],tasks:[],projects:[],openLeads:0,pipelineValue:0,acceptedValue:0,overdueTasks:0};
     const html=renderToStaticMarkup(createElement(DashboardView,{readOnly:true,data,...{emptyPreview:true}}));
