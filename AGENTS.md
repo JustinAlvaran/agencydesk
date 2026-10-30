@@ -38,3 +38,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Never read or print private credential stores or real env/token values for a routine review. Report suspected secrets only as redacted category, path, line and severity. Public project IDs/publishable keys are not private service-role/OAuth credentials.
 - Before committing/pushing, verify the exact staged allowlist, ignored credential paths and a redacted secret scan. Record tools, scope and limits; an index-only scan is not a history/deployment audit. Keep actual secrets out of commits, PRs, logs, screenshots, build artifacts and design prompts.
 - Block publication on confirmed leaks. If already published, inform the owner with redacted scope and rotation/revocation steps; do not print values, assume file deletion revokes a token, rewrite shared history or rotate credentials without required authorization.
+
+# AgencyDesk local n8n pilot
+
+- For n8n workflow work, load `.agents/skills/using-n8n-skills-official/SKILL.md` and the matching capability references. Plain pinned official skills are installed project-locally; no plugin hooks or global installation.
+- Owner rules override upstream defaults: free-only, no paid Gateway credits, no real customer sends, no autonomous approval, no other-project resources or credentials.
+- n8n is an internal coordinator. AgencyDesk retains authoritative consent, agency boundaries, staff approval, outbox leases, idempotency and uncertain-outcome handling. Never bypass these with direct provider nodes/SQL.
+- Local pilot is loopback-only and disconnected from CRM/provider credentials. Native MCP must use project-scoped configuration, strict OS-keyring storage and owner-approved minimal scopes. No workflow publishing/activation, automatic exposure or provider connections without separate authorization. Workflow write access may permit side effects; it is not an execution lock. Verify actual tool discovery/authentication separately from saved configuration.
+- Do not schedule the current automation worker based on a `dry_run` body field; mode comes from server configuration. Finish caps and a fail-closed dry-run integration boundary before activating any recurring CRM worker workflow.
