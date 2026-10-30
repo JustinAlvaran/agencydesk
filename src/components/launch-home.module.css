@@ -7,3 +7,81 @@
 @media(max-width:1100px){.hero{padding:60px 6% 0}.hero h1{font-size:72px;letter-spacing:-3.8px}.previewStage{height:510px;margin-top:65px}.mockup{grid-template-columns:140px minmax(0,1fr)}.mockSidebar{min-height:430px;font-size:10px}.mockMain{padding:0 20px 20px}.mockHeading h2{font-size:17px}.floatingNote{right:0;bottom:25px}.ambientControl{top:540px;right:6%}.services,.workflow,.faq{padding:80px 28px}.serviceGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.serviceCard:nth-child(3){border-left:0}.serviceCard:nth-child(n+3){border-top:1px solid #2b3b30}.workflow,.faq{gap:60px}.workflowIntro h2{font-size:42px}}
 @media(max-width:650px){.hero{padding:48px 22px 0}.eyebrow{font-size:9px;letter-spacing:1.3px;margin-bottom:22px}.hero h1{font-size:49px;letter-spacing:-2.5px;line-height:1.07;max-width:540px;text-wrap:pretty}.heroDescription{font-size:14px;line-height:1.9;margin-top:23px}.heroActions{gap:10px;flex-wrap:wrap;margin-top:27px}.primaryAction,.secondaryAction{min-height:46px;font-size:12px;padding:12px 16px;gap:10px}.serviceTags{gap:16px;margin-top:28px;align-items:flex-start}.serviceTags>span{font-size:8px;max-width:100px;padding-right:13px}.serviceTags>p{font-size:10px;gap:8px;line-height:1.9;max-width:195px}.heroGlow>i:first-child{top:450px;left:-10%;width:130%;height:400px;filter:blur(35px)}.ambient{inset:250px -8% 0}.ambientControl{top:auto;bottom:10px;right:22px}.ambientControl button{font-size:9px;min-height:30px;padding:4px 9px}.previewStage{margin:65px -3% 0;height:365px;perspective:1600px}.mockupFrame{inset:15px 0 auto;padding:5px;border-radius:15px;transform:rotateX(5deg) rotateY(-3deg) rotateZ(-3deg)}.mockup{grid-template-columns:1fr;border-radius:10px}.mockSidebar{display:none}.mockMain{padding:0 16px 18px}.mockTop{min-height:40px;font-size:8px}.previewPill{font-size:8px;padding:3px 6px}.mockHeading{margin:19px 0 14px}.mockHeading p{font-size:7px;letter-spacing:1px}.mockHeading h2{font-size:16px}.mockStats{gap:7px}.mockStats>div{padding:10px}.mockStats span{font-size:8px}.mockStats strong{font-size:18px;margin-top:5px}.mockStats i{bottom:14px;right:10px;width:15px}.mockBoard{margin-top:11px}.mockBoardTitle{padding:10px 12px}.mockBoardTitle strong{font-size:10px}.mockBoardTitle span{font-size:7px}.emptyBoard{padding:17px 10px 14px}.emptyIcon{margin-bottom:7px}.emptyIcon svg{width:20px;height:20px}.emptyBoard strong{font-size:11px}.emptyBoard p{font-size:8px}.skeletonLines{margin-top:10px}.rearPanel{right:0;top:0;width:230px;height:260px;padding:20px;border-radius:15px;transform:rotate(5deg) translate(7px,-8px)}.rearHeader{font-size:10px}.ghostRow{height:40px;margin-top:10px}.floatingNote{display:none}.previewCaption{font-size:8px;margin:0 0 54px;line-height:1.7;gap:6px;flex-wrap:wrap;justify-content:flex-start;max-width:260px}.services,.workflow,.faq{padding:65px 22px}.sectionHeading{align-items:flex-start;flex-direction:column;gap:15px;margin-bottom:27px}.sectionHeading h2,.workflowIntro h2,.faq h2{font-size:35px;letter-spacing:-1.4px}.sectionHeading .eyebrow{margin-bottom:14px}.serviceGrid{grid-template-columns:1fr 1fr;border-radius:14px}.serviceCard{padding:23px 16px 18px}.serviceIcon{margin-bottom:23px}.serviceCard h3{font-size:14px}.serviceCard>p{font-size:11px;line-height:1.8;margin:13px 0 20px}.cardLink{font-size:10px;gap:8px}.workflow,.faq{grid-template-columns:1fr;gap:38px}.workflowIntro>p:not(.eyebrow){font-size:13px;margin-top:18px}.workflowIntro>.primaryAction{margin-top:23px}.steps{gap:24px}.steps>article{gap:18px;padding-bottom:23px}.steps article>div{padding-left:32px}.steps h3{font-size:17px}.steps p{font-size:12px}.faq>div>p:not(.eyebrow){font-size:13px;margin-top:18px}.faq summary{font-size:14px}.faq details{padding:20px 0}.finalCta{padding:75px 22px 80px}.finalCta h2{font-size:65px;letter-spacing:-3px}.finalSecondary{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.shine{animation:none}.mockupFrame,.rearPanel,.floatingNote{transform:none}.previewStage{perspective:none}.rearPanel{display:none}}
+
+/* A continuous world behind native, server-rendered content. */
+.home { position:relative; isolation:isolate; background:#080f0b; }
+.home main { position:relative; }
+.home :global(.marketing-nav),.home :global(.marketing-footer) { position:relative; z-index:3; background:#0b120ee8; }
+.hero { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); align-items:center; gap:26px; min-height:calc(100svh - 92px); padding:60px 6% 64px; isolation:auto; overflow:visible; }
+.heroContent { position:relative; z-index:2; max-width:650px; padding:14px 0 28px; }
+.heroContent::before { content:''; position:absolute; inset:-80px -40px -80px -160px; background:radial-gradient(ellipse at 35% 45%,#080f0bf5,#080f0b9c 64%,transparent 78%); z-index:-1; pointer-events:none; }
+.hero h1 { font-size:clamp(50px,5.3vw,78px); letter-spacing:-3.6px; line-height:1.03; max-width:720px; }
+.heroDescription { font-size:14px; max-width:490px; line-height:1.9; color:#b7cabc; }
+.heroActions { gap:10px; margin-top:28px; flex-wrap:wrap; }
+.heroGlow { display:none; }
+.serviceTags { margin-top:32px; }
+.services,.workflow,.faq,.interfaceSection,.finalCta { position:relative; z-index:1; scroll-margin-top:24px; }
+.services { min-height:100svh; padding:100px 6%; background:linear-gradient(90deg,#080f0bf5,transparent 80%); }
+.services .sectionHeading { max-width:650px; align-items:flex-start; flex-direction:column; gap:20px; }
+.services .sectionHeading h2 { font-size:clamp(36px,4vw,58px); max-width:650px; }
+.serviceGrid { width:58%; grid-template-columns:repeat(2,minmax(0,1fr)); border-color:#536f5b5c; border-radius:18px; background:#102218eb; backdrop-filter:blur(14px); }
+.serviceCard { padding:30px 25px 24px; background:transparent; }
+.serviceCard:nth-child(3) { border-left:0; }
+.serviceCard:nth-child(n+3) { border-top:1px solid #385140; }
+.serviceCard h3 { font-size:17px; }
+.serviceIcon { margin-bottom:25px; }
+.workflow { min-height:95svh; padding:110px 6%; background:linear-gradient(90deg,transparent,#080f0bad 74%); align-items:center; gap:100px; }
+.workflowIntro { background:#0c1b13c9; padding:34px; border:1px solid #3f5e49; border-radius:18px; backdrop-filter:blur(12px); }
+.workflowIntro h2 { font-size:clamp(34px,3.5vw,52px); }
+.steps { background:#102018ed; padding:30px; border:1px solid #46624f77; border-radius:20px; box-shadow:0 20px 60px #0002; }
+.steps>article:last-child { border-bottom:0; padding-bottom:0; }
+.interfaceSection { padding:90px 9% 65px; background:linear-gradient(#08100c80,#08100ce8); border-top:1px solid #43624f55; }
+.interfaceSection .previewStage { max-width:1100px; margin:70px auto 0; height:600px; }
+.interfaceSection .mockupFrame { transform:rotateX(6deg) rotateY(-3deg) rotateZ(-2deg); }
+.interfaceSection .previewCaption { justify-content:center; margin-top:0; }
+.faq { padding:100px 7%; background:#0b160fe8; gap:70px; }
+.finalCta { padding:120px 22px 150px; background:linear-gradient(#09120cc9,#09120cf5); }
+.home :global(.marketing-footer) { margin-top:0; }
+@media(max-width:1100px) {
+ .hero { gap:10px; padding-left:5%; padding-right:5%; }
+ .hero h1 { font-size:59px; letter-spacing:-2.9px; }
+ .heroDescription { font-size:13px; }
+ .serviceGrid { width:68%; }
+ .workflow { gap:36px; }
+ .interfaceSection .previewStage { height:530px; }
+}
+@media(max-width:800px) {
+ .hero { grid-template-columns:1fr; padding:42px 6% 40px; gap:0; }
+ .heroContent { max-width:580px; padding-bottom:0; }
+ .hero h1 { font-size:63px; max-width:620px; }
+ .heroDescription { max-width:500px; font-size:14px; }
+ .services { padding:80px 6%; }
+ .serviceGrid { width:100%; }
+ .workflow { padding:80px 6%; grid-template-columns:1fr; gap:28px; }
+ .workflowIntro { max-width:580px; }
+ .steps { padding:26px; }
+ .interfaceSection { padding:75px 6% 50px; }
+ .faq { grid-template-columns:1fr; padding:75px 6%; gap:30px; }
+}
+@media(max-width:650px) {
+ .hero { padding:36px 22px 32px; min-height:0; }
+ .heroContent::before { inset:-40px -25px -30px; background:linear-gradient(#080f0bea,#080f0bad,transparent); }
+ .hero h1 { font-size:46px; line-height:1.08; letter-spacing:-2.2px; }
+ .heroDescription { font-size:13px; line-height:1.85; margin-top:22px; }
+ .heroActions { margin-top:24px; }
+ .serviceTags { margin-top:25px; }
+ .services { padding:65px 22px; }
+ .services .sectionHeading h2 { font-size:35px; }
+ .serviceCard { padding:24px 17px; }
+ .serviceCard h3 { font-size:14px; }
+ .workflow { padding:65px 22px; }
+ .workflowIntro { padding:25px 22px; }
+ .steps { padding:24px 20px; }
+ .interfaceSection { padding:65px 22px 40px; }
+ .interfaceSection .sectionHeading h2 { font-size:34px; }
+ .interfaceSection .previewStage { height:370px; margin-top:38px; }
+ .interfaceSection .previewCaption { font-size:9px; max-width:280px; margin:auto; }
+ .faq { padding:65px 22px; }
+ .finalCta { padding:85px 22px 110px; }
+}
+@media(prefers-reduced-motion:reduce) { .interfaceSection .mockupFrame { transform:none; } }

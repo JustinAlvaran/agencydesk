@@ -9,25 +9,25 @@ import {signOut} from '@/app/login/actions';
 import {cn} from './ui/primitives';
 import styles from './app-shell.module.css';
 
-const navigation=[{name:'Overview',path:'',icon:LayoutDashboard},{name:'Lead pipeline',path:'/leads',icon:PanelsTopLeft},{name:'Proposals',path:'/proposals',icon:FileText},{name:'Projects',path:'/projects',icon:BriefcaseBusiness},{name:'Tasks',path:'/tasks',icon:CheckSquare},{name:'Contacts',path:'/contacts',icon:Users},{name:'Automations',path:'/automations',icon:Workflow}];
+const navigation=[{name:'Overview',path:'',icon:LayoutDashboard,group:'Operations'},{name:'Lead pipeline',path:'/leads',icon:PanelsTopLeft,group:'Operations'},{name:'Tasks',path:'/tasks',icon:CheckSquare,group:'Operations'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Delivery'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Delivery'},{name:'Contacts',path:'/contacts',icon:Users,group:'Workspace'},{name:'Automations',path:'/automations',icon:Workflow,group:'Workspace'}];
 
 export function AppShell({children,mode='demo',role='staff',title,description,demoLabel='Fictional sample data'}:{children:ReactNode;mode?:'demo'|'live';role?:'staff'|'client';title?:string;description?:string;demoLabel?:string}) {
   const pathname=usePathname();
   const [open,setOpen]=useState(false);
   const base=role==='client'?(mode==='demo'?'/demo/portal':'/portal'):(mode==='demo'?'/demo':'/crm');
-  const links=role==='client'?(mode==='demo'?[{name:'My workspace',path:'',icon:LayoutDashboard}]:[{name:'My workspace',path:'',icon:LayoutDashboard},{name:'Proposals',path:'/proposals',icon:FileText},{name:'Projects',path:'/projects',icon:BriefcaseBusiness}]):navigation;
+  const links=role==='client'?(mode==='demo'?[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'}]:[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Client space'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Client space'}]):navigation;
   const active=links.find(item=>item.path&&pathname.startsWith(`${base}${item.path}`))||links[0];
   const nav=<>
     <Link href={base} className={styles.brand} onClick={()=>setOpen(false)} aria-label='AgencyDesk overview'>
       <span className={styles.brandMark} aria-hidden='true'><PanelsTopLeft size={21}/></span>
-      <span>AgencyDesk<span className={styles.brandCaption}>A little more in control.</span></span>
+      <span>AgencyDesk<span className={styles.brandCaption}>Your agency, in focus.</span></span>
     </Link>
     <p className='workspace-label'>{role==='client'?'Client workspace':'Staff workspace'}</p>
     <nav aria-label='Workspace navigation' className='app-nav'>
-      {links.map(item=>{
+      {(role==='client'?['Client space']:['Operations','Delivery','Workspace']).map(group=><div className={styles.navGroup} key={group} role='group' aria-label={group}><p className={styles.navGroupLabel}>{group}</p>{links.filter(item=>item.group===group).map(item=>{
         const selected=item.path?pathname.startsWith(`${base}${item.path}`):pathname===base;
         return <Link key={item.path} href={`${base}${item.path}`} onClick={()=>setOpen(false)} aria-current={selected?'page':undefined} className={cn('app-nav-link',selected&&'active')}><item.icon size={18} aria-hidden='true'/>{item.name}</Link>;
-      })}
+      })}</div>)}
       {mode==='live'&&role==='staff'&&<Link href='/crm/settings' onClick={()=>setOpen(false)} aria-current={pathname==='/crm/settings'?'page':undefined} className={cn('app-nav-link',pathname==='/crm/settings'&&'active')}><Users size={18} aria-hidden='true'/>People & settings</Link>}
     </nav>
     <div className='sidebar-bottom'>
