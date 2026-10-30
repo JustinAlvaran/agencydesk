@@ -1,0 +1,68 @@
+name: agencydesk-n8n
+services:
+  n8n:
+    # Stable 2.45.6, downloaded and digest-verified on 30 October 2026.
+    image: docker.n8n.io/n8nio/n8n@sha256:45edf89655fd66dd55ea9336c1791ad14777599fdbf6c5aec6db583ede99a40b
+    container_name: agencydesk-n8n-local
+    restart: "no"
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      N8N_EDITOR_BASE_URL: http://localhost:5678
+      N8N_WEBHOOK_URL: http://localhost:5678/
+      GENERIC_TIMEZONE: Asia/Manila
+      TZ: Asia/Manila
+      # Plain HTTP is restricted to this computer. Do not reuse this for public hosting.
+      N8N_SECURE_COOKIE: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: "true"
+      N8N_COMMUNITY_PACKAGES_ENABLED: "false"
+      N8N_UNVERIFIED_PACKAGES_ENABLED: "false"
+      # Code node is excluded; keep default runner mode without an extra runner/token.
+      N8N_PYTHON_ENABLED: "false"
+      N8N_RUNNERS_TASK_TIMEOUT: "60"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_TEMPLATES_ENABLED: "false"
+      EXTERNAL_FRONTEND_HOOKS_URLS: ""
+      N8N_DIAGNOSTICS_CONFIG_FRONTEND: ""
+      N8N_DIAGNOSTICS_CONFIG_BACKEND: ""
+      NODES_EXCLUDE: '["n8n-nodes-base.executeCommand","n8n-nodes-base.localFileTrigger","n8n-nodes-base.readWriteFile","n8n-nodes-base.code"]'
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      EXECUTIONS_DATA_SAVE_ON_ERROR: none
+      EXECUTIONS_DATA_SAVE_MANUAL_EXECUTIONS: "false"
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "24"
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: "1"
+    volumes:
+      - n8n_state:/home/node/.n8n
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+      - /home/node/.cache:size=64m,mode=0700,uid=1000,gid=1000
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1536m
+    cpus: 1.5
+    pids_limit: 256
+    logging:
+      driver: json-file
+      options:
+        max-size: "3m"
+        max-file: "2"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5678/healthz/readiness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+volumes:
+  # Own Docker-managed state avoids putting the encrypted credential DB/key in OneDrive.
+  n8n_state:
+    name: agencydesk-n8n-state

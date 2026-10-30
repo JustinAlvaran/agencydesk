@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     ".local/**",
+    // Third-party skill reference examples are documentation, not application source.
+    ".agents/**",
     "test-results/**",
     "playwright-report/**",
     "artifacts/**",
