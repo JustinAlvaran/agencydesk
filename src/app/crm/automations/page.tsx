@@ -6,7 +6,7 @@ import { messageStatuses, ruleDescriptions } from '@/lib/automation/types';
 import { renderDeliveryBody } from '../../../../supabase/functions/_shared/delivery';
 import { Heading, Panel, Pages } from '../workspace-ui';
 import { CommandForm } from './command-form';
-import { configureRule, approveJob, cancelJob, processBatch, retryJob } from './actions';
+import { configureRule, approveJob, cancelJob, processBatch, processDryRunBatch, retryJob } from './actions';
 
 const date = (value: string) => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(value));
 export default async function Automations({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -24,8 +24,9 @@ export default async function Automations({ searchParams }: { searchParams: Prom
     <Heading title="Automations" description="Review rules, approve messages, and follow delivery outcomes."/>
     <Panel title="Delivery connection">
       <p>Rules start disabled. Approval is required by default. The worker starts in dry-run mode and records simulations without contacting a sending service.</p>
+      <p className="info-note">Dry run completes due approved jobs as simulated; it is not a read-only preview. Those jobs will not send later. The dedicated dry-run action refuses live server configuration.</p>
       <p className="info-note">Your worker controls the delivery mode. A live batch sends eligible approved messages through your own connected accounts.</p>
-      <div className="form-row"><Link className="button button-secondary" href="/crm/automations/setup">Connect your own account</Link>{staff.role === 'admin' && <CommandForm action={processBatch}><button className="button button-primary" type="submit">Process due approved jobs</button></CommandForm>}</div>
+      <div className="form-row"><Link className="button button-secondary" href="/crm/automations/setup">Connect your own account</Link>{staff.role === 'admin' && <><CommandForm action={processDryRunBatch}><button className="button button-secondary" type="submit">Run approved jobs in dry run</button></CommandForm><CommandForm action={processBatch}><button className="button button-primary" type="submit">Process due approved jobs</button></CommandForm></>}</div>
     </Panel>
     <Panel title="Rules"><div className="automation-rules">{rules.map(rule => <section key={rule.id} className="automation-rule">
       <h3>{rule.name}</h3><p className="muted">{ruleDescriptions[rule.template_key]}</p>

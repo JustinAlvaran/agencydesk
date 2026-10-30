@@ -1,5 +1,7 @@
 # AgencyDesk n8n research and local pilot — 30 October 2026
 
+> Follow-up: the queue boundary and manual n8n draft are prepared for review. See [the queue integration contract](2026-10-30-n8n-queue-boundary.md) for implemented behavior, evidence and activation gates. Original pilot observations below are historical.
+
 ## Decision and scope
 
 Use local n8n Community as an internal orchestration service with official project-local n8n skills and native instance-level MCP. This is a reversible local pilot, not production CRM integration. No SaaS trial, subscription, license key, paid gateway, customer data or delivery credentials required. User chose local n8n/MCP; primary recommends retaining existing AgencyDesk queue and guards.
