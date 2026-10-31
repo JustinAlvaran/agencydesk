@@ -1,0 +1,183 @@
+{
+  "name": "Process AgencyDesk approved jobs in dry run",
+  "active": false,
+  "nodes": [
+    {
+      "id": "run",
+      "name": "Run reviewed dry-run batch",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "worker",
+      "name": "AgencyDesk dry-run worker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (() => { throw new Error('Configure the verified AgencyDesk automation-dry-run URL and Header Auth credential before running.'); })() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": false,
+        "options": {
+          "timeout": 15000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "sendCredentialsOnCrossOriginRedirect": false,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": false,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "retryOnFail": false,
+      "onError": "stopWorkflow",
+      "position": [
+        260,
+        0
+      ],
+      "notes": "Deployment and owner credential binding required. Header Auth name: x-automation-secret. This request consumes due approved jobs as simulated. Never point it at automation-worker. Do not enable retries."
+    },
+    {
+      "id": "confirm",
+      "name": "Confirm dry-run outcome",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "confirmed-dry-run",
+              "leftValue": "={{ (() => { const b = $json.body; if ($json.statusCode !== 200 || !b || typeof b !== 'object' || Array.isArray(b) || b.mode !== 'dry_run' || !Number.isInteger(b.claimed) || b.claimed < 0 || b.claimed > 5) return false; const p = b.processed; if (!p || typeof p !== 'object' || Array.isArray(p)) return false; const entries = Object.entries(p); return entries.every(([k, v]) => ['simulated', 'skipped'].includes(k) && Number.isInteger(v) && v >= 0) && entries.reduce((sum, [, v]) => sum + v, 0) === b.claimed; })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": false,
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "id": "done",
+      "name": "Dry-run confirmed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "parameters": {},
+      "position": [
+        780,
+        -100
+      ]
+    },
+    {
+      "id": "refuse",
+      "name": "Refuse unsafe worker response",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "parameters": {
+        "errorType": "errorMessage",
+        "errorMessage": "AgencyDesk did not confirm a dry-run result. Review the worker and queue before retrying."
+      },
+      "position": [
+        780,
+        120
+      ]
+    },
+    {
+      "id": "instructions",
+      "name": "Activation requirements",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "parameters": {
+        "content": "## AgencyDesk: manual approved-job dry run\nUnpublished integration draft. No leads, sample data or provider nodes.\n1. Owner reviews/merges and deploys automation-dry-run to the verified own AgencyDesk project.\n2. Server must explicitly set AUTOMATION_DELIVERY_MODE=dry_run.\n3. Owner creates Header Auth credential (name x-automation-secret, dedicated AUTOMATION_N8N_SECRET value) and binds it. No general cron/service-role/sender key.\n4. Replace the URL guard with the verified HTTPS function URL ending /automation-dry-run.\n5. Authorize a manual batch against the real approved queue; inspect the aggregate result. Simulated jobs are terminal, not later delivery.\nNo schedule/publish until atomic operating caps and failure handling are verified. Do not auto-retry an uncertain run.",
+        "height": 360,
+        "width": 1000
+      },
+      "position": [
+        -20,
+        -430
+      ]
+    }
+  ],
+  "connections": {
+    "Run reviewed dry-run batch": {
+      "main": [
+        [
+          {
+            "node": "AgencyDesk dry-run worker",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AgencyDesk dry-run worker": {
+      "main": [
+        [
+          {
+            "node": "Confirm dry-run outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm dry-run outcome": {
+      "main": [
+        [
+          {
+            "node": "Dry-run confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Refuse unsafe worker response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Manila",
+    "executionTimeout": 60,
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false,
+    "availableInMCP": false
+  },
+  "pinData": {}
+}

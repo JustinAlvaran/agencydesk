@@ -26,6 +26,16 @@ export async function cancelJob(form: FormData): Promise<CommandResult> {
   const { data, error } = await supabase.rpc('cancel_message_job', { p_job_id: uuid.parse(form.get('id')) });
   checked(error); refresh(); return data === true ? { ok: true, message: 'Job cancelled.' } : { ok: false, message: 'This job is no longer pending. Review its current outcome.' };
 }
+export async function processDryRunBatch(): Promise<CommandResult> {
+  live(); const { supabase } = await requireAdmin();
+  const { data, error } = await supabase.functions.invoke('automation-dry-run', { body: {} });
+  if (error) { reportFailure('automation_dry_run', error); return { ok: false, message: 'Dry run unavailable. The dedicated automation-dry-run function must be deployed and explicitly configured for dry-run mode. No fallback to the live worker was attempted.' }; }
+  if (!data || data.mode !== 'dry_run' || !Number.isInteger(data.claimed) || data.claimed < 0 || data.claimed > 5) return { ok: false, message: 'Unexpected dry-run result. Review the queue before retrying.' };
+  const counts = data.processed;
+  if (!counts || typeof counts !== 'object' || Array.isArray(counts) || !Object.entries(counts).every(([key, value]) => ['simulated','skipped'].includes(key) && Number.isInteger(value) && Number(value) >= 0) || Object.values(counts).reduce<number>((sum, value) => sum + Number(value), 0) !== data.claimed) return { ok: false, message: 'Unexpected dry-run outcome counts. Review the queue before retrying.' };
+  refresh();
+  return { ok: true, message: `Dry run completed: ${data.claimed} approved due jobs claimed. No messages sent. Simulated jobs are complete and will not later send automatically.` };
+}
 export async function processBatch(): Promise<CommandResult> {
   live(); const { supabase } = await requireAdmin();
   const { data, error } = await supabase.functions.invoke('automation-worker', { body: {} });
