@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ActionForm } from '@/app/crm/action-form';
 import { row, choices } from '@/lib/data';
 import { requireStaff } from '@/lib/auth';
-import { leadStatuses, statusLabel, type Note } from '@/lib/domain';
+import { leadStatuses, statusLabel, money, type Note } from '@/lib/domain';
 import type { WorkflowLead } from '@/lib/leads/query';
 import { activitySummary, callOutcomes } from '@/lib/leads/workflow';
 import { addNote, updateLead } from '@/app/actions';
@@ -12,26 +12,48 @@ import { recordLeadCall, saveLeadDetails, suppressLeadRecipient, clearLeadRecipi
 import { Heading, Panel, Area, Submit } from '../../workspace-ui';
 import { ContactFields } from '../contact-fields';
 import { HermesDraft } from '@/components/hermes-draft';
+import { leadTasks } from '@/lib/leads/tasks';
+import { leadListReturn } from '@/lib/leads/navigation';
+import { LeadNextActions } from '@/components/lead-next-actions';
+import styles from '@/components/lead-workspace.module.css';
 
 type Activity = {id:string;event_type:string;created_at:string;actor_id:string|null;detail:unknown};
-export default async function Page({params}:{params:Promise<{id:string}>}) {
+export default async function Page({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{returnTo?:string}>}) {
  const {id} = await params;
+ const returnTo=leadListReturn((await searchParams).returnTo);
  const lead = await row<WorkflowLead>('leads',id);
  if (!lead) notFound();
  const {supabase,user,staff} = await requireStaff();
- const [options,events,notesResult,suppressionResult] = await Promise.all([
+ const [options,events,notesResult,suppressionResult,tasks] = await Promise.all([
   choices(),
   supabase.from('activity_events').select('id,event_type,created_at,actor_id,detail').eq('lead_id',id).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(100),
   supabase.from('lead_notes').select('id,lead_id,body,author_id,created_at').eq('lead_id',id).order('created_at',{ascending:false}).limit(100),
   lead.archived_at ? Promise.resolve({data:[],error:null}) : supabase.rpc('lead_message_suppression',{p_lead_id:id}),
+  leadTasks(id),
  ]);
  if (events.error || notesResult.error || suppressionResult.error) throw new Error('Could not load lead activity and messaging permissions.');
  const notes = (notesResult.data??[]) as Note[];
  const timeline = [...(events.data??[]) as Activity[],...notes.map(note=>({id:note.id,event_type:'internal_note',created_at:note.created_at,actor_id:note.author_id,detail:{},body:note.body}))].sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
  return <>
-  <Heading title={lead.contact_name} description={[lead.email,lead.phone].filter(Boolean).join(' · ')}/><Link href="/crm/leads" className="button button-secondary" style={{marginBottom:20}}>Back to leads</Link>
-  <Panel title="Contact and preferences"><ActionForm action={saveLeadDetails}><input type="hidden" name="id" value={id}/><ContactFields lead={lead}/><Submit>Save contact details</Submit></ActionForm></Panel>
-  {!lead.archived_at ? <Panel title="Recipient message controls"><p className="muted">Stopping a channel blocks this recipient across duplicate leads in your agency and cancels unsent messages. Clearing a block does not restore permission or replay cancelled messages.</p>{(suppressionResult.data??[]).filter(item=>item.channel==='email'||!!lead.phone).map(item=><section key={item.channel} style={{marginBottom:16}}><h3>{item.channel==='email'?'Email':'WhatsApp'} · {item.suppressed?'Stopped':'No recipient block'}</h3>{item.suppressed ? staff.role==='admin' ? <ActionForm action={clearLeadRecipientSuppression}><input type="hidden" name="lead_id" value={id}/><input type="hidden" name="channel" value={item.channel}/><label className="checkbox-label"><input type="checkbox" name="renewed_permission" required/>I have verified renewed permission from this recipient</label><Submit>Clear recipient block</Submit></ActionForm> : <p className="muted">An administrator must verify renewed permission before clearing this block.</p> : <ActionForm action={suppressLeadRecipient}><input type="hidden" name="lead_id" value={id}/><input type="hidden" name="channel" value={item.channel}/><Submit>Stop {item.channel==='email'?'email':'WhatsApp'} messages</Submit></ActionForm>}</section>)}</Panel> : null}
+  <Heading title={lead.contact_name} description={[lead.email,lead.phone].filter(Boolean).join(' · ')}/><Link href={returnTo} className="button button-secondary" style={{marginBottom:20}}>Back to leads</Link>
+  <div className={styles.detail}>
+   <aside className={styles.rail} aria-label="Lead contact and next actions">
+    <section className={styles.contact}><span className="work-status" data-status={lead.status}>{statusLabel(lead.status)}</span><h2>{lead.contact_name}</h2><p>{lead.service}</p><div className={styles.contactLinks}><a className="button button-secondary" href={`mailto:${lead.email}`}>Open email app</a>{lead.phone?<a className="button button-secondary" href={`tel:${lead.phone}`}>Call contact</a>:null}</div><dl><div><dt>Budget</dt><dd>{money(lead.budget_cents)}</dd></div><div><dt>Owner</dt><dd>{lead.owner_id===user.id?'You':lead.owner_id?`Staff ${lead.owner_id.slice(0,8)}`:'Unassigned'}</dd></div><div><dt>Source</dt><dd>{lead.source??'website'}</dd></div><div><dt>Record</dt><dd>{lead.archived_at?'Archived':'Active'}</dd></div></dl><p>Email and call links open your own apps. They do not send a message automatically.</p></section>
+    <LeadNextActions leadId={id} ownerId={lead.owner_id} archived={!!lead.archived_at} tasks={tasks.rows} total={tasks.count} queriedAt={tasks.queriedAt} userId={user.id} staff={options.staff}/>
+   </aside>
+   <div className={styles.content}><nav className={styles.sectionNav} aria-label="Lead sections"><a href="#lead-calls">Calls</a><a href="#lead-notes">Notes & activity</a><a href="#lead-details">Contact & assignment</a>{!lead.archived_at?<a href="#lead-messaging">Messaging</a>:null}</nav>
+  <div id="lead-calls" className={styles.section}>  <Panel title="Log a call"><p className="muted">A connected call moves a new lead to Contacted. Not interested or invalid number closes an open lead as Lost. Won and Lost leads keep their stage.</p><ActionForm key={randomUUID()} action={recordLeadCall}>
+   <input type="hidden" name="lead_id" value={id}/><input type="hidden" name="action_id" value={randomUUID()}/>
+   <label className="field" style={{marginBottom:16}}>Outcome<select name="outcome" className="input" defaultValue="connected">{callOutcomes.map(outcome=><option key={outcome} value={outcome}>{statusLabel(outcome)}</option>)}</select></label>
+   <label className="field" style={{marginBottom:16}}>Call note<textarea className="input" name="note" rows={3} maxLength={4000}/></label>
+   <label className="field" style={{marginBottom:16}}>Callback time (Asia/Manila)<input className="input" name="callback_at" type="datetime-local"/></label>
+   <p className="muted">Select Callback and choose a future time to create a follow-up task for the owner. This records a reminder; it does not send a message.</p><Submit>Record call</Submit>
+  </ActionForm></Panel>
+</div>
+  <div id="lead-notes" className={styles.section}>  <Panel title="Internal notes"><ActionForm action={addNote}><input type="hidden" name="lead_id" value={id}/><Area label="New internal note" name="body"/><Submit>Add note</Submit></ActionForm></Panel>
+  <Panel title="Activity history"><p className="muted">Most recent first · latest 100 events and 100 notes.</p>{timeline.length?<ol style={{paddingLeft:20}}>{timeline.map(event=><li key={event.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)',overflowWrap:'anywhere'}}><strong>{statusLabel(event.event_type)}</strong><p className="muted"><time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-US',{timeZone:'Asia/Manila'})}</time> · {event.actor_id===user.id?'You':event.actor_id?`Actor ${event.actor_id.slice(0,8)}`:'System'}</p>{'body' in event?<p style={{whiteSpace:'pre-wrap'}}>{String(event.body)}</p>:activitySummary(event)?<p style={{whiteSpace:'pre-wrap'}}>{activitySummary(event)}</p>:null}</li>)}</ol>:<p>No activity yet.</p>}</Panel>
+</div>
+  <div id="lead-details" className={styles.section}>  <Panel title="Contact and preferences"><ActionForm action={saveLeadDetails}><input type="hidden" name="id" value={id}/><ContactFields lead={lead}/><Submit>Save contact details</Submit></ActionForm></Panel>
   <Panel title="Manage lead"><ActionForm action={updateLead}><input type="hidden" name="id" value={id}/>
    <label className="field" style={{marginBottom:16}}>Pipeline stage<select className="input" name="status" defaultValue={lead.status}>{leadStatuses.map(stage=><option key={stage} value={stage} disabled={lead.status==='won'?stage!=='won':stage==='won'}>{statusLabel(stage)}</option>)}</select></label>
    <p className="muted">Won is set when the client accepts a proposal.</p>
@@ -40,15 +62,11 @@ export default async function Page({params}:{params:Promise<{id:string}>}) {
    <label className="field" style={{marginBottom:16}}>Owner<select className="input" name="owner_id" defaultValue={lead.owner_id??''}><option value="">Unassigned</option>{lead.owner_id&&!options.staff.some(staff=>staff.user_id===lead.owner_id)?<option value={lead.owner_id}>Current owner · {lead.owner_id.slice(0,8)} (not available for new assignments)</option>:null}{options.staff.map(staff=><option key={staff.user_id} value={staff.user_id}>{staff.role} · {staff.user_id.slice(0,8)}</option>)}</select></label>
    <label className="field" style={{marginBottom:16}}>Archive<select className="input" name="archived" defaultValue={lead.archived_at?'true':'false'}><option value="false">Active</option><option value="true">Archived</option></select></label><Submit>Save lead</Submit>
   </ActionForm></Panel>
-  <Panel title="Log a call"><p className="muted">A connected call moves a new lead to Contacted. Not interested or invalid number closes an open lead as Lost. Won and Lost leads keep their stage.</p><ActionForm key={randomUUID()} action={recordLeadCall}>
-   <input type="hidden" name="lead_id" value={id}/><input type="hidden" name="action_id" value={randomUUID()}/>
-   <label className="field" style={{marginBottom:16}}>Outcome<select name="outcome" className="input" defaultValue="connected">{callOutcomes.map(outcome=><option key={outcome} value={outcome}>{statusLabel(outcome)}</option>)}</select></label>
-   <label className="field" style={{marginBottom:16}}>Call note<textarea className="input" name="note" rows={3} maxLength={4000}/></label>
-   <label className="field" style={{marginBottom:16}}>Callback time (Asia/Manila)<input className="input" name="callback_at" type="datetime-local"/></label>
-   <p className="muted">Select Callback and choose a future time to create a follow-up task for the owner. This records a reminder; it does not send a message.</p><Submit>Record call</Submit>
-  </ActionForm></Panel>
-  {!lead.archived_at ? <Panel title="Message drafts"><HermesDraft key={id} leadId={id} phone={lead.phone} whatsappPermitted={lead.whatsapp_opt_in === true && !(suppressionResult.data??[]).some(item=>item.channel==='whatsapp'&&item.suppressed)}/></Panel> : null}
-  <Panel title="Internal notes"><ActionForm action={addNote}><input type="hidden" name="lead_id" value={id}/><Area label="New internal note" name="body"/><Submit>Add note</Submit></ActionForm></Panel>
-  <Panel title="Activity history"><p className="muted">Most recent first · latest 100 events and 100 notes.</p>{timeline.length?<ol style={{paddingLeft:20}}>{timeline.map(event=><li key={event.id} style={{padding:'12px 0',borderBottom:'1px solid var(--border)',overflowWrap:'anywhere'}}><strong>{statusLabel(event.event_type)}</strong><p className="muted"><time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-US',{timeZone:'Asia/Manila'})}</time> · {event.actor_id===user.id?'You':event.actor_id?`Actor ${event.actor_id.slice(0,8)}`:'System'}</p>{'body' in event?<p style={{whiteSpace:'pre-wrap'}}>{String(event.body)}</p>:activitySummary(event)?<p style={{whiteSpace:'pre-wrap'}}>{activitySummary(event)}</p>:null}</li>)}</ol>:<p>No activity yet.</p>}</Panel>
+</div>
+  <div id="lead-messaging" className={styles.section}>  {!lead.archived_at ? <Panel title="Message drafts"><HermesDraft key={id} leadId={id} phone={lead.phone} whatsappPermitted={lead.whatsapp_opt_in === true && !(suppressionResult.data??[]).some(item=>item.channel==='whatsapp'&&item.suppressed)}/></Panel> : null}
+  {!lead.archived_at ? <Panel title="Recipient message controls"><p className="muted">Stopping a channel blocks this recipient across duplicate leads in your agency and cancels unsent messages. Clearing a block does not restore permission or replay cancelled messages.</p>{(suppressionResult.data??[]).filter(item=>item.channel==='email'||!!lead.phone).map(item=><section key={item.channel} style={{marginBottom:16}}><h3>{item.channel==='email'?'Email':'WhatsApp'} · {item.suppressed?'Stopped':'No recipient block'}</h3>{item.suppressed ? staff.role==='admin' ? <ActionForm action={clearLeadRecipientSuppression}><input type="hidden" name="lead_id" value={id}/><input type="hidden" name="channel" value={item.channel}/><label className="checkbox-label"><input type="checkbox" name="renewed_permission" required/>I have verified renewed permission from this recipient</label><Submit>Clear recipient block</Submit></ActionForm> : <p className="muted">An administrator must verify renewed permission before clearing this block.</p> : <ActionForm action={suppressLeadRecipient}><input type="hidden" name="lead_id" value={id}/><input type="hidden" name="channel" value={item.channel}/><Submit>Stop {item.channel==='email'?'email':'WhatsApp'} messages</Submit></ActionForm>}</section>)}</Panel> : null}
+</div>
+   </div>
+  </div>
  </>;
 }
