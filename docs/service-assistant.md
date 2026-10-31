@@ -51,6 +51,38 @@ retention/deletion policy still needs an owner-approved decision.
 
 ## Hosting
 
+### Optional hosted AI: local implementation, activation pending
+
+The in-progress AI mode is separate from the deployed guided assistant. Opening
+the dialog checks `GET /api/service-chat` for a no-store runtime capability flag.
+This returns only `{ available: boolean }`, makes no model call and is not a
+provider-health or credential-readiness check. It keeps a static marketing build
+from freezing the enabled/disabled state. Discovery stops after three seconds and
+closing the dialog aborts it; failures leave the ordinary guide available.
+
+The AI entry is rendered outside ChatBotify's stored message components so a
+delayed capability response updates the current screen. Questions use a dedicated
+composer with safe plain-text output, bounded transient history, a sixteen-second
+client deadline, explicit inquiry handoff and unchanged optional contact consent.
+The composer regains focus only after its enabled state has committed.
+
+`SERVICE_CHAT_ENABLED` stays off until the own Edge relay, private quota storage,
+scoped provider token and model evaluation are verified. The pending Cloudflare
+token approval has not been granted. No model, CRM access, email/WhatsApp sending
+or calendar booking was enabled by the local UI work. The service-chat migration
+and protected Edge function remain separate deployment prerequisites.
+
+Usage metadata is pseudonymous, not a saved conversation. Records older than
+48 hours are cleaned during later admissions; the maintenance RPC alone is not
+an installed hourly schedule, and inactivity can retain records longer. Never
+promise an unconditional deletion deadline without an operational cleanup timer.
+
+Local browser verification on 26 October covered six AI/runtime/failure cases
+and two existing guide/inquiry cases across actual 390px and 1280px viewports,
+using fictional intercepted inference responses. It did not exercise a live
+hosted model or production-browser deployment. See the dated project status for
+the exact commands/results and remaining gates.
+
 `netlify.toml` enables a Netlify build using its maintained OpenNext adapter. Configure:
 
 - `APP_MODE=live`
@@ -71,8 +103,8 @@ with no payment method saved. It was retained without a paid upgrade or a switch
 credit-based billing. Consult that team's actual legacy allowances rather than
 applying the newer Free plan's 300-credit limit to it.
 
-The deployed origin is https://agencydesk-crm.netlify.app. The production branch is
-`codex/services-assistant`; this branch disables automatic Vercel deployment. The
+The deployed origin is https://agencydesk-crm.netlify.app. The production branch was last verified as `main` on 29 October 2026. This
+source change does not alter host branches or promote a production deployment. The
 two exact Netlify authentication callbacks were explicitly approved and added to
 Supabase. Edge `APP_URL` and the invitation origin allowlist are aligned with this
 host while retaining the earlier allowed origin. No messaging credential changed.
@@ -99,3 +131,25 @@ Remaining broader production gates include durable WhatsApp hosting, production
 Gmail OAuth setup, independent abuse controls beyond per-email throttling, restore
 rehearsal, operational alerts and a reviewed scheduler rollout. No customer sending
 is enabled by adding the website assistant.
+
+
+## 31 October source-release boundary
+
+This slice finishes the existing local widget/relay implementation while keeping
+AI disabled until separate provider approval and hosted verification. The exact
+private review checkout excludes all n8n/CI/operating-cap WIP. A missing Edge
+database configuration now returns a redacted503; malformed or oversized upstream
+JSON is a503 service failure while malformed visitor input remains400/413.
+Failure to record quota completion returns a safe fallback; inference is not
+retried and the attempt continues to consume its reservation.
+
+No Cloudflare account/token or hosted activation has been verified by this source
+release. Existing model IDs are candidates only; the token/output/neurons behavior
+and account Free entitlement must be evaluated before SERVICE_CHAT_ENABLED is
+turned on. Regex output guards are not proof of factuality. No CRM tools, direct
+sends, inbox/calendar access or actual customer records are included.
+
+The quota migration is preserved byte-for-byte from the unfinished local source.
+Check the own project's migration history and account binding before deployment;
+this run neither queries that provider nor proves the migration remains unapplied.
+Usage metadata is pseudonymous, not guaranteed deleted on a fixed deadline.

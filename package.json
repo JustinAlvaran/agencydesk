@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:edge": "deno test --no-config --no-lock --node-modules-dir=manual --allow-env supabase/functions/tests",
-    "test:database": "node tests/database/verify.mjs && node tests/database/automation.mjs && node tests/database/leads.mjs && node tests/database/inquiry-preferences.mjs && node tests/database/zoko-provider.mjs && node tests/database/recipient-suppression.mjs && node tests/database/website-intake.mjs",
+    "test:database": "node tests/database/verify.mjs && node tests/database/automation.mjs && node tests/database/leads.mjs && node tests/database/inquiry-preferences.mjs && node tests/database/zoko-provider.mjs && node tests/database/recipient-suppression.mjs && node tests/database/website-intake.mjs && node tests/database/service-chat.mjs",
+    "test:chat-concurrency": "node tests/database/service-chat-concurrency.mjs",
     "test:hosted": "node tests/database/hosted.mjs",
     "content:prepare": "node --experimental-strip-types scripts/prepare-content.mjs"
   },
