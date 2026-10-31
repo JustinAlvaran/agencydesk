@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { InquiryForm } from '@/app/inquire/inquiry-form';
 import { assistantAnswers, assistantServiceAnswer, assistantTopics, type AssistantService } from '@/lib/service-assistant';
 import { undecidedService } from '@/lib/service-catalog';
+import { ServiceAIQuestion } from './service-ai-question';
 
 const settings: Settings = {
   general: { embedded: true, showHeader: false, showFooter: false, showInputRow: false, primaryColor: '#292927', secondaryColor: '#292927' },
@@ -44,8 +45,10 @@ function GuideChoices({ params, items, children }: { params: Params; items: Arra
   return <div className="assistant-choice-block">{children}<div className="assistant-choices" aria-label="Guide topics">{items.map((item,index) => <button key={item.path} ref={index===0?firstChoice:undefined} type="button" className="button button-secondary" disabled={busy} onClick={() => { void choose(item.label, item.path); }}>{item.label}</button>)}</div></div>;
 }
 
-export default function AssistantConversation({ services, available }: { services: AssistantService[]; available: boolean }) {
+export default function AssistantConversation({ services, available, aiAvailable=false }: { services: AssistantService[]; available: boolean; aiAvailable?:boolean }) {
   const [inquiryService, setInquiryService] = useState<string | null>(null);
+  const [showAI,setShowAI] = useState(false);
+  const [recentQuestions,setRecentQuestions] = useState<string[]>([]);
   const flow = useMemo<Flow>(() => {
     const topics = assistantTopics.map((label, index) => ({ label, path: ['services', 'process', 'pricing', 'handoff'][index] }));
     const menu = (params: Params, children?: ReactNode) => <GuideChoices params={params} items={topics}>{children}</GuideChoices>;
@@ -62,6 +65,9 @@ export default function AssistantConversation({ services, available }: { service
     return result;
   }, [services]);
 
-  if (inquiryService !== null) return <div className="assistant-inquiry"><button type="button" className="button button-secondary" onClick={() => setInquiryService(null)}>Back to service guide</button><h3>Review your project inquiry</h3><p className="muted">Share the outcome you need and your desired timeline. Submitting saves your contact details and brief in AgencyDesk so the team can review them. Optional update permissions start unchecked.</p><InquiryForm available={available} services={services} initialService={inquiryService} intakeSource="website_chatbot"/></div>;
-  return <div className="assistant-chat"><div role="log" aria-label="Service conversation" aria-live="polite"><ChatBot id="agencydesk-services" flow={flow} settings={settings} styles={styles}/></div><p className="assistant-note">No live agent or automatic quote. <Link href="/inquire">Use the inquiry form</Link> anytime.</p></div>;
+  if (inquiryService !== null) return <div className="assistant-inquiry"><button type="button" className="button button-secondary" onClick={() => { setInquiryService(null); setShowAI(false); }}>Back to service guide</button><h3>Review your project inquiry</h3><p className="muted">Share the outcome you need and your desired timeline. Submitting saves your contact details and brief in AgencyDesk so the team can review them. Optional update permissions start unchecked.</p><InquiryForm available={available} services={services} initialService={inquiryService} intakeSource="website_chatbot"/></div>;
+  if(showAI&&aiAvailable)return <div className="assistant-inquiry"><button type="button" className="button button-secondary" onClick={()=>setShowAI(false)}>Back to service guide</button><h3>Ask about our services</h3><ServiceAIQuestion services={services} recentQuestions={recentQuestions} onQuestion={value=>setRecentQuestions(previous=>[...previous,value.slice(0,1000)].slice(-3))} onInquire={setInquiryService}/></div>;
+  // ChatBotify stores injected menu elements. Keep this runtime capability in
+  // React's live tree so a delayed check updates the current view immediately.
+  return <div className="assistant-chat"><div role="log" aria-label="Service conversation" aria-live="polite"><ChatBot id="agencydesk-services" flow={flow} settings={settings} styles={styles}/></div><div className="assistant-note">{aiAvailable&&<button type="button" className="button button-secondary" onClick={()=>setShowAI(true)}>Ask a services question with AI</button>}<p>No live agent or automatic quote. <Link href="/inquire">Use the inquiry form</Link> anytime.</p></div></div>;
 }
