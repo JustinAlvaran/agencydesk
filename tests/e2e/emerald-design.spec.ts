@@ -43,7 +43,7 @@ test('reduced motion and WebGL failure keep the homepage useful',async({page})=>
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('/');
   await expect(page.getByRole('region',{name:'AgencyDesk workflow preview'})).toBeVisible();
-  await expect(page.locator('[data-ambient-field] canvas')).toHaveCount(0);
+  await expect(page.locator('[data-agency-world] canvas')).toHaveCount(0);
   await expect(page.getByRole('link',{name:'Discuss your project',exact:true})).toBeVisible();
   await page.emulateMedia({reducedMotion:'no-preference'});
   await page.addInitScript(()=>{

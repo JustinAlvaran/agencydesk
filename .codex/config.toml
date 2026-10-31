@@ -1,0 +1,14 @@
+# AgencyDesk-only. Owner approved native MCP OAuth access on 30 October 2026.
+# OS credential store only; no tokens in this repository/OneDrive or file fallback.
+mcp_oauth_credentials_store = "keyring"
+
+[mcp_servers.agencydesk_n8n]
+url = "http://localhost:5678/mcp-server/http"
+enabled = true
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+default_tools_approval_mode = "prompt"
+scopes = ["workflow:read", "workflow:write"]
+
+[mcp_servers.agencydesk_n8n.oauth]
+callback_port = 51989

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+.assistant-ai-question{display:grid;gap:12px}.assistant-ai-question p{font-size:12px;line-height:1.6}.assistant-ai-question a{text-decoration:underline}.assistant-ai-question form{display:grid;gap:10px}.assistant-ai-question label{font-size:13px;font-weight:600}.assistant-ai-question textarea{width:100%;max-width:100%;border:1px solid var(--line);border-radius:6px;padding:10px;resize:vertical;font:inherit}.assistant-ai-question button{white-space:normal}
 .assistant-trigger{position:fixed;right:24px;bottom:72px;z-index:35;box-shadow:0 4px 18px #0002}
 .assistant-overlay{position:fixed;inset:0;background:#0005;z-index:60}
 .assistant-choice-block{width:100%;padding:8px}.assistant-choices{display:grid;gap:8px}.assistant-choices .button{text-align:left;justify-content:flex-start;white-space:normal}
