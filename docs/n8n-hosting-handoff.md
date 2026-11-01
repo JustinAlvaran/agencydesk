@@ -2,7 +2,7 @@
 
 Updated: 1 November 2026 (Asia/Manila).
 Scope: personal, non-commercial demo; free-only.
-Status: separate Vercel deployment READY; owner setup requested. Local database boot/restart verified; hosted authenticated flows and MCP remain pending.
+Status: separate Vercel deployment READY; hosted owner identity verified and reviewed inactive workflow imported. Manual hosted execution/reconnects and MCP remain pending.
 
 ## Owner decision
 
@@ -79,10 +79,14 @@ Keep every workflow inactive and disconnected from delivery credentials. Actual 
 
 Once the build is READY:
 1. Verify the stable and generated URLs both deny anonymous access; distinguish a Vercel login redirect from an n8n HTTP 200 response.
-2. Owner signs in to Vercel and creates the hosted n8n owner account using kinggucci195@gmail.com. Password entry/submission is owner-only, on the site.
-3. Import the existing reviewed manual inactive workflow from infra/n8n/workflows/process-approved-dry-run.json; do not execute it or add provider/CRM credentials.
+2. Completed: owner created the hosted n8n account using kinggucci195@gmail.com; expected owner identity verified. Password changes remain owner-only, on the site.
+3. Completed: imported the reviewed manual workflow from infra/n8n/workflows/process-approved-dry-run.json and verified it remains inactive/unconfigured. Do not execute it or add provider/CRM credentials.
 4. Verify actual hosted editor persistence/restarts and only authorized isolated manual tests.
 5. Hosted MCP needs its own authorized connection and verified discovery. The old local MCP grant/configuration does not transfer automatically. Vercel Authentication can block MCP; do not disable it or create bypass/share credentials without specific approval.
+
+The owner completed setup on the protected hosted site. A scoped read verified the expected account and global owner role without reading password fields. The official CLI imported the existing reviewed workflow with --activeState=false and assigned it to that owner. Database read-back verified its full node graph, connections, inactive state and owner workspace membership.
+
+Hosted workflow: goUHLXr2kPJ7Wtca, six nodes, no credentials, guarded/unconfigured worker URL. No workflow was executed. The temporary import container was removed and exact absence verified. The account password was not used, saved or copied by these helpers.
 
 The original local n8n volume and owner account were left intact for rollback. They have not been exported wholesale or deleted.
 
@@ -104,3 +108,5 @@ Publish scoped source through preview -> main PRs only; preserve the owner's mer
 - [n8n database settings](https://docs.n8n.io/hosting/configuration/supported-databases-settings/)
 - [n8n deployment settings](https://docs.n8n.io/hosting/configuration/environment-variables/deployment/)
 - [Neon Free](https://neon.com/pricing)
+
+Source review PR: https://github.com/JustinAlvaran/agencydesk/pull/11 (preview -> main; owner controls merging).
