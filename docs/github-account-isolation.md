@@ -33,9 +33,9 @@ Use the same process environment for Git. Clear inherited credential helpers for
 git -c credential.helper= -c 'credential.helper=!gh auth git-credential' ls-remote --heads origin
 ```
 
-The same `-c` options apply to an authorized feature-branch push. They do not change repository, user or machine configuration. Stage only the completed slice; preserve unrelated unfinished changes. Verify the remote is `https://github.com/JustinAlvaran/agencydesk.git` and author/committer are `Justin Alvaran <justinalvaran053023@gmail.com>`.
+The same `-c` options apply to an authorized preview push. They do not change repository, user or machine configuration. Stage only the completed slice; preserve unrelated unfinished changes. Verify the remote is `https://github.com/JustinAlvaran/agencydesk.git` and author/committer are `Justin Alvaran <justinalvaran053023@gmail.com>`.
 
-Open/update a PR with explicit repository, head and reviewed base, using a body file for the description. The repository default is `codex/directus-cms`; the existing services production branch is `codex/services-assistant`. Do not assume the default branch is the correct release base. Never push to either production/default branch, force-push, merge, approve or enable auto-merge on the owner's behalf. Production changes wait for owner review.
+Open/update future PRs with explicit repository, `--head preview --base main`, using a body file. The owner chose only these two permanent remote branches on1November2026. Fetch current main/preview, preserve WIP, synchronize preview through normal merges and rerun relevant checks. Do not create replacement remote feature branches, force-push, or push application changes directly to main. The owner normally merges; the explicit1November request separately authorizes the current one-time consolidation after checks. Delete obsolete branches only after fresh exact-head ancestry proof against final main. See [the branch workflow](branch-workflow.md). Historical names/defaults do not prove current hosting settings.
 
 Use the PR template to explain actual behavior, checks, UI screenshots when applicable, setup, limitations, costs and rollback. Do not claim that configuration or an authenticated read proves a push, PR, deployment or MCP connection succeeded.
 

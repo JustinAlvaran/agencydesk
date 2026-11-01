@@ -2,7 +2,7 @@ name: Verify AgencyDesk
 on:
   pull_request:
   push:
-    branches: [main, codex/directus-cms]
+    branches: [main, preview]
 permissions:
   contents: read
 jobs:
@@ -23,7 +23,7 @@ jobs:
           cache: pnpm
       - uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.5.5
+          deno-version: v2.5.6
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck

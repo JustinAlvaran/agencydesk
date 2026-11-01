@@ -1,3 +1,7 @@
+## Delivery target
+
+Use head `preview` and base `main` for future changes; keep only these permanent remote branches. The owner normally reviews/merges. Record current fetched SHAs, synchronization and checks. A current explicit owner request may authorize a specific consolidation/merge; never assume future automatic merge permission.
+
 ## Problem and resulting behavior
 
 Explain the concrete problem and what this change makes possible.
@@ -26,4 +30,4 @@ Record the independent review, redacted staged-secret check, ignored credential 
 
 Explain how to revert the change and disable affected features safely.
 
-Owner review and merge are required. Do not merge or enable auto-merge on the owner's behalf.
+Owner review and merge are required unless a current explicit request authorizes this exact merge. Do not enable auto-merge or impersonate approval. Keep only main/preview remote branches.
