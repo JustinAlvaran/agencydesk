@@ -49,3 +49,6 @@
  .navGroup { margin-bottom:14px; }
  .drawer .navGroupLabel { padding-top:0; }
 }
+
+/* Board titles must not inherit the former light-theme header color. */
+.root :global(.kanban-header h2){color:#d7e7dd}

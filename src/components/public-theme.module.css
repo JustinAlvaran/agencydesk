@@ -31,3 +31,6 @@
 .surface:global(.public-catalog) :global(.site-footer){padding-bottom:40px}
 @media(max-width:900px){.surface :global(.public-services-catalog),.surface :global(.public-project-list){grid-template-columns:1fr}}
 @media(max-width:650px){.surface :global(.public-service-card),.surface :global(.public-project-card){padding:20px;gap:20px}.surface :global(.public-service-content){gap:16px}.surface :global(.public-card-actions>.button){flex:1 1 14rem}.surface :global(.public-services-footer){align-items:flex-start;gap:18px}}
+
+/* Demo inquiry status is readable against this dark public surface. */
+.surface :global(.inquiry-page .demo-banner){background:#15251b;border:1px solid #3b5844;color:#d3e8db;line-height:1.7}
