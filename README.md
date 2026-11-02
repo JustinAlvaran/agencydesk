@@ -1,115 +1,168 @@
 # AgencyDesk
 
-An original agency CRM and client portal built with Next.js App Router, React, TypeScript, Tailwind CSS, Supabase, and Vercel. Website inquiry → lead → versioned proposal → client acceptance → project and milestones.
+A personal agency CRM and client portal demo built with Next.js 16, React 19, TypeScript, Tailwind CSS 4 and Supabase. It connects a public service inquiry to a reviewed lead, versioned proposal, client acceptance, and project delivery.
 
-Live application: https://agencydesk-theta.vercel.app
+**[Open AgencyDesk](https://agencydesk-crm.netlify.app/)** Â· **[Explore the read-only demo](https://agencydesk-crm.netlify.app/demo)** Â· **[Sign in](https://agencydesk-crm.netlify.app/login)**
 
-CMS editing and recovery: [content workflow](infra/directus/CONTENT-WORKFLOW.md).
-Responsibilities and future integrations: [content and automation](docs/content-and-automation.md).
-Hosted rollout evidence: [CMS hosting gate](artifacts/cms-hosting-gate.md).
+Public examples and demo records are fictional and labeled. They are not customer results, testimonials or operational metrics. The application is English-only.
 
-The public site and recruiter demo use fictional content. Reference projects were inspected only for engineering practices; no business data, copy, branding, designs, or assets were reused.
+## What is included
 
-## Product and architecture
+| Area | Current source behavior |
+| --- | --- |
+| Public website | Emerald visual theme, interactive procedural 3D homepage, service catalog/detail pages, sample projects and service-specific inquiry links. Readable no-JavaScript, reduced-motion and no-WebGL fallbacks. |
+| Staff CRM | Task-first overview, lead board/table, URL filters and pagination, manual lead capture, owners, notes, call outcomes, callback tasks, contacts and a lead activity timeline. |
+| Proposals | Versioned scope, line items and totals; publication locks the proposal snapshot. Client acceptance transactionally creates one project and its handoff records. |
+| Client portal | Company-scoped proposals, projects, milestones, shared updates and comments. Internal staff records remain private. |
+| Outbound review | Disabled-by-default event rules, frozen message previews, staff approval, separate email/WhatsApp consent, recipient suppression, leased processing, retries and uncertain-result reconciliation. |
+| Services assistant | Public service guide and inquiry handoff. Hosted AI relay source is present, but model activation remains off pending provider configuration and evaluation. The assistant has no private CRM tools or records. |
+| n8n | Separate protected, on-demand hosted demo with an imported inactive manual workflow. Hosted MCP, scheduled processing and CRM delivery credentials remain disconnected. |
 
-The staff CRM manages leads, owners, internal notes, follow-ups, contacts, proposals, and projects. Clients see their own proposals, milestones, shared updates, and comments. Administrator-generated invitation and recovery links require no SMTP provider. The independent recruiter demo is read-only.
+Source availability does not prove a migration, provider connection or model is active in a hosted environment. Incoming email/WhatsApp conversations, authoritative calendar bookings, automatic cross-channel follow-ups and autonomous CRM agents remain unfinished. Callback tasks are internal reminders, not calendar reservations; delivery receipts are not incoming replies.
 
-Server Components read through a server-only data access layer; authenticated Server Actions validate writes. Supabase SSR uses cookies and server-verified identities. Privileged inquiry and invitation operations run in Edge Functions using their built-in secrets; Next.js needs no service-role key.
+## Pages
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Public homepage and interactive 3D experience |
+| `/services`, `/services/[slug]` | Service catalog and detail pages |
+| `/case-studies` | Clearly labeled illustrative projects |
+| `/inquire` | Public inquiry form and service selection |
+| `/login` | Invited staff/client sign-in |
+| `/crm` | Authenticated staff overview |
+| `/crm/leads`, `/crm/leads/[id]` | Pipeline, contact details, activity and next actions |
+| `/crm/tasks` | Follow-up task list |
+| `/crm/contacts`, `/crm/proposals`, `/crm/projects` | Sales and delivery records |
+| `/crm/automations`, `/crm/automations/setup` | Queue review, rules and connection guidance |
+| `/crm/settings` | Staff/client access administration |
+| `/portal` | Authenticated client workspace |
+| `/demo` | Read-only fictional workspace; no live CRM access required |
+
+## Architecture and data boundaries
 
 ```mermaid
 flowchart LR
-  Visitor[Public visitor] --> Inquiry[Next.js inquiry endpoint]
-  Inquiry --> Edge[Supabase Edge Function]
-  Edge --> Lead[(Lead)]
-  Staff[Staff CRM] --> RLS[Supabase Auth and RLS]
-  Client[Client portal] --> RLS
-  RLS --> Proposal[(Versioned proposals)]
-  Proposal --> Accept[Acceptance transaction]
-  Accept --> Result[(Project, Won lead, activity)]
+  Visitor[Public visitor] --> Website[Next.js public site]
+  Website --> Inquiry[Validated inquiry endpoint]
+  Inquiry --> Edge[Supabase inquiry function]
+  Edge --> Lead[(Agency-scoped lead)]
+  Staff[Staff CRM] --> Auth[Supabase Auth and RLS]
+  Client[Client portal] --> Auth
+  Auth --> Proposal[(Versioned proposals)]
+  Proposal --> Accept[Atomic client acceptance]
+  Accept --> Project[(Project and milestones)]
+  Lead --> Queue[(Reviewed outbox)]
+  Proposal --> Queue
+  Queue --> Worker[Authenticated leased worker]
+  Worker --> Result[Simulation or separately enabled provider]
+  Coordinator[n8n coordinator: disconnected] -. gated dry-run integration .-> Worker
 ```
 
-SQL migrations own grants, RLS, guards, and transactional RPCs. Acceptance derives `auth.uid()`, checks live company membership, locks lead → series → revision, and commits all handoff records together. Unique constraints and retry behavior prevent duplicate projects. Published scope, prices, and items cannot be edited. Internal records are separated from client-readable data; JWT user metadata never determines authorization.
+- Server Components read through a server-only data layer. Server Actions validate mutations, and Supabase verifies live staff/client membership.
+- SQL migrations own agency and company isolation, grants, RLS, publication guards and transactional commands. User-editable JWT metadata never determines authorization.
+- Proposal acceptance uses transaction locks and uniqueness constraints to prevent duplicate projects. Published prices and scope cannot be edited in place.
+- Public content is prepared into a validated build snapshot. The checked-in Netlify configuration uses `CONTENT_SOURCE=fixtures`; Directus is optional infrastructure, not an assumed live publishing service.
+- Next.js does not require a Supabase service-role key. Provider credentials and privileged sending operations belong in server-side Edge Function secrets.
+- Dates use `Asia/Manila` for scheduling inputs and `timestamptz` for storage. Proposal prices use USD integer cents. Private CRM routes do not load the public WebGL scene.
 
-Version one excludes payments, invoicing, uploads, campaigns, AI features, and multiple agency workspaces. Prices use USD integer cents. Scheduling inputs use Asia/Manila; Postgres stores `timestamptz`.
+## Run locally
 
-## Leads and automation, October 14, 2026
-
-The live lead workspace now supports a paginated board/table view, owner filters, manual capture, explicit channel permissions, call outcomes, callback tasks, and an activity timeline. Manual creation and call logging use actor-scoped idempotent database commands; ordinary contact creation never starts an inquiry acknowledgment.
-
-The Automations screen manages four rules: inquiry acknowledgment, proposal publication notice, a delayed proposal follow-up, and accepted-project confirmation. Rules start disabled and approval is required by default. CRM events queue frozen messages transactionally. Workers recheck consent, contact details, current proposal and membership; claim with leases; and track simulation, provider acceptance, and signed delivery receipts separately. Failed configuration or known rejection can be reset by an administrator; ambiguous sends require reconciliation.
-
-Email uses an own-account Resend adapter. WhatsApp uses own-account Meta approved positional templates. The worker defaults to dry-run mode. Hermes Agent is optional for future drafts/triage and is not installed or connected. Inbound replies and AI conversation handling are not implemented. No ApartmentHub credentials, infrastructure, recipients, or i18n were imported.
-
-See [messaging setup](docs/messaging-setup.md) for the exact own-account settings. Apply the three new October 14 migrations to the AgencyDesk database, deploy the updated `inquiry`, `automation-worker`, and `message-receipts` functions, configure secrets, and schedule the worker before enabling live delivery. Provider secrets live in Edge Functions; Next.js still needs no service-role key. [Explore the sample preview](http://localhost:3000/demo/automations).
-
-New local checks: `pnpm test:database` includes all four isolated PostgreSQL suites; `pnpm test:edge` requires Deno 2 and executes the worker tests without network permission. Tests use only fictional records and fake providers. Hosted/provider delivery remains a separate test using the user's own account.
-
-## Local setup
-
-Use Node.js 22.18 or newer in the 22.x line and pnpm 10.28.1.
+Requirements: **Node.js 22.18+ within the 22.x line** and **pnpm 10.28.1**. Use the versions declared in [package.json](package.json) and the committed lockfile.
 
 ```sh
 pnpm install --frozen-lockfile
-cp .env.example .env.local
+```
+
+Copy the public configuration template, then start the app:
+
+```powershell
+Copy-Item .env.example .env.local
 pnpm dev
 ```
 
-Default `APP_MODE=demo` runs without credentials at `http://localhost:3000` and `/demo`.
+On macOS/Linux, use `cp .env.example .env.local` for the copy step. Open [localhost:3000](http://localhost:3000) or [the local demo](http://localhost:3000/demo).
 
-For live mode, use a dedicated Supabase project:
+The template defaults to `APP_MODE=demo`, `CONTENT_SOURCE=fixtures` and `SERVICE_CHAT_ENABLED=false`. This mode needs no cloud credentials. Keep local environment files out of Git.
 
-| Variable | Purpose |
+### Authenticated CRM setup
+
+Live mode requires a dedicated, verified AgencyDesk Supabase project and invited accounts. It enables authenticated application writes; it does **not** automatically enable outbound sending or AI.
+
+| Application variable | Purpose |
 | --- | --- |
-| `APP_MODE=live` | Enable authenticated CRM, portal, and writes |
-| `NEXT_PUBLIC_SUPABASE_URL` | Project API URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public application key |
-| `SUPABASE_EDGE_ANON_KEY` | Legacy anon JWT used server-side for inquiry gateway |
-| `APP_URL` | Origin used for invitation links |
+| `APP_MODE=live` | Enable authenticated CRM/portal flows and application writes |
+| `NEXT_PUBLIC_SUPABASE_URL` | Own AgencyDesk project API URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Publishable browser application key |
+| `SUPABASE_EDGE_ANON_KEY` | Server-side inquiry gateway JWT setting |
+| `APP_URL` | Correct application origin for links and redirects |
+| `CONTENT_SOURCE=fixtures` | Build public pages from the checked-in public catalog |
+| `SERVICE_CHAT_ENABLED=false` | Keep hosted AI disabled until its separate activation gates pass |
 
-Apply migrations in order, optionally load `supabase/seed.sql` into the development database, and deploy `inquiry` and `admin-invite` from `supabase/functions`. Keep inquiry gateway JWT verification enabled. The invitation function verifies the caller and requires an active database admin.
+1. Verify the intended account, project binding and actual migration history before applying the ordered files in `supabase/migrations/`. Do not infer deployment from checked-in SQL.
+2. Deploy the needed functions from `supabase/functions/`, starting with `inquiry` and `admin-invite`. Preserve the inquiry gateway JWT check and the invitation function's active-admin authorization.
+3. Disable public registration in hosted Supabase Auth. Local `config.toml` does not configure the hosted dashboard automatically. Set exact confirmation/callback redirect URLs for each environment.
+4. Bootstrap the first Auth user and active `staff_members` administrator membership through the trusted database administration interface. Later invitations/recovery links come from CRM access settings. Client acceptance requires the appropriate live company membership and permission.
+5. If using Google sign-in, configure the Google provider in Supabase and its exact `/auth/v1/callback`, then allow the application's `/auth/callback`. OAuth secrets stay in the provider configuration, never `NEXT_PUBLIC_*` values. Signing in without an active membership does not grant CRM/portal access.
 
-For local Supabase, start Docker Desktop before `npx supabase start`; `npx supabase db reset` loads migrations and fictional data. The seed creates no accounts or passwords.
+Local Supabase development additionally needs Docker and the Supabase CLI. Database resets load migrations and the repository's fictional development seed; use only a disposable development database. Seed data creates no account passwords. Never reset a hosted project as a setup shortcut.
 
-Hosted Auth must disable public registration through Auth → Sign In / Providers → Allow new users to sign up, or Management API `disable_signup: true`. Local `config.toml` does not automatically configure hosted Auth. Keep the email provider enabled. Configure production and local confirmation URLs.
+## Automation and integrations
 
-Bootstrap the first admin through Supabase's trusted administrator interface, then add their Auth user ID to `staff_members` with role `admin`. CRM access settings generate later invitation/recovery links. Clients need `can_accept_proposals=true` to accept or decline. Links open `/auth/confirm`, then `/auth/password`.
+The four initial rules cover inquiry acknowledgment, proposal publication, delayed proposal follow-up and accepted-project confirmation. Rules start disabled with approval required. Manual lead entry does not fabricate a website-inquiry event or automatically send its acknowledgment.
 
-Google sign-in uses the same Supabase accounts and live memberships. Configure a Google Web OAuth client with the Supabase `/auth/v1/callback` URL, save its Client ID and Secret in the hosted Google provider, and allow `${APP_URL}/auth/callback` in Supabase Auth redirect URLs. Keep public signup disabled. Google testing-mode users must be listed in Google's Audience settings. The application exchanges the PKCE code into an SSR cookie session, verifies identity, and routes active staff to `/crm` or active clients to `/portal`. Users without membership are signed out locally and denied access. Google credentials do not belong in application code or browser environment variables. A real Google sign-in must verify that the existing invited user's ID and memberships remain intact; mocked callback tests do not prove account linking.
+The worker defaults to **dry-run**. Simulated jobs become terminal queue records and are not replayed later as live sends. Eligibility, consent, suppression and lease ownership are rechecked before processing. Known failures and uncertain provider outcomes have different recovery paths; ambiguous results are not blindly retried.
 
-Vercel uses the Next.js preset, Node 22, and the pinned pnpm lockfile. Preview uses `APP_MODE=demo` with no production database credentials. Production uses `APP_MODE=live`, the dedicated hosted database, and Singapore functions. Build each environment separately; never promote a fixture-configured preview unchanged.
+Adapter source supports Resend/Gmail for email and Meta/Zoko/WAHA for WhatsApp. An adapter's existence does not establish a current authenticated connection, reachable WhatsApp host or permission to send. Gmail send-only access is separate from inbox-reading authorization. Hermes is optional draft-assistance source, not a connected autonomous operator.
 
-## Verification
+n8n coordinates AgencyDesk's guarded integration boundary; it does not own approvals, consent, agency isolation, idempotency or outbox leases. Do not bypass those controls with direct provider nodes or SQL. Recurring processing remains off while operating-budget, deferral, error-notification and activation gates are unfinished.
+
+The separate **[hosted n8n demo](https://agencydesk-n8n-demo.vercel.app/)** requires Vercel Authentication and the owner's n8n login. It uses dedicated Neon Free PostgreSQL storage and a stable private encryption key. It is an on-demand personal demo, not a verified always-on scheduler. The existing manual workflow is inactive/unconfigured; the local instance and hosted MCP connection are separate.
+
+See the [messaging setup](docs/messaging-setup.md), [reviewed n8n queue boundary](docs/plans/2026-10-30-n8n-queue-boundary.md) and [current n8n hosting handoff](docs/n8n-hosting-handoff.md). Older dated provider guides describe their original rollout, not proof of present activation. Keep sending and scheduling disabled until the current safeguards and explicit activation requirements are satisfied.
+
+## Checks
 
 ```sh
 pnpm lint
 pnpm typecheck
 pnpm test
 pnpm test:database
+pnpm test:edge
 pnpm build
 pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-The embedded PostgreSQL suite passes **44 assertions** covering actual RLS roles, isolation, live membership revocation, draft visibility, immutable publication, database totals, retry idempotence, superseded revisions, injected transaction rollback, and persistent inquiry limits. Only Supabase's external Auth schema is emulated.
+- `pnpm test` runs application unit/render tests plus n8n hosting configuration guards.
+- `pnpm test:database` exercises the checked-in migrations in embedded PostgreSQL, including roles/RLS, proposal acceptance, queue behavior, provider routing, recipient suppression, inquiry deduplication and service-chat quotas. It needs no hosted credentials.
+- `pnpm test:edge` requires Deno 2; CI pins **2.5.6**. These tests use fake providers with runtime network access denied.
+- Browser tests cover demo/public flows, responsive rendering, accessibility and navigation. Live account cases require explicitly configured invited test accounts and are separate from credential-free CI.
+- `pnpm test:chat-concurrency` is an optional, explicitly opted-in disposable Docker/PostgreSQL test. Read its fixture/setup requirements before running it.
+- `pnpm test:hosted` mutates dedicated hosted test records. It is excluded from normal CI and must not be pointed at production or another project.
 
-The latest dedicated hosted project verification passed **17 Auth/Data API/RPC checks**, including two concurrent HTTP accepts returning one project ID, one project row, and one acceptance event. Evidence is in `artifacts/hosted-verification.json`. `pnpm test:hosted` uses private local test accounts and changes test records; run only against a dedicated test project. CI excludes this command.
+[GitHub Actions](.github/workflows/ci.yml) runs lint, type checking, unit/database/Edge checks, content-build checks, production build and the credential-free browser suite. Read the checks on the exact PR commit. Historical test totals, a successful preview or a saved walkthrough do not certify the current application or live providers.
 
-Docker-backed Supabase tests were not run because the local daemon was unavailable. Saved pgTAP privilege checks can run with `npx supabase test db`. Browser tests cover responsive demo pages, accessibility, keyboard navigation, and read-only behavior. No unmeasured performance scores are claimed.
+## Hosting and contribution workflow
 
-Supabase advisors reported no database authorization/function findings. Leaked-password protection remains an Auth advisory because the hosted setting requires Pro; no paid upgrade was made. See [Supabase password security](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection). Fresh-database unused-index notices are informational.
+- **CRM/public site:** [AgencyDesk on Netlify](https://agencydesk-crm.netlify.app/). Configuration is in [netlify.toml](netlify.toml); the existing target uses Netlify Free, with `main` for production and `preview` for review builds.
+- **n8n personal demo:** separate protected Vercel Hobby Container target with dedicated Neon Free storage. Its [deployment source](infra/n8n/vercel-demo/README.md) is separate from the Next.js application. A hosted editor is not proof of reliable background scheduling.
+- **Branches:** only `main` and `preview` on GitHub. Synchronize current upstream changes, publish reviewed scoped work to `preview`, and open/update a **`preview` â†’ `main` PR**. The owner reviews and merges. Do not create extra remote branches, force-push or automatically promote production.
+- **Configuration:** build each environment with its own settings. A fixture-mode preview is not automatically a live-mode release. Keep credentials, private `.local` stores, customer data and caches out of Git, CI artifacts and deployment uploads.
+- **Costs:** keep this project free-only; no paid upgrades, trials with charges or automatic recharge. Provider activation is a separate decision. The personal-demo hosting choice does not establish eligibility for a future commercial deployment.
 
-Inquiry briefs require 20–4,000 trimmed characters in application and Edge validation. The Edge Function derives the persistent rate key from normalized email; visitors cannot choose another key, read CRM tables, or invoke the privileged inquiry RPC directly.
+## Repository guide
 
-GitHub Actions runs lint, type checks, unit tests, embedded database checks, production build, and demo browser tests without cloud credentials. Live Auth checks require invited test accounts and remain separate. The live browser suite verifies inquiry-to-project delivery, follow-ups, milestones, client comments, cross-company denial, invitation callbacks, and disabled signup. A successful client walkthrough is saved in `artifacts/walkthrough/client-workflow.webm`.
+| Path | Responsibility |
+| --- | --- |
+| `src/app/` | Public, CRM, portal, demo and authentication routes |
+| `src/components/` | Shared interface, public 3D boundary and services assistant |
+| `src/lib/` | Server data access, validation, content and workflow helpers |
+| `supabase/migrations/` | Schema, RLS, grants and transactional business rules |
+| `supabase/functions/` | Inquiry, invitations, delivery/receipts and gated assistant functions |
+| `content/` | Public content fixtures and content definitions |
+| `infra/directus/` | Optional public-content CMS and editor workflow |
+| `infra/n8n/` | Reviewed manual workflow and separate hosted-demo runtime |
+| `tests/` | Unit, database, Edge-related integration and browser verification |
+| `docs/` | Setup, architecture, decisions and scoped verification reports |
 
-## Resume bullets
-
-- Built a full-stack agency CRM and client portal using Next.js, React, TypeScript, Tailwind CSS, and Supabase, connecting lead capture, versioned proposals, and project delivery.
-- Enforced company isolation with Postgres RLS and live membership, and implemented atomic acceptance using transaction locks and uniqueness constraints.
-- Verified business rules with 44 PostgreSQL assertions and 17 hosted checks, including concurrent requests producing one project and one acceptance event.
-
-Add performance or adoption figures only after measuring them.
-
-## Interface simplification — October 3, 2026
-
-The public site, CRM, and portal use a neutral palette, literal screen titles, and compact records. There is no approved logo; no wordmark or invented symbol is shown. Forms appear on request, demo records open into read-only details, and client sample views restrict navigation to the sample company. Interface conventions are recorded in DESIGN.md; product facts and user constraints are recorded in PRODUCT.md.
+Further reading: [branch workflow](docs/branch-workflow.md), [public content editing](infra/directus/CONTENT-WORKFLOW.md), [services assistant verification](docs/plans/2026-10-31-service-chat-source-verification.md), and [project constraints](AGENTS.md).
