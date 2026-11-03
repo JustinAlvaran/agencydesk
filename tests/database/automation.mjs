@@ -45,6 +45,9 @@ try {
   }
   async function clear() {
     await owner();
+    // Independent eligibility/retry scenarios start in a fresh operating window.
+    // The operating-limits suite separately proves cross-invocation accounting.
+    await db.exec("update public.message_attempts set started_at=clock_timestamp()-interval '2 days'");
     await db.exec("update public.message_jobs set status='cancelled',lease_token=null,lease_expires_at=null where status in ('queued','pending_approval','processing')");
   }
   async function inquiry({emailConsent=true, whatsappConsent=false, phone=null, status='new', archived=false, approval=false, channel='email'}={}) {

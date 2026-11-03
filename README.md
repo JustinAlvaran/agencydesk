@@ -114,7 +114,7 @@ The worker defaults to **dry-run**. Simulated jobs become terminal queue records
 
 Adapter source supports Resend/Gmail for email and Meta/Zoko/WAHA for WhatsApp. An adapter's existence does not establish a current authenticated connection, reachable WhatsApp host or permission to send. Gmail send-only access is separate from inbox-reading authorization. Hermes is optional draft-assistance source, not a connected autonomous operator.
 
-n8n coordinates AgencyDesk's guarded integration boundary; it does not own approvals, consent, agency isolation, idempotency or outbox leases. Do not bypass those controls with direct provider nodes or SQL. Recurring processing remains off while operating-budget, deferral, error-notification and activation gates are unfinished.
+n8n coordinates AgencyDesk's guarded integration boundary; it does not own approvals, consent, agency isolation, idempotency or outbox leases. Do not bypass those controls with direct provider nodes or SQL. The reviewed-source admission limit is five leases per rolling hour and twenty per Manila calendar day per agency, shared across channels and modes; excess work is deferred without consuming an attempt. Recurring processing stays off until the cap migration/deployment, error notification and authorized dry-run checks are verified. See [operating-cap rollout](docs/plans/2026-11-03-outbox-operating-caps.md).
 
 The separate **[hosted n8n demo](https://agencydesk-n8n-demo.vercel.app/)** requires Vercel Authentication and the owner's n8n login. It uses dedicated Neon Free PostgreSQL storage and a stable private encryption key. It is an on-demand personal demo, not a verified always-on scheduler. The existing manual workflow is inactive/unconfigured; the local instance and hosted MCP connection are separate.
 
@@ -137,7 +137,7 @@ pnpm test:e2e
 - `pnpm test:database` exercises the checked-in migrations in embedded PostgreSQL, including roles/RLS, proposal acceptance, queue behavior, provider routing, recipient suppression, inquiry deduplication and service-chat quotas. It needs no hosted credentials.
 - `pnpm test:edge` requires Deno 2; CI pins **2.5.6**. These tests use fake providers with runtime network access denied.
 - Browser tests cover demo/public flows, responsive rendering, accessibility and navigation. Live account cases require explicitly configured invited test accounts and are separate from credential-free CI.
-- `pnpm test:chat-concurrency` is an optional, explicitly opted-in disposable Docker/PostgreSQL test. Read its fixture/setup requirements before running it.
+- `pnpm test:chat-concurrency` and `pnpm test:automation-concurrency` are explicitly opted-in disposable Docker/PostgreSQL tests. Read their fixture/setup requirements before running locally; CI runs the outbox concurrency guard in its own isolated container.
 - `pnpm test:hosted` mutates dedicated hosted test records. It is excluded from normal CI and must not be pointed at production or another project.
 
 [GitHub Actions](.github/workflows/ci.yml) runs lint, type checking, unit/database/Edge checks, content-build checks, production build and the credential-free browser suite. Read the checks on the exact PR commit. Historical test totals, a successful preview or a saved walkthrough do not certify the current application or live providers.

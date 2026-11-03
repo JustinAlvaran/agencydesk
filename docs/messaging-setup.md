@@ -101,7 +101,17 @@ AUTOMATION_FROM_EMAIL=AgencyDesk <hello@your-verified-domain.example>
 APP_URL=https://your-agencydesk.example
 ```
 
-After the automation migration and functions are deployed to your own AgencyDesk project, schedule a POST to `/functions/v1/automation-worker` using the `x-automation-secret` header with your cron secret. An active administrator can also invoke the worker with their authenticated session. Keep scheduler secrets in its secret store. Periodic processing requires a scheduler; leaving the CRM page open is unnecessary.
+Only after owner review, verified cap deployment, an explicitly authorized dry-run check and a verified error-notification path, configure an approved scheduler to POST to `/functions/v1/automation-worker` using the `x-automation-secret` header with your cron secret. An active administrator can also invoke the worker with their authenticated session. Keep scheduler secrets in its secret store. Periodic processing requires a scheduler; leaving the CRM page open is unnecessary.
+
+### Operating admission caps
+
+The new `20261102015315_message_claim_operating_caps.sql` migration adds per-agency ceilings of **five leases per rolling hour** and **twenty per Asia/Manila calendar day**. Every channel, provider and dry-run/live mode shares the same budget. Existing attempt history counts, including retries, simulations, failures and uncertain outcomes; changing workers or providers cannot reset it.
+
+When full, eligible queued jobs receive a future `due_at` and `operating_cap_deferred` reason. They retain their approval, attempt count and message history. Deferred jobs are checked again for current consent, suppression and proposal eligibility when due. This is lease admission, not a provider billing or exact delivery-time guarantee; claims can consume budget even if later revalidation stops delivery.
+
+The claim RPC serializes admission per agency and requires READ COMMITTED transactions. A new lease and its history row commit together; no caller can choose the cap, clock or mode. The private calculation has no client/service execute grant. No schedule, rule, sender or deployment is enabled by committing this SQL. Verify the own hosted migration history and deploy only after review; never edit the historical empty limits migration.
+
+See [operating-cap verification and rollout](plans/2026-11-03-outbox-operating-caps.md) for tests, rollback and remaining activation gates.
 
 Choose a schedule supported by your hosting plan; do not assume minute-by-minute cron is free. An administrator can process dry-run batches manually. Each invocation processes up to five jobs and claims them one at a time so a stopped worker cannot strand an unsent batch. The request body can be `{}`; it cannot override recipients or the delivery mode.
 
