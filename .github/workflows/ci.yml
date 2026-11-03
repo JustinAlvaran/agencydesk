@@ -29,6 +29,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm test:database
+      - name: Verify outbox admission concurrency
+        run: pnpm test:automation-concurrency
+        env:
+          AGENCYDESK_ALLOW_LOCAL_DOCKER_TEST: '1'
       - run: pnpm test:edge
       - run: node tests/database/content-build.mjs
       - run: pnpm build
