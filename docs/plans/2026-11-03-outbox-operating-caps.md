@@ -1,4 +1,4 @@
-# Outbox operating caps — source and rollout
+# Outbox operating caps â€” source and rollout
 
 3 November 2026. Scope: reviewed queue admission; deployment and scheduler activation remain separate.
 
@@ -33,6 +33,8 @@ Admission takes a transaction advisory lock per agency before job locks; the clo
 - Daily arithmetic is exercised with fixed test timestamps in embedded PostgreSQL. This is not a real-clock midnight or multi-session daily-boundary test; the two real concurrency batches verify the shared admission lock/hourly accounting.
 
 The initial real-concurrency attempt failed because the local Docker engine was stopped. The existing per-user Docker Desktop was started; the unchanged assertions then passed. A default Program Files path check failed before launch because this installation is per-user. Neither failure is counted as a passing concurrency check.
+
+The first GitHub Actions concurrency check on7c1f4d2 failed because Unix-socket readiness could detect the image's temporary initialization server before its final restart. The test now uses internal127.0.0.1TCP for readiness and every SQL connection, matching the official image startup lifecycle; no host port or weaker assertion was added. Corrected-head checks are recorded separately.
 
 Application/lint and exact staged-snapshot/security results are recorded in the PR and project ledger. Remote CI must be checked on the published SHA. No local test implies hosted migration application or running automation. No UI change or new screenshot is required for this queue slice.
 
@@ -72,3 +74,5 @@ Before deployment, reverting this scoped PR removes only source changes. After a
 - [Supabase database function security and privileges](https://supabase.com/docs/guides/database/functions)
 - [Supabase Data API grants and RLS](https://supabase.com/docs/guides/api/securing-your-api)
 - [GitHub standard hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+
+- [Official PostgreSQL image initialization lifecycle](https://github.com/docker-library/postgres/blob/master/docker-entrypoint.sh)

@@ -17,9 +17,9 @@ function docker(args,input=''){
   child.stdin.on('error',()=>{});child.stdin.end(input);
  });
 }
-const sql=text=>docker(['exec','-i',name,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],text);
+const sql=text=>docker(['exec','-i',name,'psql','--host','127.0.0.1','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],text);
 async function parallel(){
- const gate=spawn('docker',['exec','-i',name,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],{cwd,windowsHide:true,stdio:['pipe','pipe','pipe']});
+ const gate=spawn('docker',['exec','-i',name,'psql','--host','127.0.0.1','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'],{cwd,windowsHide:true,stdio:['pipe','pipe','pipe']});
  let output='',pending;
  const closed=new Promise(resolve=>gate.on('close',resolve));
  const ready=new Promise((resolve,reject)=>{
@@ -51,8 +51,10 @@ async function parallel(){
 try{
  mayExist=true;
  await docker(['run','--detach','--rm','--network','none','--name',name,'--memory','512m','--cpus','1','--pids-limit','128','--env','POSTGRES_HOST_AUTH_METHOD=trust','--tmpfs','/var/lib/postgresql/data:rw,size=268435456',image]);
+ // The official image's temporary init server accepts Unix sockets only.
+ // Internal loopback TCP waits for the final server; no host port is exposed.
  let ready=false;
- for(let i=0;i<40;i++){try{await docker(['exec',name,'pg_isready','-U','postgres']);ready=true;break;}catch{await new Promise(resolve=>setTimeout(resolve,250));}}
+ for(let i=0;i<40;i++){try{await docker(['exec',name,'pg_isready','--host','127.0.0.1','-U','postgres','-d','postgres']);ready=true;break;}catch{await new Promise(resolve=>setTimeout(resolve,250));}}
  assert.ok(ready);checks++;
  const inspection=JSON.parse(await docker(['inspect','--format','{{json .HostConfig}}',name]));
  assert.equal(inspection.NetworkMode,'none');assert.equal(Object.keys(inspection.PortBindings??{}).length,0);assert.equal((inspection.Binds??[]).length,0);checks+=3;
