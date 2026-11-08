@@ -16,7 +16,7 @@ export function createDioramaWorld(host:HTMLElement,initial:{paused:boolean;expl
   catch { onUnavailable();return noWorld; }
   const geometry=new Set<BufferGeometry>(),materials=new Set<Material>();
   const releases:Array<()=>void>=[];
-  let stopped=false,paused=initial.paused,frame=0,observer:ResizeObserver|undefined;
+  let stopped=false,ready=false,paused=initial.paused,frame=0,observer:ResizeObserver|undefined;
   const release=(operation:()=>void)=>{try{operation();}catch{/* Continue releasing other owned resources after a context failure. */}};
   const dispose=()=>{
     if(stopped)return;stopped=true;cancelAnimationFrame(frame);
@@ -122,11 +122,16 @@ export function createDioramaWorld(host:HTMLElement,initial:{paused:boolean;expl
     eye.lerp(targetEye,alpha);look.lerp(targetLook,alpha);camera.position.copy(eye);camera.lookAt(look);
     renderer.render(scene,camera);
   }
-  function renderStill(){if(!stopped)compose(0,true);}
+  function renderStill(){if(!stopped&&ready)compose(0,true);}
   const draw=(stamp:number)=>{if(stopped||paused)return;frame=requestAnimationFrame(draw);const elapsed=stamp-last;if(elapsed<(mobile?42:33))return;const dt=Math.min(.08,elapsed/1000);last=stamp;time+=dt;compose(dt);};
-  renderStill();host.dataset.rendered='true';if(!paused)frame=requestAnimationFrame(draw);
+  // Prepare shaders without forcing a blocking first-frame compile. Keep the CSS world visible until ready.
+  void renderer.compileAsync(scene,camera).then(()=>{
+    if(stopped)return;
+    ready=true;renderStill();host.dataset.rendered='true';
+    if(!paused)frame=requestAnimationFrame(draw);
+  }).catch(()=>{if(!stopped){dispose();onUnavailable();}});
   return {
-    setPaused(value){if(stopped)return;paused=value;cancelAnimationFrame(frame);if(paused)renderStill();else{last=performance.now();frame=requestAnimationFrame(draw);}},
+    setPaused(value){if(stopped)return;paused=value;cancelAnimationFrame(frame);if(!ready)return;if(paused)renderStill();else{last=performance.now();frame=requestAnimationFrame(draw);}},
     setExploded(value){if(stopped)return;exploded=value;if(paused)renderStill();},
     dispose,
   };
