@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
-import {ArrowUpRight,BriefcaseBusiness,CheckSquare,FileText,LayoutDashboard,Menu,PanelsTopLeft,Users,X,Workflow} from 'lucide-react';
+import {ArrowUpRight,BriefcaseBusiness,CheckSquare,FileText,LayoutDashboard,Menu,PanelsTopLeft,Sparkles,Users,X,Workflow} from 'lucide-react';
 import {useState,type ReactNode} from 'react';
 import {signOut} from '@/app/login/actions';
 import {cn} from './ui/primitives';
@@ -15,7 +15,7 @@ export function AppShell({children,mode='demo',role='staff',title,description,de
   const pathname=usePathname();
   const [open,setOpen]=useState(false);
   const base=role==='client'?(mode==='demo'?'/demo/portal':'/portal'):(mode==='demo'?'/demo':'/crm');
-  const links=role==='client'?(mode==='demo'?[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'}]:[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Client space'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Client space'}]):navigation;
+  const links=role==='client'?(mode==='demo'?[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'}]:[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Client space'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Client space'}]):mode==='demo'?[...navigation,{name:'AI workspace',path:'/ai',icon:Sparkles,group:'Workspace'}]:navigation;
   const active=links.find(item=>item.path&&pathname.startsWith(`${base}${item.path}`))||links[0];
   const nav=<>
     <Link href={base} className={styles.brand} onClick={()=>setOpen(false)} aria-label='AgencyDesk overview'>
