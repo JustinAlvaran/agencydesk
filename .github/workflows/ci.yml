@@ -39,6 +39,14 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       # Live Auth checks require invited accounts and run separately.
       - run: pnpm test:e2e --grep-invert 'anonymous visitors'
+      - name: Upload fictional A2UI demo screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2ui-demo-screenshots
+          path: docs/images/a2ui-lead-review-*.png
+          if-no-files-found: ignore
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

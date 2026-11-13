@@ -18,6 +18,8 @@
     "test:automation-concurrency": "node tests/database/operating-limits-concurrency.mjs"
   },
   "dependencies": {
+    "@a2ui/react": "0.15.0",
+    "@a2ui/web_core": "0.15.0",
     "@hookform/resolvers": "5.9.1",
     "@radix-ui/react-dialog": "1.1.23",
     "@radix-ui/react-slot": "1.3.3",
@@ -34,7 +36,8 @@
     "server-only": "0.0.1",
     "tailwind-merge": "3.7.0",
     "three": "0.186.1",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "zod-a2ui": "npm:zod@3.25.76"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -52,6 +55,11 @@
     "vitest": "5.0.3"
   },
   "packageManager": "pnpm@10.28.1",
+  "pnpm": {
+    "overrides": {
+      "@a2ui/react>zod": "3.25.76"
+    }
+  },
   "engines": {
     "node": "22.x"
   }
