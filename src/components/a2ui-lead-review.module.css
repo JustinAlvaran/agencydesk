@@ -1,8 +1,9 @@
 .pilot{--pilot-ink:#153e34;--pilot-muted:#52665f;--pilot-line:#dce5df;max-width:1180px;margin:0 auto;color:var(--pilot-ink)}
-.intro{padding:12px 0 30px;max-width:670px}
+.intro{padding:12px 0 30px;max-width:670px;color:#e6f3eb}
 .eyebrow{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:650;letter-spacing:.11em;text-transform:uppercase;color:#4b6c60;margin:0 0 12px}
 .intro h1{font-size:clamp(28px,3vw,40px);font-weight:550;letter-spacing:-1.3px;line-height:1.15;margin:0 0 14px}
-.intro>p:last-child{font-size:15px;line-height:1.7;color:var(--pilot-muted);max-width:540px}
+.intro>.eyebrow{color:#a2cbb3}
+.intro>p:last-child{font-size:15px;line-height:1.7;color:#adbfaf;max-width:540px}
 .layout{display:grid;grid-template-columns:270px minmax(0,1fr);gap:24px;align-items:start}
 .prompts{border:1px solid #cadcd2;border-radius:16px;padding:24px;background:#edf4ee}
 .sparkleMark{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:#dcece0;color:#175740;margin-bottom:22px}
@@ -17,7 +18,7 @@
 .demoNote strong{font-size:12px;font-weight:600}
 .demoNote p{margin:7px 0 0;color:var(--pilot-muted)}
 .surfaceColumn{min-width:0}
-.surfaceBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;font-size:11px;color:var(--pilot-muted);flex-wrap:wrap}
+.surfaceBar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;font-size:11px;color:#abc0b1;flex-wrap:wrap}
 .surfaceBar>span{display:flex;align-items:center;gap:7px}
 .readyDot{width:6px;height:6px;border-radius:50%;background:#397b56}
 .reset{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 12px;border:1px solid var(--pilot-line);border-radius:8px;background:white;color:#38594b;font-size:12px;cursor:pointer;white-space:nowrap}
@@ -53,7 +54,7 @@
 .nextStep h4{font-size:12px;font-weight:600;margin:0 0 6px}
 .nextStep p{font-size:13px;line-height:1.7;margin:0;color:#3c5749}
 .detailNote{font-size:11px;color:var(--pilot-muted);line-height:1.6;margin:18px 0 0}
-.footnote{font-size:10px;line-height:1.7;text-align:center;color:#5b7063;margin:16px 8px 0}
+.footnote{font-size:11px;line-height:1.7;text-align:center;color:#a4bcae;margin:16px 8px 0}
 .empty,.error{padding:22px;font-size:14px;line-height:1.7;border:1px dashed #b9cec0;border-radius:12px;background:#f6f9f5}
 .error h2{font-size:20px;margin-bottom:10px}
 .error p{margin-bottom:14px}
