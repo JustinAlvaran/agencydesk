@@ -47,7 +47,7 @@
  .dashboard .panelHeader { padding:22px 18px 18px; }
  .dashboard .taskList a { padding:17px 18px; }
 }
-/* Lead with the totals, then give the two daily queues the full working width. */
+/* Keep daily queues first and show workspace totals in a full-width strip below. */
 .workbench { display: flex; flex-direction: column; align-items: stretch; gap: 24px; }
 .summaryRail { border-radius: 12px; padding: 20px; background: var(--sheet); }
 .summaryRail .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
