@@ -73,3 +73,7 @@
 }
 
 .page [data-agency-world], .page [data-agency-world] + div { filter: hue-rotate(80deg); }
+.page main [data-world-step="assembly"] article h3 { color: var(--ink); }
+.page main [data-world-step="assembly"] > div > p:last-of-type,
+.page main [data-world-step="guide"] > div > p:last-of-type { color: var(--subtle-ink); }
+.page [data-agency-world] ~ div:last-child button { background: #26395e; border-color: #8da3cb; color: white; }

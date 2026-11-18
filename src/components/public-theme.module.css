@@ -57,3 +57,7 @@
   .surface :global(.site-nav) { width: calc(100% - 24px); gap: 4px 16px; }
   .surface :global(.site-nav-links) { border-top: 1px solid var(--rule); padding-top: 4px; }
 }
+@media (max-width: 650px) {
+  .surface :global(.site-nav-links) { flex-wrap: nowrap; gap: 12px; }
+  .surface :global(.site-nav-links a) { flex: 0 0 auto; }
+}
