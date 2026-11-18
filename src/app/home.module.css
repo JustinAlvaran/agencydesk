@@ -1,0 +1,75 @@
+/* The home page owns the editorial layout. The illustration keeps its own controls. */
+.page > div { background: var(--paper); }
+.page main > section { position: relative; background: var(--paper); color: var(--ink); border-color: var(--rule); }
+.page main > section + section { min-height: auto; padding-block: clamp(52px, 7vw, 104px); border-top: 1px solid var(--rule); }
+.page main > section h2, .page main > section h2 span { color: var(--ink); background: none; -webkit-text-fill-color: currentColor; }
+.page main > section p { color: var(--subtle-ink); }
+.page main > section a { color: var(--cobalt); }
+.page main [data-world-step="studio"] {
+  min-height: auto;
+  max-width: 1560px;
+  padding: clamp(42px, 6vw, 100px) clamp(18px, 5vw, 80px);
+  gap: clamp(24px, 4vw, 70px);
+}
+.page [data-world-step="studio"] > div::before { background: none; }
+.page main h1 {
+  color: var(--ink); background: none; -webkit-text-fill-color: currentColor;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(44px, 5.4vw, 86px); font-weight: 500; line-height: 1.01; letter-spacing: -.062em;
+}
+.page [data-world-step="studio"] h1 + p { font-size: clamp(16px, 1.4vw, 20px); line-height: 1.6; }
+.page [data-world-step="studio"] > div:has(> h1) > p:first-child { color: var(--cobalt); }
+.page [data-world-step="studio"] > div:has(> h1) > p:first-child span { background: var(--cobalt); box-shadow: none; }
+.page main a[href="/inquire"], .page main [data-world-step="assembly"] a[href="/demo"] {
+  background: var(--cobalt); color: white; border: 1px solid var(--cobalt);
+  border-radius: 8px; box-shadow: none;
+}
+.page main a[href="/inquire"]:hover, .page main [data-world-step="assembly"] a[href="/demo"]:hover { background: var(--cobalt-hover); }
+.page [data-world-step="studio"] button:not([aria-pressed]) { background: white; border-color: var(--rule); color: var(--ink); }
+.page [data-world-step="studio"] > div:has(> h1) > div:last-child { border-color: var(--rule); }
+.page [data-world-step="studio"] > div:has(> h1) > div:last-child span { color: var(--subtle-ink); }
+.page [data-world-step="studio"] > div:has([data-agency-world]) {
+  position: relative; isolation: isolate; overflow: hidden; border-radius: 18px;
+  border: 1px solid #bfcbe7; background: radial-gradient(ellipse at 60% 35%, #eef3ff, #cedcf8);
+  min-height: clamp(390px, 39vw, 560px);
+}
+.page [data-agency-world] { position: absolute; inset: 0; }
+.page [data-agency-world] ~ div:last-child { background: #182546; color: white; border-radius: 12px; padding: 12px 16px; }
+.page [data-agency-world] ~ div:last-child p { color: #edf2ff; }
+.page main [data-world-step="intake"] header { max-width: none; flex-direction: row; align-items: end; }
+.page [data-world-step="intake"] header + div {
+  width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px;
+  background: none; border: 0; backdrop-filter: none; overflow: visible;
+}
+.page main [data-world-step="intake"] article {
+  border: 1px solid var(--rule); border-radius: 12px; padding: clamp(18px, 2vw, 32px);
+  background: var(--sheet); min-width: 0;
+}
+.page [data-world-step="intake"] article > span, .page [data-world-step="assembly"] article span:has(svg) {
+  background: var(--wash); color: var(--cobalt); border-color: var(--rule);
+}
+.page main [data-world-step="intake"] article h3 a { color: var(--ink); }
+.page main [data-world-step="assembly"] { background: var(--soft); gap: clamp(24px, 6vw, 90px); }
+.page [data-world-step="assembly"] > div {
+  background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px;
+  box-shadow: none; backdrop-filter: none;
+}
+.page [data-world-step="assembly"] article, .page [data-world-step="guide"] details { border-color: var(--rule); }
+.page [data-world-step="assembly"] article > span { background: var(--wash); color: var(--cobalt); border-color: var(--rule); }
+.page [data-world-step="guide"] summary, .page [data-world-step="guide"] summary svg { color: var(--ink); }
+.page [data-world-step="preview"] section { color: #ecf4ed; }
+.page main [data-world-step="preview"] section :is(h2,p) { color: inherit; }
+.page main [data-world-step="closing"] { background: var(--wash); }
+.page [data-world-step="closing"] > div[aria-hidden] { display: none; }
+.page :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 4px; }
+@media (max-width: 1000px) {
+  .page [data-world-step="intake"] header + div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 650px) {
+  .page main [data-world-step="studio"] { padding: 38px 20px 28px; }
+  .page main [data-world-step="intake"] header { align-items: start; flex-direction: column; }
+  .page [data-world-step="intake"] header + div { grid-template-columns: 1fr; }
+  .page [data-world-step="studio"] > div:has([data-agency-world]) { min-height: 365px; }
+}
+
+.page [data-agency-world], .page [data-agency-world] + div { filter: hue-rotate(80deg); }

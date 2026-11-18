@@ -30,7 +30,9 @@ export function DashboardView(props:Props) {
       <div><p className={styles.eyebrow}>AGENCY OPERATIONS</p><h1 id='overview-title'>Overview</h1><p className={styles.introCopy}>A clearer picture. A better next step.</p></div>
       <Link className={styles.primaryAction} href={`${base}/tasks`}>View tasks <ArrowUpRight size={16} aria-hidden='true'/></Link>
     </section>
-    <div className={styles.workbench}><div className={styles.mainGrid}>
+    <div className={styles.workbench}>
+      <section className={styles.summaryRail} aria-label='Workspace totals'><p className={styles.summaryTitle}>WORKSPACE TOTALS</p><dl className={styles.metrics}>{metrics.map(({label,value,icon:Icon,detail},index)=><div className={styles.metric} data-primary={index===0||undefined} data-attention={label==='Overdue tasks'&&data.overdueTasks>0||undefined} key={label}><dt className={styles.metricTop}><span>{label}</span><span className={styles.metricIcon}><Icon size={17} aria-hidden='true'/></span></dt><dd>{readOnly&&props.emptyPreview?'—':value}</dd><dd className={styles.metricDetail}>{detail}</dd></div>)}</dl></section>
+      <div className={styles.mainGrid}>
       <section className={styles.panel} aria-labelledby='next-moves-title'>
         <header className={styles.panelHeader}><div><p className={styles.eyebrow}>KEEP THINGS MOVING</p><h2 id='next-moves-title'>Your next moves</h2></div><Link href={`${base}/tasks`}>All tasks <ArrowRight size={15} aria-hidden='true'/></Link></header>
         {preview.tasks.length?<ol className={styles.taskList}>{preview.tasks.map(task=><li key={task.id}><Link href={task.lead_id?`${base}/leads/${task.lead_id}`:`${base}/tasks`}><span className={styles.taskIcon}><CheckSquare size={17} aria-hidden='true'/></span><span className={styles.taskText}><strong>{task.title}</strong><span><Clock3 size={12} aria-hidden='true'/>{formatDate(task.due_at)}</span></span><ArrowUpRight className={styles.rowArrow} size={16} aria-hidden='true'/></Link></li>)}</ol>:<Empty title='No open follow-ups in this preview' copy='Open the task list to review all scheduled work.'/>}
@@ -42,7 +44,7 @@ export function DashboardView(props:Props) {
         <footer className={styles.panelFooter}><p>Latest loaded, active leads. See the full pipeline for every record.</p><Link href={`${base}/leads`}>View pipeline <ArrowRight size={14} aria-hidden='true'/></Link></footer>
       </section>
     </div>
-    <section className={styles.summaryRail} aria-label='Workspace totals'><p className={styles.summaryTitle}>WORKSPACE TOTALS</p><dl className={styles.metrics}>{metrics.map(({label,value,icon:Icon,detail},index)=><div className={styles.metric} data-primary={index===0||undefined} data-attention={label==='Overdue tasks'&&data.overdueTasks>0||undefined} key={label}><dt className={styles.metricTop}><span>{label}</span><span className={styles.metricIcon}><Icon size={17} aria-hidden='true'/></span></dt><dd>{readOnly&&props.emptyPreview?'—':value}</dd><dd className={styles.metricDetail}>{detail}</dd></div>)}</dl></section>
+
     </div>
     <section className={styles.projectsSection} aria-labelledby='projects-title'>
       <header className={styles.sectionHeader}><div><p className={styles.eyebrow}>FROM PROMISE TO PROGRESS</p><h2 id='projects-title'>Active projects</h2></div><Link href={`${base}/projects`}>All projects <ArrowRight size={15} aria-hidden='true'/></Link></header>

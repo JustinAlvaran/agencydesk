@@ -1,0 +1,18 @@
+:root {
+  --paper: #f6f5f0;
+  --sheet: #ffffff;
+  --ink: #182235;
+  --subtle-ink: #4b586d;
+  --rule: #cbd1db;
+  --strong-rule: #8994a5;
+  --cobalt: #234ac6;
+  --cobalt-hover: #193693;
+  --wash: #eaf0ff;
+  --soft: #f1f3f6;
+  --positive: #175534;
+  --positive-bg: #e7f4eb;
+  --warning: #713f08;
+  --warning-bg: #fff1d5;
+  --negative: #922b34;
+  --negative-bg: #fbecef;
+}
