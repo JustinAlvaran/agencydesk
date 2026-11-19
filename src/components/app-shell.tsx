@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
-import {ArrowUpRight,BriefcaseBusiness,CheckSquare,FileText,LayoutDashboard,Menu,PanelsTopLeft,Sparkles,Users,X,Workflow} from 'lucide-react';
+import {ArrowUpRight,BriefcaseBusiness,CheckSquare,FileText,LayoutDashboard,Menu,PanelsTopLeft,FileSearch,Users,X,Workflow} from 'lucide-react';
 import {useState,type ReactNode} from 'react';
 import {signOut} from '@/app/login/actions';
 import {cn} from './ui/primitives';
@@ -15,12 +15,12 @@ export function AppShell({children,mode='demo',role='staff',title,description,de
   const pathname=usePathname();
   const [open,setOpen]=useState(false);
   const base=role==='client'?(mode==='demo'?'/demo/portal':'/portal'):(mode==='demo'?'/demo':'/crm');
-  const links=role==='client'?(mode==='demo'?[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'}]:[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Client space'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Client space'}]):mode==='demo'?[...navigation,{name:'AI workspace',path:'/ai',icon:Sparkles,group:'Workspace'}]:navigation;
+  const links=role==='client'?(mode==='demo'?[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'}]:[{name:'My workspace',path:'',icon:LayoutDashboard,group:'Client space'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Client space'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Client space'}]):mode==='demo'?[...navigation,{name:'AI workspace',path:'/ai',icon:FileSearch,group:'Workspace'}]:navigation;
   const active=links.find(item=>item.path&&pathname.startsWith(`${base}${item.path}`))||links[0];
   const nav=<>
     <Link href={base} className={styles.brand} onClick={()=>setOpen(false)} aria-label='AgencyDesk overview'>
       <span className={styles.brandMark} aria-hidden='true'><PanelsTopLeft size={21}/></span>
-      <span>AgencyDesk<span className={styles.brandCaption}>Your agency, in focus.</span></span>
+      <span>AgencyDesk</span>
     </Link>
     <p className='workspace-label'>{role==='client'?'Client workspace':'Staff workspace'}</p>
     <nav aria-label='Workspace navigation' className='app-nav'>
@@ -31,7 +31,6 @@ export function AppShell({children,mode='demo',role='staff',title,description,de
       {mode==='live'&&role==='staff'&&<Link href='/crm/settings' onClick={()=>setOpen(false)} aria-current={pathname==='/crm/settings'?'page':undefined} className={cn('app-nav-link',pathname==='/crm/settings'&&'active')}><Users size={18} aria-hidden='true'/>People & settings</Link>}
     </nav>
     <div className='sidebar-bottom'>
-      <div className={styles.sidebarNote}><span className={styles.smallMark} aria-hidden='true'><BriefcaseBusiness size={16}/></span><div><strong>{role==='client'?'Your shared space':'Your agency workspace'}</strong><p>{mode==='demo'?'Explore the workflow':'Built around your next step'}</p></div></div>
       <Link href='/' className='back-site'>Back to website <ArrowUpRight size={14} aria-hidden='true'/></Link>
       {mode==='live'&&<form action={signOut}><button className='back-site' type='submit'>Sign out</button></form>}
       <p className='session-note'>{mode==='demo'?'Read-only demonstration':'Signed-in workspace'}</p>
