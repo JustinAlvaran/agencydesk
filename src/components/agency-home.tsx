@@ -22,13 +22,14 @@ export function AgencyHome() {
         <section className={styles.hero} aria-labelledby="home-title" data-world-step="studio">
           <div className={styles.introduction}>
             <h1 id="home-title">{home.heading}</h1>
-            <p>{home.description}</p>
-            <div className={styles.actions}>
+            <div className={styles.heroDetail}>
+              <p>{home.description}</p>
+              <div className={styles.actions}>
               <Link className={styles.primary} href="/inquire">Discuss your project<ArrowUpRight size={16} aria-hidden /></Link>
               <WatchWorkflow />
+              </div>
             </div>
           </div>
-          <div className={styles.illustration}><AgencyWorld /></div>
         </section>
 
         <section className={styles.services} aria-labelledby="services-title" data-world-step="intake">
@@ -91,8 +92,13 @@ export function AgencyHome() {
           ))}</div>
         </section>
 
+        <section className={styles.worldSection} aria-labelledby="world-title">
+          <div><h2 id="world-title">Explore the workspace layers</h2><p>See how inquiry, proposal, and delivery fit together.</p></div>
+          <div className={styles.illustration}><AgencyWorld /></div>
+        </section>
+
         <section className={styles.closing} data-world-step="closing">
-          <div><h2>Tell us what you’re building</h2><p>Share your requirements, budget, and timeline.</p></div>
+          <div><h2>Tell us what you are building</h2><p>Share your requirements, budget, and timeline.</p></div>
           <Link className={styles.primary} href="/inquire">Start inquiry<ArrowUpRight size={16} aria-hidden /></Link>
         </section>
       </main>

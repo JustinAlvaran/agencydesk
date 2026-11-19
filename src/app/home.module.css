@@ -6,9 +6,10 @@
 .page p { color: var(--subtle-ink); font-size: 15px; line-height: 1.7; }
 .page a, .page button { transition: background-color 120ms ease, color 120ms ease; }
 .page :focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
-.hero { display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: 64px; padding: 72px 0; }
+.hero { padding: 80px 0; }
+.introduction { display: grid; grid-template-columns: 1.1fr 1fr; align-items: center; gap: 64px; }
 .introduction h1 { font-size: clamp(36px, 3.7vw, 54px); font-weight: 550; line-height: 1.12; letter-spacing: -1.7px; }
-.introduction > p { margin-top: 24px; max-width: 52ch; font-size: 16px; }
+.heroDetail > p { margin-top: 0; max-width: 52ch; font-size: 16px; }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
 .primary { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 44px; padding: 10px 16px; border: 1px solid var(--ink); border-radius: 6px; background: var(--ink); color: white; font-weight: 500; font-size: 14px; text-decoration: none !important; }
 .primary:hover { background: #383838; }
@@ -22,7 +23,7 @@
 .illustration :global([data-agency-world]) ~ div:last-child p { color: #ededed; font-size: 12px; }
 .illustration button { background: #363636; border-color: #888; color: white; font-size: 12px; min-height: 44px; }
 .illustration button:focus-visible { outline-color: white; }
-.services, .workflow, .previewSection, .guide, .closing { padding: 56px 0; border-top: 1px solid var(--rule); }
+.services, .workflow, .previewSection, .guide, .closing, .worldSection { padding: 56px 0; border-top: 1px solid var(--rule); }
 .heading { display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-bottom: 24px; }
 .heading > a, .steps a, .guide a, .serviceLink { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 14px; font-weight: 500; }
 .serviceList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 64px; }
@@ -30,6 +31,8 @@
 .serviceList article:nth-child(n+3) { border-top: 1px solid var(--rule); }
 .serviceList article p { grid-column: 1 / -1; max-width: 52ch; }
 .serviceLink { grid-column: 2; grid-row: 1; }
+.worldSection { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; }
+.worldSection > div > p { margin-top: 16px; }
 .workflow { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
 .workflow > div > p { margin: 16px 0 24px; }
 .workflow h2 { max-width: 380px; }
@@ -54,7 +57,7 @@
 .closing p { margin-top: 12px; }
 .closing > a { flex-shrink: 0; }
 @media (max-width: 900px) {
-  .hero { gap: 32px; }
+  .introduction { gap: 32px; }
   .serviceList { column-gap: 32px; }
   .serviceList article { grid-template-columns: 1fr; }
   .serviceLink { grid-column: 1; grid-row: auto; }
@@ -62,18 +65,19 @@
 }
 @media (max-width: 650px) {
   .page main { padding: 0 20px; }
-  .hero { grid-template-columns: 1fr; padding: 40px 0; gap: 36px; }
+  .hero { padding: 40px 0; }
+  .introduction { grid-template-columns: 1fr; gap: 20px; }
   .introduction h1 { font-size: 36px; line-height: 1.15; letter-spacing: -1px; }
-  .introduction > p { margin-top: 20px; }
+  .heroDetail > p { margin-top: 0; }
   .illustration > div { min-height: 360px; }
-  .services, .workflow, .previewSection, .guide, .closing { padding: 36px 0; }
+  .services, .workflow, .previewSection, .guide, .closing, .worldSection { padding: 36px 0; }
   .page h2 { font-size: 24px; }
   .heading { flex-wrap: wrap; gap: 8px; }
   .heading h2 { flex-basis: 100%; }
-  .serviceList, .workflow, .guide { grid-template-columns: 1fr; }
+  .serviceList, .workflow, .guide, .worldSection { grid-template-columns: 1fr; }
   .serviceList article p { font-size: 16px; }
   .serviceList article + article { border-top: 1px solid var(--rule); }
-  .workflow, .guide { gap: 24px; }
+  .workflow, .guide, .worldSection { gap: 24px; }
   .previewColumns { gap: 8px; padding: 12px; }
   .previewColumns > div { padding: 12px 8px; }
   .previewColumns h3 { font-size: 12px; }
@@ -83,3 +87,5 @@
 @media (prefers-reduced-motion: reduce) {
   .page a, .page button { transition: none; }
 }
+
+.page :global(.assistant-trigger) { position: static; min-height: 44px; max-width: 100%; white-space: normal; box-shadow: none; }
