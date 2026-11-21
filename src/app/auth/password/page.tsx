@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { z } from 'zod';
+import { AccountShell } from '@/components/account-shell';
+import { PasswordField } from '@/components/password-field';
 
 async function setPassword(form: FormData) {
   'use server';
@@ -15,5 +17,5 @@ async function setPassword(form: FormData) {
 export default async function Password({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requireUser();
   const { error } = await searchParams;
-  return <main id="main-content" className="auth-screen"><section className="auth-card"><h1>Set your password.</h1><p>Use at least 12 characters.</p><form action={setPassword} className="auth-form"><label htmlFor="password">New password</label><input id="password" name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /><label htmlFor="confirmation">Confirm password</label><input id="confirmation" name="confirmation" type="password" autoComplete="new-password" required />{error && <p role="alert">{error}</p>}<button className="primary-button" type="submit">Save password</button></form></section></main>;
+  return <AccountShell><h1>Set your password.</h1><p>Use at least 12 characters to secure your account.</p><form action={setPassword} className="auth-form"><PasswordField id="password" label="New password" minLength={12} autoComplete="new-password"/><PasswordField id="confirmation" label="Confirm password" minLength={12} autoComplete="new-password"/>{error && <p role="alert" className="error-text">{error}</p>}<button className="primary-button" type="submit">Save password</button></form><p className="account-help">Your agency invitation determines which workspace you can access.</p></AccountShell>;
 }

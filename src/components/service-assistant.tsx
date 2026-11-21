@@ -3,8 +3,10 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import dynamic from 'next/dynamic';
 import { Component, useEffect, useState, type ReactNode } from 'react';
-import { MessageCircle, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import type { AssistantService } from '@/lib/service-assistant';
+import { BrandMark } from './brand-mark';
+import styles from './agency-bot.module.css';
 
 const AssistantConversation = dynamic(() => import('./service-assistant-conversation'), {
   ssr: false,
@@ -35,11 +37,11 @@ export function ServiceAssistant({ services, available }: { services: AssistantS
     return()=>{active=false;clearTimeout(timer);controller.abort();};
   },[open]);
   return <Dialog.Root open={open} onOpenChange={value=>{setAIAvailable(false);setOpen(value);}}>
-    <Dialog.Trigger asChild><button type="button" className="button button-primary assistant-trigger"><MessageCircle size={18} aria-hidden="true"/>Ask about services</button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" className="button button-primary assistant-trigger"><BrandMark bot size={26}/>Ask about services</button></Dialog.Trigger>
     <Dialog.Portal>
       <Dialog.Overlay className="assistant-overlay"/>
-      <Dialog.Content className="assistant-dialog">
-        <header className="assistant-heading"><div><Dialog.Title>AgencyDesk services guide</Dialog.Title><Dialog.Description>Explore services and prepare a project inquiry. Guided answers, available anytime.</Dialog.Description></div><Dialog.Close asChild><button type="button" className="icon-button" aria-label="Close services guide"><X size={20} aria-hidden="true"/></button></Dialog.Close></header>
+      <Dialog.Content className={`assistant-dialog ${styles.dialog}`}>
+        <header className={`assistant-heading ${styles.heading}`}><span className={styles.avatar}><BrandMark bot size={38}/></span><div><Dialog.Title><span className={styles.name}>AgencyBot</span><span className={styles.subtitle}>AgencyDesk services guide</span></Dialog.Title><Dialog.Description>Services, scope & your next step.</Dialog.Description></div><Dialog.Close asChild><button type="button" className="icon-button" aria-label="Close services guide"><X size={20} aria-hidden="true"/></button></Dialog.Close></header>
         {open ? <AssistantBoundary><AssistantConversation services={services} available={available} aiAvailable={aiAvailable}/></AssistantBoundary> : null}
       </Dialog.Content>
     </Dialog.Portal>
