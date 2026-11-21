@@ -1,18 +1,18 @@
 .dashboard { display: grid; gap: 32px; max-width: 1240px; margin: auto; min-width: 0; }
 .intro { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
-.intro h1 { font-size: 28px; font-weight: 600; letter-spacing: -.7px; }
+.intro h1 { font-size: 30px; font-weight: 500; letter-spacing: -.7px; }
 .primaryAction { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; background: var(--ink); color: white; border: 1px solid var(--ink); border-radius: 6px; text-decoration: none !important; font-size: 14px; }
 .primaryAction:hover { background: #404040; }
 .workbench { display: grid; gap: 32px; min-width: 0; }
 .mainGrid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; min-width: 0; }
-.panel { min-width: 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); overflow: hidden; }
+.panel { min-width: 0; border: 0; border-top: 1px solid var(--rule); border-radius: 0; background: transparent; overflow: hidden; }
 .panelHeader, .sectionHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.panelHeader { padding: 16px 20px; border-bottom: 1px solid var(--rule); }
+.panelHeader { padding: 18px 0; border-bottom: 1px solid var(--rule); }
 .panelHeader h2, .sectionHeader h2 { font-size: 16px; font-weight: 600; letter-spacing: 0; }
 .panelHeader a, .panelFooter a, .sectionHeader a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; font-weight: 500; }
 .taskList, .leadList { list-style: none; margin: 0; padding: 0; }
 .taskList li + li, .leadList li + li { border-top: 1px solid var(--rule); }
-.taskList a, .leadList a { display: flex; align-items: center; gap: 12px; min-height: 88px; padding: 16px 20px; text-decoration: none; }
+.taskList a, .leadList a { display: flex; align-items: center; gap: 12px; min-height: 88px; padding: 16px 0; text-decoration: none; }
 .taskList a:hover, .leadList a:hover { background: var(--soft); }
 .taskText, .leadIdentity { flex: 1; min-width: 0; }
 .taskText strong, .leadIdentity strong { display: block; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
@@ -22,21 +22,22 @@
 .stage { display: inline-flex; align-items: center; border: 1px solid var(--rule); border-radius: 4px; padding: 3px 7px; font-size: 12px; color: var(--subtle-ink); line-height: 1.5; flex-shrink: 0; max-width: 112px; }
 .stage[data-stage='new'] { color: var(--warning); background: var(--warning-bg); }
 .stage[data-stage='qualified'], .stage[data-stage='active'] { color: var(--positive); background: var(--positive-bg); }
-.previewNote { padding: 12px 20px; color: var(--subtle-ink); font-size: 12px; line-height: 1.6; }
-.panelFooter { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 20px; border-top: 1px solid var(--rule); }
+.previewNote { padding: 12px 0; color: var(--subtle-ink); font-size: 12px; line-height: 1.6; }
+.panelFooter { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; border-top: 1px solid var(--rule); }
 .panelFooter p { color: var(--subtle-ink); font-size: 12px; line-height: 1.6; max-width: 230px; }
 .panelFooter a { flex-shrink: 0; }
 .summaryRail { border-block: 1px solid var(--rule); padding: 24px 0; min-width: 0; }
 .summaryTitle { font-size: 14px; font-weight: 600; margin-bottom: 20px; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; margin: 0; }
-.metric { min-width: 0; }
+.metric { min-width: 0; padding-right: 20px; border-right: 1px solid var(--rule); }
+.metric:last-child { border: 0; }
 .metric dt { color: var(--subtle-ink); font-size: 13px; }
-.metric dd { margin: 8px 0 0; font-size: 28px; font-weight: 500; line-height: 1.3; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+.metric dd { margin: 8px 0 0; font-size: 34px; font-weight: 500; line-height: 1.3; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
 .metric .metricDetail { color: var(--subtle-ink); font-size: 12px; font-weight: 400; line-height: 1.5; letter-spacing: 0; }
 .metric[data-attention] dd:not(.metricDetail) { color: var(--warning); }
 .sectionHeader { margin-bottom: 16px; }
 .projectGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.project { display: block; border: 1px solid var(--rule); border-radius: 8px; padding: 20px; text-decoration: none !important; background: var(--sheet); min-width: 0; }
+.project { display: block; border: 1px solid var(--rule); border-radius: 6px; padding: 22px; text-decoration: none !important; background: var(--sheet); min-width: 0; }
 .project:hover { background: var(--soft); }
 .projectTop { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .projectArrow { color: var(--subtle-ink); }
@@ -44,7 +45,7 @@
 .project > p { margin-top: 6px; color: var(--subtle-ink); font-size: 13px; }
 .projectMeta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 24px; color: var(--subtle-ink); font-size: 12px; }
 .progress { height: 3px; border-radius: 2px; overflow: hidden; background: var(--rule); margin-top: 12px; }
-.progress > span { display: block; height: 100%; background: #555; }
+.progress > span { display: block; height: 100%; background: var(--positive); }
 .projectsSection > .previewNote { padding: 12px 0 0; }
 .empty { padding: 32px 24px; }
 .empty > svg { color: var(--subtle-ink); margin-bottom: 16px; }
@@ -60,7 +61,9 @@
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 16px; }
   .metric dd { font-size: 25px; }
   .projectGrid { grid-template-columns: 1fr; }
-  .panelHeader, .taskList a, .leadList a, .panelFooter { padding-inline: 16px; }
+  .panelHeader, .taskList a, .leadList a, .panelFooter { padding-inline: 0; }
   .panelFooter { flex-wrap: wrap; gap: 4px; }
   .stage { max-width: 95px; }
 }
+
+@media(max-width:650px) { .metric:nth-child(2) { border-right: 0; } .project { padding: 20px; } }

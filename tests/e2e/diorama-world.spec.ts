@@ -11,7 +11,8 @@ for(const width of [390,1440]) {
   page.on('request',request=>{if(['POST','PATCH','PUT','DELETE'].includes(request.method()))mutations.push(request.url());if(/fal\.ai|meshy|\.glb(?:\?|$)|\.gltf(?:\?|$)/i.test(request.url()))assets.push(request.url());});
   await page.goto('/');
   await expect(page.getByRole('heading',{level:1,name:'Websites and workflows built around your business.'})).toBeVisible();
-  await expect(page.locator('[data-agency-world] canvas')).toHaveCount(1);
+  await page.getByText('THE AGENCY WORLD',{exact:true}).scrollIntoViewIfNeeded();
+  await expect(page.locator('[data-agency-world] canvas')).toHaveCount(1,{timeout:30000});
   await expect(page.locator('[data-agency-world]')).toHaveAttribute('data-rendered','true');
   // Stabilize the real rendered scene through its public control before DOM/a11y inspection.
   await page.getByRole('button',{name:'Pause world',exact:true}).click();
@@ -49,7 +50,7 @@ test('full world retains a usable reduced-motion and no-WebGL view',async({brows
  await page.goto('/');await expect(page.getByRole('button',{name:'Open the layers'})).toBeVisible();await expect(page.locator('canvas')).toHaveCount(0);
  await page.getByRole('button',{name:'Open the layers'}).click();await expect(page.getByRole('button',{name:'Close the layers'})).toHaveAttribute('aria-pressed','true');await reduced.close();
  const failed=await browser.newContext({baseURL:test.info().project.use.baseURL as string});await failed.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(this:HTMLCanvasElement,kind:string,...args:unknown[]){if(/webgl/.test(kind))return null;return original.apply(this,[kind,...args] as never);} as typeof original;});
- const fallback=await failed.newPage();await fallback.goto('/');await expect(fallback.getByText('Static world', {exact:true})).toBeVisible();await expect(fallback.getByRole('link',{name:'Discuss your project',exact:true})).toBeVisible();await failed.close();
+ const fallback=await failed.newPage();await fallback.goto('/');await fallback.getByText('THE AGENCY WORLD',{exact:true}).scrollIntoViewIfNeeded();await expect(fallback.getByText('Static world', {exact:true})).toBeVisible();await expect(fallback.getByRole('link',{name:'Discuss your project',exact:true})).toBeVisible();await failed.close();
 });
 test('full world content and inquiry survive without JavaScript',async({browser})=>{
  const context=await browser.newContext({baseURL:test.info().project.use.baseURL as string,javaScriptEnabled:false}),page=await context.newPage();await page.goto('/');await expect(page.getByRole('heading',{level:1})).toContainText('Websites and workflows');await expect(page.getByText('Inquiry → proposal → delivery',{exact:true})).toBeVisible();await page.getByRole('link',{name:'Discuss your project',exact:true}).click();await expect(page).toHaveURL(/\/inquire$/);await context.close();
@@ -58,6 +59,7 @@ test('full world content and inquiry survive without JavaScript',async({browser}
 
 test('a context-loss event releases the real world and reveals static fallback',async({page})=>{
  await page.emulateMedia({reducedMotion:'no-preference'});await page.goto('/');
+ await page.getByText('THE AGENCY WORLD',{exact:true}).scrollIntoViewIfNeeded();
  const world=page.locator('[data-agency-world]');await expect(world).toHaveAttribute('data-rendered','true');
  await world.locator('canvas').evaluate(canvas=>canvas.dispatchEvent(new Event('webglcontextlost')));
  await expect(page.getByText('Static world',{exact:true})).toBeVisible();

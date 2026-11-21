@@ -8,6 +8,7 @@ import {useState,type ReactNode} from 'react';
 import {signOut} from '@/app/login/actions';
 import {cn} from './ui/primitives';
 import styles from './app-shell.module.css';
+import { BrandMark } from './brand-mark';
 
 const navigation=[{name:'Overview',path:'',icon:LayoutDashboard,group:'Operations'},{name:'Lead pipeline',path:'/leads',icon:PanelsTopLeft,group:'Operations'},{name:'Tasks',path:'/tasks',icon:CheckSquare,group:'Operations'},{name:'Proposals',path:'/proposals',icon:FileText,group:'Delivery'},{name:'Projects',path:'/projects',icon:BriefcaseBusiness,group:'Delivery'},{name:'Contacts',path:'/contacts',icon:Users,group:'Workspace'},{name:'Automations',path:'/automations',icon:Workflow,group:'Workspace'}];
 
@@ -19,7 +20,7 @@ export function AppShell({children,mode='demo',role='staff',title,description,de
   const active=links.find(item=>item.path&&pathname.startsWith(`${base}${item.path}`))||links[0];
   const nav=<>
     <Link href={base} className={styles.brand} onClick={()=>setOpen(false)} aria-label='AgencyDesk overview'>
-      <span className={styles.brandMark} aria-hidden='true'><PanelsTopLeft size={21}/></span>
+      <BrandMark/>
       <span>AgencyDesk</span>
     </Link>
     <p className='workspace-label'>{role==='client'?'Client workspace':'Staff workspace'}</p>
