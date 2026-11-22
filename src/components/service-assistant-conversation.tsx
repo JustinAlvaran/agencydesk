@@ -9,7 +9,7 @@ import { undecidedService } from '@/lib/service-catalog';
 import { ServiceAIQuestion } from './service-ai-question';
 
 const settings: Settings = {
-  general: { embedded: true, showHeader: false, showFooter: false, showInputRow: false, primaryColor: '#292927', secondaryColor: '#292927' },
+  general: { embedded: true, showHeader: false, showFooter: false, showInputRow: false, primaryColor: '#17634f', secondaryColor: '#17634f' },
   chatHistory: { disabled: true },
   notification: { disabled: true }, audio: { disabled: true }, voice: { disabled: true },
   fileAttachment: { disabled: true }, emoji: { disabled: true },
@@ -20,10 +20,10 @@ const settings: Settings = {
 const styles: Styles = {
   chatWindowStyle: { width: '100%', height: '100%', borderRadius: 0, boxShadow: 'none', border: 'none' },
   bodyStyle: { backgroundColor: '#fff', padding: '12px' },
-  botBubbleStyle: { backgroundColor: '#f0f0ec', color: '#20201e', whiteSpace: 'pre-line', maxWidth: '100%' },
-  userBubbleStyle: { backgroundColor: '#292927', color: '#fff' },
-  botOptionStyle: { color: '#20201e', borderColor: '#777770', backgroundColor: '#fff', minHeight: 44, whiteSpace: 'normal' },
-  botOptionHoveredStyle: { color: '#20201e', backgroundColor: '#efefeb', borderColor: '#292927' },
+  botBubbleStyle: { backgroundColor: '#f1f5f3', color: '#1d302b', whiteSpace: 'pre-line', maxWidth: '100%' },
+  userBubbleStyle: { backgroundColor: '#17634f', color: '#fff' },
+  botOptionStyle: { color: '#1d302b', borderColor: '#96a69e', backgroundColor: '#fff', minHeight: 44, whiteSpace: 'normal' },
+  botOptionHoveredStyle: { color: '#1d302b', backgroundColor: '#eaf1ed', borderColor: '#17634f' },
 };
 
 function InquiryLink({ onInquire, service }: { onInquire: (service: string) => void; service?: AssistantService }) {

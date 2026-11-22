@@ -1,38 +1,18 @@
 import Link from "next/link";
-import {PanelsTopLeft} from 'lucide-react';
+import {ArrowUpRight} from 'lucide-react';
+import { BrandMark } from './brand-mark';
 import theme from './public-theme.module.css';
-import { Button } from "./ui/primitives";
 import { ServiceAssistant } from './service-assistant';
 import { publicServices } from '@/lib/website-content';
 import { isDemo } from '@/lib/env';
 
-export function MarketingHeader() {
-  return (
-    <header className="site-nav">
-      <Link className={theme.brand} href="/" aria-label="AgencyDesk home"><PanelsTopLeft size={25} aria-hidden="true"/>AgencyDesk</Link>
-      <nav className="site-nav-links" aria-label="Main navigation">
-        <Link href="/">Home</Link>
-        <Link href="/services">Services</Link>
-        <Link href="/case-studies">Sample projects</Link>
-        <Link href="/demo">Demo</Link>
-        <Link href="/crm">Staff CRM</Link>
-      </nav>
-      <Button asChild><Link href="/inquire">Start inquiry</Link></Button>
-    </header>
-  );
-}
+export {MarketingHeader} from './marketing-navigation';
 
 export function MarketingFooter() {
-  return (
-    <footer className="site-footer">
-      <p>AgencyDesk · Websites, applications, and connected workflows. Sample projects and demo records are illustrative.</p>
-      <nav className="site-footer-links" aria-label="Footer navigation">
-        <Link href="/demo">Explore demo</Link>
-        <Link href="/crm">Staff CRM</Link>
-      </nav>
-      <ServiceAssistant services={publicServices.map(({id,title,description,bullet_1,bullet_2,bullet_3})=>({id,title,description,bullet_1,bullet_2,bullet_3}))} available={!isDemo()}/>
-    </footer>
-  );
+  return <footer className="site-footer">
+    <div className={theme.footerTop}><Link className={theme.brand} href="/"><BrandMark/>AgencyDesk</Link><p>Websites, applications,<br/>and connected workflows.</p><Link className="button button-secondary" href="/inquire">Start a conversation<ArrowUpRight size={16} aria-hidden/></Link></div>
+    <div className={theme.footerBottom}><p>AgencyDesk · Sample projects and demo records are illustrative.</p><nav className="site-footer-links" aria-label="Footer navigation"><Link href="/demo">Explore demo</Link><Link href="/crm">Staff CRM</Link></nav><ServiceAssistant services={publicServices.map(({id,title,description,bullet_1,bullet_2,bullet_3})=>({id,title,description,bullet_1,bullet_2,bullet_3}))} available={!isDemo()}/></div>
+  </footer>;
 }
 
 export function WorkflowPreview() {

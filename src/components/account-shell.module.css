@@ -1,0 +1,36 @@
+.page { min-height: 100dvh; display: grid; grid-template-columns: 1.05fr 1fr; background: white; color: var(--ink); padding: 0; max-width: none; }
+.story { background: #073e34; color: white; display: flex; flex-direction: column; justify-content: space-between; padding: 48px max(40px, 6vw); }
+.brand { display: inline-flex; align-items: center; gap: 11px; font-size: 25px; font-weight: 650; letter-spacing: -.8px; color: white; width: fit-content; text-decoration: none !important; }
+.brand svg { color: white; flex-shrink: 0; }
+.intro { padding-block: 80px; max-width: 520px; }
+.eyebrow { color: #c4ded4; font-size: 13px; margin-bottom: 24px; }
+.intro h2 { font-size: clamp(38px,4.3vw,64px); line-height: 1.08; letter-spacing: -.045em; font-weight: 600; }
+.intro > p:not(.eyebrow) { font-size: 17px; line-height: 1.8; color: #d4e6df; margin: 28px 0 34px; max-width: 390px; }
+.intro ul { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; }
+.intro li { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #e2eee9; }
+.intro li svg { color: #ffab92; flex-shrink: 0; }
+.footnote { color: #c4ded4; font-size: 12px; }
+.formSide { padding: 44px max(32px,6vw); display: flex; flex-direction: column; justify-content: space-between; gap: 48px; }
+.back { display: inline-flex; align-items: center; gap: 9px; color: var(--subtle-ink); font-size: 13px; width: fit-content; min-height: 44px; }
+.card { width: 100%; max-width: 420px; margin: auto; }
+.card h1 { font-size: 32px; font-weight: 600; letter-spacing: -1px; line-height: 1.2; margin-bottom: 12px; }
+.card > p { color: var(--subtle-ink); font-size: 15px; line-height: 1.7; }
+.card form { margin-top: 28px; }
+.card :global(.auth-form) { display: grid; gap: 10px; }
+.card label { font-size: 13px; font-weight: 550; margin-top: 6px; }
+.card input { width: 100%; min-width: 0; height: 48px; border: 1px solid #9ca9a3; border-radius: 6px; padding: 10px 13px; background: white; color: var(--ink); font: inherit; font-size: 15px; }
+.card :global(.primary-button), .card :global(.secondary-button) { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; border-radius: 6px; box-shadow: none; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 18px; }
+.card :global(.primary-button) { background: #bb402b; color: white; border: 1px solid #bb402b; margin-top: 12px; }
+.card :global(.primary-button:hover) { background: #9e3422; }
+.card :global(.secondary-button) { background: white; color: var(--ink); border: 1px solid var(--rule); }
+.card :global(.error-text) { color: var(--negative); font-size: 14px; }
+.card :global(.account-help) { color: var(--subtle-ink); font-size: 12px; line-height: 1.8; margin-top: 18px; }
+.card :global(.account-help a) { color: #17634f; text-decoration: underline; text-underline-offset: 3px; }
+.card :global(.account-demo) { margin-top: 28px; padding: 20px; border: 1px solid var(--rule); border-radius: 8px; background: var(--soft); }
+.card :global(.account-demo h2) { font-size: 16px; font-weight: 600; }
+.card :global(.account-demo p) { color: var(--subtle-ink); font-size: 14px; line-height: 1.8; margin: 10px 0 14px; }
+.card :global(.account-demo .secondary-button) { margin-top: 10px; }
+.accessNote { font-size: 12px; color: var(--subtle-ink); text-align: center; }
+.page :focus-visible { outline: 2px solid #17634f; outline-offset: 4px; }
+.story :focus-visible { outline-color: white; }
+@media(max-width:850px) { .page { display: block; } .story { padding: 24px; } .intro { padding: 32px 0 8px; } .intro h2 { font-size: 36px; } .intro h2 br { display: none; } .intro > p:not(.eyebrow), .intro ul, .footnote, .eyebrow { display: none; } .formSide { padding: 20px 24px 32px; gap: 32px; } .card { margin: 0 auto; } .card h1 { font-size: 28px; } .accessNote { margin-top: 12px; } }
