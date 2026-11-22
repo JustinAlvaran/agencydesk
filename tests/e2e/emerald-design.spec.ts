@@ -68,12 +68,28 @@ test('connection carousel reaches both edges after resizing with reduced motion'
   await page.goto('/');
   const next=page.getByRole('button',{name:'Scroll integrations forward',exact:true});
   const previous=page.getByRole('button',{name:'Scroll integrations backward',exact:true});
+  const rail=page.getByRole('region',{name:'Planned integrations',exact:true});
+  async function clickAndSettle(button:typeof next) {
+    // Register before the real click: reduced motion can complete scrolling immediately.
+    await rail.evaluate(node=>{
+      node.setAttribute('data-test-scroll','pending');
+      node.addEventListener('scrollend',()=>node.setAttribute('data-test-scroll','complete'),{once:true});
+    });
+    await button.click();
+    await expect(rail).toHaveAttribute('data-test-scroll','complete');
+    // The scroll event updates React's controls asynchronously. Wait for those
+    // rendered controls before deciding whether another click is possible.
+    await expect.poll(async()=>{
+      const edges=await rail.evaluate(node=>({start:node.scrollLeft<=1,end:node.scrollLeft+node.clientWidth>=node.scrollWidth-1}));
+      return await previous.isDisabled()===edges.start&&await next.isDisabled()===edges.end;
+    }).toBe(true);
+  }
   await page.getByRole('region',{name:'Connect with',exact:true}).screenshot({path:'docs/images/studio-connections-390.png'});
-  for(let step=0;step<12&&!await next.isDisabled();step++)await next.click();
+  for(let step=0;step<12&&!await next.isDisabled();step++)await clickAndSettle(next);
   await expect(next).toBeDisabled();
   await page.setViewportSize({width:1440,height:1000});
   await expect(next).toBeDisabled();
-  for(let step=0;step<12&&!await previous.isDisabled();step++)await previous.click();
+  for(let step=0;step<12&&!await previous.isDisabled();step++)await clickAndSettle(previous);
   await expect(previous).toBeDisabled();
   await expect(next).toBeEnabled();
   await page.getByRole('region',{name:'Connect with',exact:true}).screenshot({path:'docs/images/studio-connections-1440.png'});
