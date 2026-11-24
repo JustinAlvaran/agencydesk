@@ -36,8 +36,11 @@ export default function InquirePage() {
     email: "",
     company: "",
     phone: "",
+    whatsapp: "",
+    instagram: "",
     brief: "",
     emailOptIn: false,
+    whatsappOptIn: true,
   });
   const [submissionId, setSubmissionId] = useState(() => crypto.randomUUID());
   const [submitting, setSubmitting] = useState(false);
@@ -55,10 +58,13 @@ export default function InquirePage() {
         body: JSON.stringify({
           submission_id: submissionId,
           email_opt_in: formData.emailOptIn,
+          whatsapp_opt_in: formData.whatsappOptIn,
           contact_name: formData.name,
           email: formData.email,
           company: formData.company,
-          phone: formData.phone,
+          phone: formData.whatsapp || formData.phone,
+          whatsapp: formData.whatsapp || formData.phone,
+          instagram: formData.instagram,
           service: selectedService,
           budget: selectedBudget,
           timeline: selectedTimeline,
@@ -186,6 +192,29 @@ export default function InquirePage() {
                 </div>
               </div>
 
+              {/* Target Launch Timeline */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-zinc-300 mb-2">
+                  3. Target Launch Timeline
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {timelines.map((time) => (
+                    <button
+                      type="button"
+                      key={time}
+                      onClick={() => setSelectedTimeline(time)}
+                      className={`px-3 py-2.5 rounded-xl text-center text-xs font-semibold border transition-all ${
+                        selectedTimeline === time
+                          ? "bg-primary/10 border-primary text-primary font-bold shadow-xs"
+                          : "bg-gray-50 dark:bg-zinc-900/60 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Contact Information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -230,14 +259,29 @@ export default function InquirePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
-                    Phone / WhatsApp
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
+                    <span>WhatsApp Number</span>
+                    <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Fast Response</span>
                   </label>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    placeholder="+1 (555) 234-5678"
+                    value={formData.whatsapp || formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value, whatsapp: e.target.value })}
+                    placeholder="+63 991 378 0170 or +1 555..."
+                    className="w-full h-11 px-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:border-primary focus:outline-none font-mono"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
+                    <span>Instagram Profile / Handle (Optional)</span>
+                    <span className="text-[10px] text-pink-500 font-bold uppercase tracking-wider">Brand Audit</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.instagram}
+                    onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                    placeholder="@yourbrand or instagram.com/company"
                     className="w-full h-11 px-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:border-primary focus:outline-none"
                   />
                 </div>
@@ -258,17 +302,33 @@ export default function InquirePage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="consent"
-                  checked={formData.emailOptIn}
-                  onChange={(e) => setFormData({ ...formData, emailOptIn: e.target.checked })}
-                  className="rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <label htmlFor="consent" className="text-xs text-gray-500 dark:text-zinc-400">
-                  I agree to receive the itemized proposal scope and milestone updates via email.
-                </label>
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="consent"
+                    checked={formData.emailOptIn}
+                    onChange={(e) => setFormData({ ...formData, emailOptIn: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <label htmlFor="consent" className="text-xs text-gray-500 dark:text-zinc-400 cursor-pointer">
+                    I agree to receive the itemized proposal scope and milestone updates via email.
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="whatsappConsent"
+                    checked={formData.whatsappOptIn}
+                    onChange={(e) => setFormData({ ...formData, whatsappOptIn: e.target.checked })}
+                    className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <label htmlFor="whatsappConsent" className="text-xs text-gray-600 dark:text-zinc-300 cursor-pointer flex items-center gap-1.5">
+                    <span>Send quick updates &amp; scope summary via</span>
+                    <strong className="text-emerald-500 font-bold">WhatsApp</strong>
+                  </label>
+                </div>
               </div>
 
               {/* Submit Button */}

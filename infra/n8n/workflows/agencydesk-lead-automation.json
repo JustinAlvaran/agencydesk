@@ -1,0 +1,341 @@
+{
+  "name": "AgencyDesk Lead Automation & WhatsApp Dispatch",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencydesk-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook - AgencyDesk Inquire",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "agencydesk-lead-inquiry-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// Clean & normalize phone number to E.164 standard (+639913780170 or +1555...)\nlet rawPhone = item.whatsapp || item.phone || '';\nlet cleanPhone = rawPhone.replace(/[^\\d+]/g, '');\nif (cleanPhone.startsWith('09')) {\n  cleanPhone = '+63' + cleanPhone.slice(1);\n} else if (cleanPhone && !cleanPhone.startsWith('+')) {\n  cleanPhone = '+' + cleanPhone;\n}\n\n// Sanitize Instagram handle\nlet rawIg = item.instagram || '';\nlet cleanIg = rawIg.trim();\nif (cleanIg.includes('instagram.com/')) {\n  cleanIg = cleanIg.split('instagram.com/')[1].split('/')[0].split('?')[0];\n}\nif (cleanIg && !cleanIg.startsWith('@')) {\n  cleanIg = '@' + cleanIg;\n}\n\n// Calculate initial opportunity qualification score (0 - 100)\nlet leadScore = 20;\nconst budgetNum = Number(item.budget) || 0;\nif (budgetNum >= 50000) leadScore += 40;\nelse if (budgetNum >= 25000) leadScore += 25;\nelse if (budgetNum >= 10000) leadScore += 10;\n\nif (item.whatsapp_opt_in) leadScore += 15;\nif (cleanIg) leadScore += 10;\nif (item.brief && item.brief.length > 50) leadScore += 15;\n\nreturn [{\n  json: {\n    contact_name: item.contact_name || 'Anonymous Lead',\n    email: (item.email || '').toLowerCase().trim(),\n    phone: cleanPhone || null,\n    whatsapp: cleanPhone || null,\n    whatsapp_opt_in: Boolean(item.whatsapp_opt_in),\n    instagram: cleanIg || null,\n    company: item.company || 'Unassigned Company',\n    service: item.service || 'Web & Mobile Applications',\n    budget: budgetNum,\n    timeline: item.timeline || 'Immediate (Next 30 days)',\n    brief: item.brief || 'No initial brief provided.',\n    source: item.source || 'website_inquiry',\n    submission_id: item.submission_id || $execution.id,\n    lead_score: Math.min(100, leadScore),\n    received_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "2",
+      "name": "Normalize & Validate Lead Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/leads?email=eq.' + encodeURIComponent($json.email) + '&select=id,status,created_at' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'dummy') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "Check Existing Lead (Deduplication)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.length || 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "4",
+      "name": "Lead Already Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/leads' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'dummy') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"contact_name\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n  \"email\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.email) }},\n  \"phone\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.phone) }},\n  \"whatsapp\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.whatsapp) }},\n  \"whatsapp_opt_in\": {{ $('Normalize & Validate Lead Payload').first().json.whatsapp_opt_in }},\n  \"instagram\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.instagram) }},\n  \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n  \"brief\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.brief) }},\n  \"budget_cents\": {{ $('Normalize & Validate Lead Payload').first().json.budget * 100 }},\n  \"status\": \"new\",\n  \"probability\": 20,\n  \"score\": {{ $('Normalize & Validate Lead Payload').first().json.lead_score }}\n}",
+        "options": {}
+      },
+      "id": "5",
+      "name": "Insert Lead into Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/activity_events' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'dummy') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"event_type\": \"lead_received\",\n  \"detail\": {\n    \"contact\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n    \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n    \"budget\": {{ $('Normalize & Validate Lead Payload').first().json.budget }},\n    \"whatsapp\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.whatsapp) }},\n    \"instagram\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.instagram) }}\n  }\n}",
+        "options": {}
+      },
+      "id": "6",
+      "name": "Log Activity Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $('Normalize & Validate Lead Payload').first().json;\nconst leadRecord = $input.first().json;\nconst leadId = (Array.isArray(leadRecord) ? leadRecord[0]?.id : leadRecord?.id) || lead.submission_id;\n\nconst messageText = [\n  '🚀 *NEW AGENCYDESK LEAD INQUIRY*',\n  '━━━━━━━━━━━━━━━━━━━━━',\n  `👤 *Contact:* ${lead.contact_name}`,\n  `🏢 *Company:* ${lead.company}`,\n  `💼 *Service:* ${lead.service}`,\n  `💰 *Budget:* $${lead.budget.toLocaleString()}`,\n  `🎯 *Score:* ${lead.lead_score}/100`,\n  `📱 *WhatsApp:* ${lead.whatsapp || 'Not provided'} (${lead.whatsapp_opt_in ? '✅ Opted-in' : 'Pending opt-in'})`,\n  `📸 *Instagram:* ${lead.instagram || 'Not provided'}`,\n  '━━━━━━━━━━━━━━━━━━━━━',\n  '📝 *Brief:*',\n  `\"${lead.brief}\"`,\n  '━━━━━━━━━━━━━━━━━━━━━',\n  '⚡ *Open Lead:* https://agencydesk-theta.vercel.app/crm/leads'\n].join('\\n');\n\nreturn [{\n  json: {\n    target_phone: '+639913780170',\n    lead_phone: lead.whatsapp,\n    lead_name: lead.contact_name,\n    message: messageText,\n    lead_id: leadId,\n    lead_score: lead.lead_score,\n    opt_in: lead.whatsapp_opt_in,\n    dispatch_timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "7",
+      "name": "Format WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.WHATSAPP_API_ENDPOINT || 'https://agencydesk-theta.vercel.app/api/crm/automations/whatsapp-dispatch' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ $env.AUTOMATION_SECRET || 'agencydesk-n8n-lead-secret' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($json.target_phone) }},\n  \"lead_phone\": {{ JSON.stringify($json.lead_phone) }},\n  \"message\": {{ JSON.stringify($json.message) }},\n  \"lead_id\": {{ JSON.stringify($json.lead_id) }},\n  \"timestamp\": {{ JSON.stringify($json.dispatch_timestamp) }}\n}",
+        "options": {}
+      },
+      "id": "8",
+      "name": "Dispatch WhatsApp Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1820,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_registered\",\n  \"lead_id\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.submission_id) }},\n  \"lead_score\": {{ $('Normalize & Validate Lead Payload').first().json.lead_score }},\n  \"whatsapp_dispatched_to\": \"+639913780170\",\n  \"message\": \"Lead successfully recorded in AgencyDesk CRM and WhatsApp notification triggered.\"\n}",
+        "options": {}
+      },
+      "id": "9",
+      "name": "Respond to Inquire Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2040,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_already_exists\",\n  \"message\": \"Inquiry matched an existing prospect in AgencyDesk CRM. Notification suppressed to prevent duplication.\"\n}",
+        "options": {}
+      },
+      "id": "10",
+      "name": "Respond Lead Exists",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - AgencyDesk Inquire": {
+      "main": [
+        [
+          {
+            "node": "Normalize & Validate Lead Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize & Validate Lead Payload": {
+      "main": [
+        [
+          {
+            "node": "Check Existing Lead (Deduplication)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Existing Lead (Deduplication)": {
+      "main": [
+        [
+          {
+            "node": "Lead Already Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead Already Exists?": {
+      "main": [
+        [
+          {
+            "node": "Respond Lead Exists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Lead into Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Lead into Supabase": {
+      "main": [
+        [
+          {
+            "node": "Log Activity Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Activity Event": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Dispatch WhatsApp Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch WhatsApp Alert": {
+      "main": [
+        [
+          {
+            "node": "Respond to Inquire Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
