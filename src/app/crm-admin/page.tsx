@@ -105,8 +105,8 @@ const GitHubIcon = () => (
 
 export default function CRMAdminPage() {
   const auth = useWorkspaceLogin();
-  const [username, setUsername] = useState("admin@agencydesk.com");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "modules">("login");
   const isAuthenticating = auth.pending;
@@ -197,13 +197,27 @@ export default function CRMAdminPage() {
             
             {/* Left 7 Cols: Login Controls */}
             <form onSubmit={handleAdminAuth} className="lg:col-span-7 flex flex-col gap-4">
-            {auth.error && <p role="alert" className="text-sm text-primary">{auth.error}</p>}
+            {auth.error && (
+              <div role="alert" className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs text-primary flex flex-col gap-1.5">
+                <span className="font-semibold">{auth.error}</span>
+                {(auth.error.toLowerCase().includes('provider') || auth.error.toLowerCase().includes('cancel') || auth.error.toLowerCase().includes('workspace sign-in')) && (
+                  <p className="text-[11px] text-gray-600 dark:text-zinc-400 pt-1 border-t border-primary/15">
+                    Enterprise SSO requires an active workspace staff invitation. Sign in with your administrator credentials below.
+                  </p>
+                )}
+              </div>
+            )}
               
               {/* Google & GitHub OAuth SSO Section */}
               <div className="flex flex-col gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
-                  Fast SSO Authentication
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                    Fast SSO Authentication
+                  </span>
+                  <span className="text-[10px] text-gray-400 dark:text-zinc-500">
+                    Verified Team Members
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button
                     type="button"
@@ -243,6 +257,10 @@ export default function CRMAdminPage() {
                     <span>Sign in with GitHub</span>
                   </button>
                 </div>
+
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 text-center mt-1">
+                  Enterprise SSO for verified agency team members
+                </p>
 
                 {/* Divider */}
                 <div className="relative my-2">
@@ -307,7 +325,7 @@ export default function CRMAdminPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500">Admin test login: <span className="font-mono text-primary font-bold">admin@agencydesk.com</span> / <span className="font-mono text-primary font-bold">admin123</span></p>
+              <p className="text-xs text-gray-500">Workspace administrator authentication required.</p>
               {/* Charles Liu / Emil Kowalski Dual-Arrow Conveyor Submit Button */}
               <button
                 type="submit"

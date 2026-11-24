@@ -4,9 +4,82 @@ import {z} from 'zod';
 import {requireUser} from '@/lib/auth';
 import {databaseError} from '@/lib/http';
 import {MutationForm,DraftFields,fieldClass} from './mutation-form';
+import {isDemo} from '@/lib/env';
+import {initialProposals} from '@/lib/mock-crm-data';
+
 export async function ProposalDetail({id}:{id:string}){
- if(!z.uuid().safeParse(id).success)notFound();const {supabase,user}=await requireUser();
- const [series,revisions,staff]=await Promise.all([supabase.from('proposal_series').select('*').eq('id',id).maybeSingle(),supabase.from('proposal_revisions').select('*').eq('series_id',id).order('version',{ascending:false}),supabase.from('staff_members').select('role').eq('user_id',user.id).eq('active',true).maybeSingle()]);
+  if (isDemo()) {
+    const prop = initialProposals.find(p => p.id === id) || initialProposals[0];
+    if (!prop) notFound();
+    return (
+      <div className="flex flex-col gap-6">
+        <Link href="/crm/proposals" className="text-sm font-semibold text-primary hover:underline flex items-center gap-1.5">
+          ← Back to proposals
+        </Link>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200 dark:border-zinc-800">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20">
+              {prop.status} · {prop.company}
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white mt-2">
+              {prop.title}
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">Version: {prop.version} · Created {prop.created_at}</p>
+          </div>
+          <div className="text-right">
+            <span className="text-xs text-gray-400 block font-semibold uppercase">Total Value</span>
+            <span className="text-2xl font-black text-gray-900 dark:text-white font-mono">
+              ${(prop.total_cents / 100).toLocaleString()}
+            </span>
+          </div>
+        </div>
+
+        <section className="rounded-3xl p-6 bg-white dark:bg-zinc-950/80 border border-gray-200 dark:border-zinc-800 flex flex-col gap-4">
+          <h2 className="text-base font-bold text-gray-900 dark:text-white">Project Scope &amp; Deliverables</h2>
+          <p className="text-sm text-gray-600 dark:text-zinc-300 leading-relaxed bg-gray-50 dark:bg-zinc-900 p-4 rounded-2xl border border-gray-200 dark:border-zinc-800">
+            {prop.scope}
+          </p>
+
+          <table className="w-full text-xs text-left border-collapse mt-2">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-zinc-800 text-gray-400 uppercase">
+                <th className="py-2 font-semibold">Deliverable</th>
+                <th className="py-2 text-center font-semibold">Quantity</th>
+                <th className="py-2 text-right font-semibold">Price (USD)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-zinc-850">
+              <tr>
+                <td className="py-3 font-semibold text-gray-900 dark:text-white">Architecture &amp; Technical Discovery</td>
+                <td className="py-3 text-center text-gray-500">1</td>
+                <td className="py-3 text-right font-mono text-gray-900 dark:text-white">${((prop.total_cents * 0.3) / 100).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td className="py-3 font-semibold text-gray-900 dark:text-white">Implementation &amp; Integrations</td>
+                <td className="py-3 text-center text-gray-500">1</td>
+                <td className="py-3 text-right font-mono text-gray-900 dark:text-white">${((prop.total_cents * 0.5) / 100).toLocaleString()}</td>
+              </tr>
+              <tr>
+                <td className="py-3 font-semibold text-gray-900 dark:text-white">Deployment, Verification &amp; Handover</td>
+                <td className="py-3 text-center text-gray-500">1</td>
+                <td className="py-3 text-right font-mono text-gray-900 dark:text-white">${((prop.total_cents * 0.2) / 100).toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="pt-4 border-t border-gray-200 dark:border-zinc-800 flex justify-between items-center text-xs">
+            <span className="text-gray-500">Payment terms: Net 15 via bank transfer or Stripe</span>
+            <span className="font-bold text-gray-900 dark:text-white">Agreed Total: ${(prop.total_cents / 100).toLocaleString()}</span>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (!z.uuid().safeParse(id).success) notFound();
+  const {supabase,user}=await requireUser();
+
+  const [series,revisions,staff]=await Promise.all([supabase.from('proposal_series').select('*').eq('id',id).maybeSingle(),supabase.from('proposal_revisions').select('*').eq('series_id',id).order('version',{ascending:false}),supabase.from('staff_members').select('role').eq('user_id',user.id).eq('active',true).maybeSingle()]);
  databaseError(series.error);databaseError(revisions.error);databaseError(staff.error);if(!series.data)notFound();
  const revisionIds=(revisions.data??[]).map(r=>r.id);
  const items=revisionIds.length?await supabase.from('proposal_items').select('*').in('revision_id',revisionIds).order('position'):{data:[],error:null};databaseError(items.error);
