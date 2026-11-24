@@ -16,20 +16,41 @@ import {
 type Row<K extends keyof Database['public']['Tables']> = Database['public']['Tables'][K]['Row'];
 
 export function leadView(row: Row<'leads'>, company = '', notes: string[] = []): Lead {
+  const prob =
+    (row as { probability?: number }).probability ??
+    (row.status === 'new'
+      ? 20
+      : row.status === 'contacted'
+      ? 40
+      : row.status === 'qualified'
+      ? 60
+      : row.status === 'proposal_sent'
+      ? 80
+      : row.status === 'won'
+      ? 100
+      : 0);
+
+  const score =
+    (row as { score?: number }).score ??
+    ((row.budget_cents > 0 ? 25 : 0) +
+      (company || (row as { company_name?: string }).company_name ? 25 : 0) +
+      (row.brief && row.brief.length >= 100 ? 25 : 0) +
+      (['qualified', 'proposal_sent', 'won'].includes(row.status) ? 25 : 0));
+
   return {
     id: row.id,
     contact_name: row.contact_name,
     email: row.email,
     phone: row.phone ?? undefined,
-    company: company || row.company_name || 'Unassigned company',
+    company: company || (row as { company_name?: string }).company_name || 'Unassigned company',
     service: row.service,
     brief: row.brief,
     budget: row.budget_cents / 100,
     status: row.status as Lead['status'],
-    probability: row.probability,
-    score: row.score,
-    row_version: row.row_version,
-    budget_range: row.budget_range,
+    probability: prob,
+    score,
+    row_version: (row as { row_version?: number }).row_version ?? 1,
+    budget_range: (row as { budget_range?: string }).budget_range,
     owner: row.owner_id ? 'Assigned staff' : 'Unassigned',
     created_at: row.created_at,
     last_activity: row.updated_at,
@@ -96,9 +117,39 @@ export async function crmData(db?: SupabaseClient<Database> | null, client = fal
       client ? Promise.resolve({ data: null, error: null }) : db.rpc('crm_totals'),
     ]);
 
-  for (const result of [leads, companies, notes, tasks, projects, milestones, series, revisions, contacts, events, totals]) {
+  for (const result of [leads, companies, notes, tasks, projects, milestones, series, revisions, contacts, events]) {
     databaseError(result.error);
   }
+
+  const leadList = leads.data ?? [];
+  const openLeadsCount = leadList.filter((l) => l.status !== 'won' && l.status !== 'lost').length;
+  const totalPipeline = leadList
+    .filter((l) => l.status !== 'won' && l.status !== 'lost')
+    .reduce((sum, l) => sum + (l.budget_cents || 0), 0);
+  const weightedPipeline = leadList
+    .filter((l) => l.status !== 'won' && l.status !== 'lost')
+    .reduce((sum, l) => {
+      const prob =
+        (l as { probability?: number }).probability ??
+        (l.status === 'new'
+          ? 20
+          : l.status === 'contacted'
+          ? 40
+          : l.status === 'qualified'
+          ? 60
+          : l.status === 'proposal_sent'
+          ? 80
+          : 0);
+      return sum + Math.round(((l.budget_cents || 0) * prob) / 100);
+    }, 0);
+
+  const calculatedTotals = {
+    open_leads: openLeadsCount,
+    pipeline_cents: totalPipeline,
+    weighted_cents: weightedPipeline,
+  };
+
+  const finalTotals = (totals?.data as { open_leads: number; pipeline_cents: number; weighted_cents: number } | null) || calculatedTotals;
 
   const company = (id: string | null) => companies.data?.find((c) => c.id === id)?.name ?? '';
   const viewLeads: Lead[] = (leads.data ?? []).map((l) =>
@@ -182,6 +233,6 @@ export async function crmData(db?: SupabaseClient<Database> | null, client = fal
     tasks: viewTasks,
     activities: viewEvents,
     companies: companies.data ?? [],
-    totals: totals.data as { open_leads: number; pipeline_cents: number; weighted_cents: number } | null,
+    totals: client ? null : finalTotals,
   };
 }

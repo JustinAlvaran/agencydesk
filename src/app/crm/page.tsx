@@ -1,7 +1,6 @@
 import View from './dashboard-view';
 import { requireStaff } from '@/lib/auth';
 import { crmData } from '@/lib/crm-data';
-import { databaseError } from '@/lib/http';
 import { isDemo } from '@/lib/env';
 
 export default async function Page() {
@@ -25,11 +24,17 @@ export default async function Page() {
 
   const [data, metrics] = await Promise.all([
     crmData(supabase),
-    supabase.rpc('get_dashboard_metrics')
+    supabase.rpc('get_dashboard_metrics'),
   ]);
 
-  databaseError(metrics.error);
-  const totals = metrics.data as { accepted_cents: number };
+  let acceptedCents = 0;
+  if (metrics?.data && typeof (metrics.data as { accepted_cents?: number }).accepted_cents === 'number') {
+    acceptedCents = (metrics.data as { accepted_cents: number }).accepted_cents;
+  } else if (data.proposals) {
+    acceptedCents = data.proposals
+      .filter((p: { status: string }) => p.status === 'accepted')
+      .reduce((sum: number, p: { total_cents?: number }) => sum + (p.total_cents || 0), 0);
+  }
 
   return (
     <View
@@ -40,7 +45,7 @@ export default async function Page() {
       totalPipeline={(data.totals?.pipeline_cents ?? 0) / 100}
       weightedPipeline={(data.totals?.weighted_cents ?? 0) / 100}
       openLeads={data.totals?.open_leads ?? 0}
-      acceptedValue={totals.accepted_cents / 100}
+      acceptedValue={acceptedCents / 100}
     />
   );
 }
