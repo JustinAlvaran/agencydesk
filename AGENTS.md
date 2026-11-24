@@ -55,3 +55,12 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Delete an obsolete remote branch only after its freshly verified exact head is an ancestor of final main. Recheck for concurrent updates immediately before deletion. Keep dirty local worktrees intact; local private WIP is not permission to publish another remote branch.
 - GitHub default/branch names do not prove provider settings. Verify the confirmed own AgencyDesk hosting target before claiming production uses main. Free-only operation and all credential-security/customer-delivery safeguards remain in force.
 - This policy supersedes older feature-branch -> preview instructions in historical plans/automations. Routine future automation publishes preview -> main PRs and leaves merging to the owner unless separately explicitly authorized.
+
+# Active frontend/backend delivery (23 November 2026)
+
+- The owner explicitly moved implementation to `C:/Users/paule/OneDrive/Documents/agency desk`. Make project changes only in this folder. Preserve the unfinished former checkout; never write through the donor node_modules junction.
+- Backend, RLS and real login are now the active task. Preserve this folder's completed crimson/dark frontend, styles, logo and responsive layouts. Wire its existing views to the established AgencyDesk backend before creating replacement systems.
+- Use npm and the local package-lock.json here; the application dev/preview port is exclusively 3000. The previous checkout's pnpm/port choices are historical.
+- The owner authorizes pushing all completed changes from this folder to the existing JustinAlvaran/agencydesk preview branch for a preview-to-main PR. Keep Justin-only authorship, independent credential-security review and exact staged allowlists. Do not merge or change hosted database state ahead of review.
+- Original source is archived in ignored `.local/upstream`; the supplied frontend baseline is in ignored `.local/frontend-before`. Reuse existing migrations and secure RPCs; inspect GitHub sources for any missing feature before implementing an equivalent.
+- Supabase access is restricted to kinggucci195@gmail.com with verified AgencyDesk project binding. Local RLS/auth tests can proceed without hosted credentials. Never treat mock sign-in or simulated connections as successful live operations.

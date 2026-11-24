@@ -1,0 +1,8 @@
+'use client';
+import { useEffect,useState } from 'react';
+import Link from 'next/link';
+type Scope={id:string;title:string;version:number;scope:string;payment_terms:string;total_cents:number;status:string;items:{description:string;quantity:number;unit_price_cents:number}[]};
+export default function Page(){const [scope,setScope]=useState<Scope|null>(null);const [error,setError]=useState('');
+ useEffect(()=>{const token=window.location.hash.slice(1);window.history.replaceState(null,'','/proposal/');fetch('/api/proposals/link',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}).then(async r=>{const data=await r.json();if(!r.ok)throw new Error(data.error);setScope(data.proposal);}).catch(()=>setError('This scope link is unavailable or expired. Request a new link from your agency.'));},[]);
+ return <main className="radial-gradient-bg min-h-screen p-6 sm:p-12"><article className="max-w-3xl mx-auto rounded-3xl bg-white/80 dark:bg-zinc-950/80 border border-gray-200 dark:border-zinc-800 p-8 flex flex-col gap-5">{error?<p role="alert">{error}</p>:scope?<><h1 className="text-3xl font-bold">{scope.title}</h1><p>Version {scope.version} · {scope.status}</p><p className="whitespace-pre-wrap">{scope.scope}</p><ul>{scope.items.map((item,i)=><li key={i} className="py-2 border-b border-gray-200 dark:border-zinc-800">{item.description} · {item.quantity} × ${(item.unit_price_cents/100).toLocaleString()}</li>)}</ul><strong>Total: ${(scope.total_cents/100).toLocaleString()}</strong><p className="whitespace-pre-wrap">{scope.payment_terms}</p><Link href="/login" className="text-primary">Sign in to your client portal to accept this version</Link></>:<p>Loading scope…</p>}</article></main>;
+}

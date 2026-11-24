@@ -1,0 +1,26 @@
+<svg width="220" height="56" viewBox="0 0 220 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Modern Geometric "A" Emblem with CITC style facets -->
+  <g transform="translate(4, 6)">
+    <!-- Left Facet -->
+    <path d="M22 0L4 36H16L22 22L28 36H40L22 0Z" fill="url(#paint0_linear)"/>
+    <!-- Top Apex Highlight -->
+    <path d="M22 0L14 16H30L22 0Z" fill="#FF383C"/>
+    <!-- Crossbar / Desk shelf facet -->
+    <path d="M12 28L22 20L32 28L28 36H16L12 28Z" fill="#C30000"/>
+    <!-- Glow Accent Dot -->
+    <circle cx="22" cy="12" r="3" fill="#FFFFFF" fill-opacity="0.9"/>
+  </g>
+
+  <!-- Typography: AgencyDesk for Dark Background -->
+  <text x="56" y="36" font-family="var(--font-montserrat), system-ui, sans-serif" font-size="24" font-weight="700" fill="#FFFFFF" letter-spacing="-0.5px">Agency<tspan fill="#FF383C">Desk</tspan></text>
+  
+  <!-- Subtle Tagline -->
+  <text x="57" y="47" font-family="var(--font-lato), sans-serif" font-size="9.5" font-weight="500" fill="#9CA3AF" letter-spacing="1.5px">CRM &amp; CLIENT WORKSPACE</text>
+
+  <defs>
+    <linearGradient id="paint0_linear" x1="4" y1="0" x2="40" y2="36" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF383C"/>
+      <stop offset="1" stop-color="#C30000"/>
+    </linearGradient>
+  </defs>
+</svg>

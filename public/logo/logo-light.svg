@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(10, 8)">
+    <path d="M22 0L4 42H16L22 26L28 42H40L22 0Z" fill="url(#ad_emblem_grad)"/>
+    <path d="M22 0L14 18H30L22 0Z" fill="#FF383C"/>
+    <path d="M12 32L22 23L32 32L28 42H16L12 32Z" fill="#C30000"/>
+    <circle cx="22" cy="14" r="3.5" fill="#FFFFFF" fill-opacity="0.95"/>
+  </g>
+  <defs>
+    <linearGradient id="ad_emblem_grad" x1="4" y1="0" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF383C"/>
+      <stop offset="1" stop-color="#C30000"/>
+    </linearGradient>
+  </defs>
+</svg>

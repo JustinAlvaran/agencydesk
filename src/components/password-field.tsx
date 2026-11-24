@@ -1,10 +1,23 @@
-'use client';
+import React from "react";
 
-import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import styles from './password-field.module.css';
+interface PasswordFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  id: string;
+  label: string;
+}
 
-export function PasswordField({ id, label, minLength = 8, autoComplete = 'current-password' }: { id: string; label: string; minLength?: number; autoComplete?: 'current-password' | 'new-password' }) {
-  const [visible, setVisible] = useState(false);
-  return <><label htmlFor={id}>{label}</label><div className={styles.field}><input id={id} name={id} type={visible ? 'text' : 'password'} minLength={minLength} maxLength={128} autoComplete={autoComplete} required/><button type="button" aria-label={`${visible ? 'Hide' : 'Show'} ${label.toLowerCase()}`} aria-pressed={visible} onClick={()=>setVisible(!visible)}>{visible ? <EyeOff size={18} aria-hidden/> : <Eye size={18} aria-hidden/>}</button></div></>;
+export function PasswordField({ id, label, ...props }: PasswordFieldProps) {
+  return (
+    <div className="flex flex-col gap-1.5 my-3">
+      <label htmlFor={id} className="text-xs font-semibold text-gray-700 dark:text-zinc-300">
+        {label}
+      </label>
+      <input
+        id={id}
+        name={id}
+        type="password"
+        className="w-full px-4 py-2.5 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-primary transition-colors"
+        {...props}
+      />
+    </div>
+  );
 }

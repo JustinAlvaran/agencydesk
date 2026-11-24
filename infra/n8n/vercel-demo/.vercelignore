@@ -1,6 +1,0 @@
-**
-!Dockerfile
-!runtime.mjs
-!start.mjs
-!vercel.json
-!.dockerignore

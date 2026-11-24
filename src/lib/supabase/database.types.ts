@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      deliverables: {
+        Row: {id:string;agency_id:string;project_id:string;name:string;object_path:string;content_type:string;size_bytes:number;created_at:string}
+        Insert: {agency_id:string;project_id:string;name:string;object_path:string;content_type:string;size_bytes:number}
+        Update: never
+        Relationships: []
+      }
+
+      sprints: {
+        Row: {id:string;agency_id:string;project_id:string;title:string;starts_at:string;ends_at:string}
+        Insert: {project_id:string;title:string;starts_at:string;ends_at:string}
+        Update: {title?:string;starts_at?:string;ends_at?:string}
+        Relationships: []
+      }
+
+      integration_connections: {
+        Row: { id:string; agency_id:string; provider:string; status:string; version:number; checked_at:string|null; updated_at:string }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+
       agencies: {
         Row: { id: string; name: string; slug: string; intake_enabled: boolean; created_at: string }
         Insert: { id?: string; name: string; slug: string; intake_enabled?: boolean; created_at?: string }
@@ -443,6 +464,12 @@ export type Database = {
       }
       leads: {
         Row: {
+          row_version: number
+          probability: number
+          score: number
+          company_name: string
+          budget_range: string
+          timeline: string
           agency_id: string
           phone: string | null
           source: string
@@ -518,6 +545,11 @@ export type Database = {
       }
       milestones: {
         Row: {
+          review_status: string
+          feedback: string
+          sprint_id: string | null
+          reviewed_by: string | null
+          reviewed_at: string | null
           agency_id: string
           due_at: string | null
           id: string
@@ -536,6 +568,7 @@ export type Database = {
           title: string
         }
         Update: {
+          review_status?: string
           agency_id?: string
           due_at?: string | null
           id?: string
@@ -684,6 +717,7 @@ export type Database = {
       }
       proposal_revisions: {
         Row: {
+          payment_terms: string
           agency_id: string
           accepted_at: string | null
           accepted_by: string | null
@@ -803,6 +837,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_proposal_with_draft: {Args:{p_lead:string;p_company:string;p_title:string;p_scope:string;p_terms:string;p_expires:string;p_items:Json};Returns:string}
+      capture_website_inquiry: { Args: {p_agency:string;p_submission:string;p_hash:string;p_request_key:string;p_details:Json}; Returns:string }
+      crm_totals: { Args: never; Returns: Json }
+      update_lead_stage: { Args: { p_id: string; p_version: number; p_stage: string }; Returns: Database['public']['Tables']['leads']['Row'] }
+      create_proposal_draft: { Args: { p_series: string; p_scope: string; p_terms: string; p_expires: string; p_items: Json }; Returns: string }
+      issue_proposal_link: { Args: { p_revision: string; p_digest: string }; Returns: undefined }
+      revoke_proposal_links: { Args: { p_revision: string }; Returns: undefined }
+      read_proposal_link: { Args: { p_digest: string }; Returns: Json }
+      review_milestone: { Args: { p_id: string; p_approve: boolean; p_feedback: string }; Returns: undefined }
+      save_connection: { Args: { p_provider: string; p_envelope: string; p_disconnect?: boolean }; Returns: string }
+      connection_secret: { Args: { p_agency: string; p_provider: string }; Returns: Json }
+      record_connection_test: { Args: { p_id: string; p_version: number; p_ok: boolean }; Returns: boolean }
+      complete_crm_event: { Args: { p_agency: string; p_event: string; p_receipt: string; p_lease: string }; Returns: boolean }
+      submit_website_inquiry: { Args: { p_agency_id: string; p_submission_id: string; p_payload_hash: string; p_request_key: string; p_contact_name: string; p_email: string; p_service: string; p_brief: string; p_budget_cents: number; p_phone: string | null; p_email_opt_in: boolean; p_whatsapp_opt_in: boolean; p_source: string }; Returns: string }
+
       suppress_lead_recipient: { Args: { p_lead_id: string; p_channel: string }; Returns: boolean }
       admin_clear_lead_recipient_suppression: { Args: { p_lead_id: string; p_channel: string }; Returns: boolean }
       lead_message_suppression: { Args: { p_lead_id: string }; Returns: { channel: string; suppressed: boolean; reason: string | null }[] }

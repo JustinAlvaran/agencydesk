@@ -44,7 +44,7 @@ try{
  });
  await scenario(async()=>{
   await db.exec(queueSql(1));const[job]=await claim();
-  await db.exec("reset role;update public.message_jobs set lease_expires_at=clock_timestamp()-interval '1 second' where status='processing'");
+  await db.exec("reset role;update public.message_jobs set lease_expires_at=now()-interval '1 second' where status='processing'");
   await claim();await db.exec('reset role');
   await eq(`select status as value from public.message_jobs where id='${job.id}'`,'uncertain','Expired lease is reconciled, never blindly resent');
   await eq('select count(*)::int as value from public.message_attempts',1,'Uncertain lease retains its quota charge');

@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: 
+Sitemap: https://citc-ph.com/sitemap.xml

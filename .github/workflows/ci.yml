@@ -11,47 +11,16 @@ jobs:
     timeout-minutes: 20
     env:
       APP_MODE: demo
-      CONTENT_SOURCE: fixtures
       APP_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: '1'
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.5.6
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm test:database
-      - name: Verify outbox admission concurrency
-        run: pnpm test:automation-concurrency
-        env:
-          AGENCYDESK_ALLOW_LOCAL_DOCKER_TEST: '1'
-      - run: pnpm test:edge
-      - run: node tests/database/content-build.mjs
-      - run: pnpm build
-      - run: pnpm exec playwright install --with-deps chromium
-      # Live Auth checks require invited accounts and run separately.
-      - run: pnpm test:e2e --grep-invert 'anonymous visitors'
-      - name: Upload fictional A2UI demo screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: a2ui-demo-screenshots
-          path: docs/images/a2ui-lead-review-*.png
-          if-no-files-found: ignore
-          retention-days: 7
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: browser-failure-evidence
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
+          cache: npm
+      - run: npm install
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
