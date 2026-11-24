@@ -234,9 +234,21 @@ export default function LeadsPipelinePage() {
                         <span className="text-gray-500 dark:text-zinc-400 font-medium">
                           {lead.contact_name}
                         </span>
-                        <span className="text-primary font-bold">
-                          {lead.probability}% Prob
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {(lead.whatsapp || lead.phone) && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" title={lead.whatsapp || lead.phone}>
+                              WA
+                            </span>
+                          )}
+                          {lead.instagram && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-pink-500/10 text-pink-500 border border-pink-500/20" title={lead.instagram}>
+                              IG
+                            </span>
+                          )}
+                          <span className="text-primary font-bold">
+                            {lead.probability}% Prob
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -281,7 +293,19 @@ export default function LeadsPipelinePage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <div>{lead.contact_name}</div>
-                      <div className="text-[10px] text-gray-400">{lead.email}</div>
+                      <div className="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                        <span>{lead.email}</span>
+                        {(lead.whatsapp || lead.phone) && (
+                          <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            WA
+                          </span>
+                        )}
+                        {lead.instagram && (
+                          <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-pink-500/10 text-pink-500 border border-pink-500/20">
+                            IG
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3.5 px-4">{lead.service}</td>
                     <td className="py-3.5 px-4 font-bold text-primary">
@@ -378,6 +402,76 @@ export default function LeadsPipelinePage() {
                 <div className="col-span-2 pt-2 border-t border-gray-200 dark:border-zinc-800">
                   <span className="text-gray-400 block text-[10px] uppercase font-bold">Service Required</span>
                   <span className="font-semibold text-gray-800 dark:text-zinc-200">{activeLead.service}</span>
+                </div>
+              </div>
+
+              {/* Direct Outreach & Social Channels */}
+              <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 text-xs mb-6 space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 block">
+                  Outreach Channels &amp; Automation
+                </span>
+
+                {/* WhatsApp Channel */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-zinc-850 border border-gray-200 dark:border-zinc-750">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xs">
+                      WA
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <span>{activeLead.whatsapp || activeLead.phone || "No WhatsApp"}</span>
+                        {activeLead.whatsapp_opt_in && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                            Opted In
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-400">Direct message channel</div>
+                    </div>
+                  </div>
+                  {(activeLead.whatsapp || activeLead.phone) ? (
+                    <a
+                      href={`https://wa.me/${(activeLead.whatsapp || activeLead.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi ${activeLead.contact_name}, this is Justin from AgencyDesk regarding your inquiry for ${activeLead.service}.`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs transition-colors"
+                    >
+                      Chat on WA
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-gray-400 italic">Not set</span>
+                  )}
+                </div>
+
+                {/* Instagram Channel */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-zinc-850 border border-gray-200 dark:border-zinc-750">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-pink-500/10 text-pink-500 flex items-center justify-center font-bold text-xs">
+                      IG
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900 dark:text-white">
+                        {activeLead.instagram ? (
+                          activeLead.instagram.startsWith('@') ? activeLead.instagram : `@${activeLead.instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/\/$/, '')}`
+                        ) : (
+                          "No Instagram"
+                        )}
+                      </div>
+                      <div className="text-[10px] text-gray-400">Brand &amp; social audit</div>
+                    </div>
+                  </div>
+                  {activeLead.instagram ? (
+                    <a
+                      href={activeLead.instagram.startsWith('http') ? activeLead.instagram : `https://instagram.com/${activeLead.instagram.replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-linear-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white shadow-xs transition-opacity"
+                    >
+                      View IG
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-gray-400 italic">Not set</span>
+                  )}
                 </div>
               </div>
 

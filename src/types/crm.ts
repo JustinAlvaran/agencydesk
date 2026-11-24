@@ -5,6 +5,9 @@ export interface Lead {
   contact_name: string;
   email: string;
   phone?: string;
+  whatsapp?: string;
+  whatsapp_opt_in?: boolean;
+  instagram?: string;
   company: string;
   service: string;
   brief: string;

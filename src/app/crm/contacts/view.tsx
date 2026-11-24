@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import type { Contact } from "@/types/crm";
-import Link from "next/link";
 import {CreateRecord} from "@/components/crm/create-record";
-import { MagnifyingGlassIcon, PlusIcon, PhoneIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, PhoneIcon, EnvelopeIcon } from "@heroicons/react/24/outline";
 
 export default function View({contacts,leads=[],companies=[]}: {contacts:Contact[];leads?:{id:string;contact_name:string}[];companies?:{id:string;name:string}[]}) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -93,6 +92,15 @@ export default function View({contacts,leads=[],companies=[]}: {contacts:Contact
                       <div className="flex items-center gap-1.5 text-gray-400 text-[10px] mt-0.5">
                         <PhoneIcon className="w-3 h-3 text-gray-400" />
                         <span>{contact.phone}</span>
+                        <a
+                          href={`https://wa.me/${contact.phone.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-1 px-1 py-0.2 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20"
+                          title="Chat on WhatsApp"
+                        >
+                          WA
+                        </a>
                       </div>
                     )}
                   </td>
