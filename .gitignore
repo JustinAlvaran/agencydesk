@@ -48,4 +48,5 @@ next-env.d.ts
 .idea
 # Project-local research, verification and dependency cache
 .local/
+.playwright-cli/
 /node_modules.reference-link

@@ -152,7 +152,7 @@ export async function crmData(db?: SupabaseClient<Database> | null, client = fal
     weighted_cents: weightedPipeline,
   };
 
-  const finalTotals = (totals?.data as { open_leads: number; pipeline_cents: number; weighted_cents: number } | null) || calculatedTotals;
+  const finalTotals = (totals?.data as { open_leads: number; pipeline_cents: number; weighted_cents: number } | null) ?? calculatedTotals;
 
   const company = (id: string | null) => companies.data?.find((c) => c.id === id)?.name ?? '';
   const viewLeads: Lead[] = (leads.data ?? []).map((l) =>
