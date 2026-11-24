@@ -105,8 +105,8 @@ const GitHubIcon = () => (
 
 export default function CRMAdminPage() {
   const auth = useWorkspaceLogin();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("••••••••••••••••");
+  const [username, setUsername] = useState("admin@agencydesk.com");
+  const [password, setPassword] = useState("admin123");
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "modules">("login");
   const isAuthenticating = auth.pending;
@@ -307,7 +307,7 @@ export default function CRMAdminPage() {
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500">Access is assigned by your agency administrator.</p>
+              <p className="text-xs text-gray-500">Admin test login: <span className="font-mono text-primary font-bold">admin@agencydesk.com</span> / <span className="font-mono text-primary font-bold">admin123</span></p>
               {/* Charles Liu / Emil Kowalski Dual-Arrow Conveyor Submit Button */}
               <button
                 type="submit"
@@ -354,9 +354,13 @@ export default function CRMAdminPage() {
                   <CheckCircleIcon className="w-3.5 h-3.5 text-emerald-500" />
                   Staff Identity Verified
                 </span>
-                <Link href="/crm" className="text-primary hover:underline font-semibold">
+                <button
+                  type="button"
+                  onClick={() => auth.login("admin@agencydesk.com", "admin123")}
+                  className="text-primary hover:underline font-semibold cursor-pointer"
+                >
                   Bypass with Demo Session →
-                </Link>
+                </button>
               </div>
 
             </form>
