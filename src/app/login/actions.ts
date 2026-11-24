@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { isConfigured } from '@/lib/env';
@@ -46,18 +46,29 @@ export async function signIn(form: FormData): Promise<{ error: string }> {
 
 export async function signInWithProvider(provider: 'google' | 'github'): Promise<{ error: string }> {
   if (!isConfigured()) return { error: 'Workspace sign-in is not configured yet.' };
-
-  if (!process.env.APP_URL) return { error: 'Workspace sign-in is not configured yet.' };
   if (provider !== 'google' && provider !== 'github') return { error: 'Unsupported sign-in provider.' };
+
+  let origin = process.env.APP_URL;
+  try {
+    const headerList = await headers();
+    const host = headerList.get('x-forwarded-host') || headerList.get('host');
+    const proto = headerList.get('x-forwarded-proto') || 'https';
+    if (host) origin = `${proto}://${host}`;
+  } catch {
+    // Fallback to APP_URL if outside header request scope
+  }
+
+  if (!origin) return { error: 'Workspace sign-in is not configured yet.' };
+
   const client = await createClient();
   const { data, error } = await client.auth.signInWithOAuth({
     provider,
     options: {
-      redirectTo: new URL('/auth/callback', process.env.APP_URL).toString(),
+      redirectTo: new URL('/auth/callback', origin).toString(),
       skipBrowserRedirect: true,
     },
   });
-  if (error || !data.url) return { error: 'Provider sign-in is unavailable. Try again later.' };
+  if (error || !data.url) return { error: error?.message || 'Provider sign-in is unavailable. Try again later.' };
   redirect(data.url);
 }
 

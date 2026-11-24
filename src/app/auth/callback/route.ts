@@ -6,7 +6,7 @@ import { loginDestination } from '@/lib/login-destination';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const origin = process.env.APP_URL ?? request.nextUrl.origin;
+  const origin = request.nextUrl.origin;
   const finish = (path: string) => {
     const response = NextResponse.redirect(new URL(path, origin));
     response.headers.set('Cache-Control', 'private, no-store');
@@ -15,8 +15,12 @@ export async function GET(request: NextRequest) {
   };
   if (isDemo()) return finish('/login?error=Workspace+sign-in+is+not+configured');
   const code = request.nextUrl.searchParams.get('code');
-  if (!code || request.nextUrl.searchParams.has('error')) {
-    return finish('/login?error=Provider+sign-in+was+cancelled+or+could+not+complete.+Please+try+again.');
+  const errorDescription = request.nextUrl.searchParams.get('error_description');
+  const errorType = request.nextUrl.searchParams.get('error');
+
+  if (!code || errorType || errorDescription) {
+    const message = errorDescription || (errorType ? `Sign-in failed (${errorType}). Please check provider configuration.` : 'Provider sign-in was cancelled or could not complete. Please try again.');
+    return finish(`/login?error=${encodeURIComponent(message)}`);
   }
   const supabase = await createClient();
   try {
