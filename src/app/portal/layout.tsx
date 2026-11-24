@@ -1,6 +1,4 @@
-import {redirect} from 'next/navigation';
-import {AppShell} from '@/components/app-shell';
 import {requireUser} from '@/lib/auth';
-import {isDemo} from '@/lib/env';
-export const metadata={robots:{index:false,follow:false}};
-export default async function Layout({children}:{children:React.ReactNode}){if(isDemo())redirect('/demo/portal');await requireUser();return <AppShell mode="live" role="client">{children}</AppShell>;}
+import {signOut} from '@/app/login/actions';
+export const dynamic='force-dynamic';
+export default async function Layout({children}:{children:React.ReactNode}){await requireUser();return <><div className="p-4 flex justify-end"><form action={signOut}><button className="text-sm text-primary">Sign out</button></form></div><div className="max-w-7xl mx-auto p-4">{children}</div></>;}

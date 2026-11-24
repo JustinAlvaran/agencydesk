@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isDemo } from '@/lib/env';
 
 export async function requireUser() {
-  if (isDemo()) redirect('/demo');
+  if (isDemo()) redirect('/login?error=Workspace+sign-in+is+not+configured');
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) redirect('/login');
@@ -13,9 +13,9 @@ export async function requireUser() {
 
 export async function requireStaff() {
   const session = await requireUser();
-  const { data } = await session.supabase.from('staff_members').select('user_id,role,active').eq('user_id', session.user.id).eq('active', true).maybeSingle();
+  const { data } = await session.supabase.from('staff_members').select('user_id,role,active,agency_id').eq('user_id', session.user.id).eq('active', true).maybeSingle();
   if (!data) redirect('/portal');
-  return { ...session, staff: data as { user_id: string; role: 'admin' | 'staff'; active: boolean } };
+  return { ...session, staff: data as { user_id: string; role: 'admin' | 'staff'; active: boolean; agency_id: string } };
 }
 
 export async function requireAdmin() {

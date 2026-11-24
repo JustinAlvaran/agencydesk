@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -13,6 +12,8 @@
 
 # testing
 /coverage
+junit.xml
+src/app/test
 
 # next.js
 /.next/
@@ -24,6 +25,7 @@
 # misc
 .DS_Store
 *.pem
+.swc
 
 # debug
 npm-debug.log*
@@ -34,10 +36,6 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
-/.local/
-/test-results/
-/playwright-report/
-/artifacts/screenshots/
 
 # vercel
 .vercel
@@ -46,7 +44,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-supabase/.temp/
-/test-results-mobile/
-
-/src/generated/
+# IDE
+.idea
+# Project-local research, verification and dependency cache
+.local/
+/node_modules.reference-link

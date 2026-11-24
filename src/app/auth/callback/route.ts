@@ -13,15 +13,15 @@ export async function GET(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'no-referrer');
     return response;
   };
-  if (isDemo()) return finish('/demo');
+  if (isDemo()) return finish('/login?error=Workspace+sign-in+is+not+configured');
   const code = request.nextUrl.searchParams.get('code');
   if (!code || request.nextUrl.searchParams.has('error')) {
-    return finish('/login?error=Google+sign-in+was+cancelled+or+could+not+complete.+Please+try+again.');
+    return finish('/login?error=Provider+sign-in+was+cancelled+or+could+not+complete.+Please+try+again.');
   }
   const supabase = await createClient();
   try {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) return finish('/login?error=Google+sign-in+expired+or+failed.+Please+try+again.');
+    if (error) return finish('/login?error=Provider+sign-in+expired+or+failed.+Please+try+again.');
     const { data, error: identityError } = await supabase.auth.getUser();
     if (identityError || !data.user) {
       await supabase.auth.signOut({ scope: 'local' });

@@ -1,31 +1,449 @@
-import Link from 'next/link';
-import { choices, type SearchParams } from '@/lib/data';
-import { listLeads } from '@/lib/leads/query';
-import { leadStatuses, statusLabel } from '@/lib/domain';
-import { Heading, Pages } from '../workspace-ui';
-import { LeadWorkspace } from '@/components/lead-workspace';
-import { leadListReturn } from '@/lib/leads/navigation';
-import styles from '@/components/lead-workspace.module.css';
+"use client";
 
-export default async function Page({searchParams}:{searchParams:Promise<SearchParams>}) {
- const filters = await searchParams;
- const [records,options] = await Promise.all([listLeads(filters),choices()]);
- const view = filters.view === 'table' ? 'table' : 'board';
- const stageFilter = typeof filters.status === 'string' && leadStatuses.includes(filters.status as typeof leadStatuses[number]) ? filters.status : '';
- const viewUrl = (next:string) => {const params=new URLSearchParams();for(const [key,value] of Object.entries(filters)) if(typeof value==='string')params.set(key,value);params.set('view',next);return `/crm/leads?${params}`;};
- return <>
-  <Heading title="Leads" description="Track inquiries, record calls, and plan follow-ups."/>
-  <div className={styles.toolbar}><Link className="button button-primary" href="/crm/leads/new">Add lead</Link><nav aria-label="Lead view" style={{display:'flex',gap:8}}><Link className={`button button-${view==='table'?'primary':'secondary'}`} aria-current={view==='table'?'page':undefined} href={viewUrl('table')}>Table</Link><Link className={`button button-${view==='board'?'primary':'secondary'}`} aria-current={view==='board'?'page':undefined} href={viewUrl('board')}>Board</Link></nav></div>
-  <div className={styles.filters}><form className="list-filters" aria-label="Lead filters">
-   <input type="hidden" name="view" value={view}/>
-   <label className="field">Contact name<input className="input" name="q" placeholder="Search contacts" defaultValue={typeof filters.q==='string'?filters.q:''}/></label>
-   <label className="field">Stage<select className="input" name="status" defaultValue={String(filters.status??'')}><option value="">All stages</option>{leadStatuses.map(stage=><option key={stage} value={stage}>{statusLabel(stage)}</option>)}</select></label>
-   <label className="field">Owner<select className="input" name="owner" defaultValue={String(filters.owner??'')}><option value="">All owners</option><option value="unassigned">Unassigned</option>{options.staff.map(staff=><option key={staff.user_id} value={staff.user_id}>{staff.role} · {staff.user_id.slice(0,8)}</option>)}</select></label>
-   <label className="field">Show<select className="input" name="show" defaultValue={String(filters.show??'')}><option value="">Active leads</option><option value="archived">Archived leads</option></select></label>
-   <button className="button button-primary" type="submit">Apply filters</button>
-   {(filters.q||filters.status||filters.show||filters.owner)?<Link className="button button-secondary" href={`/crm/leads?view=${view}`}>Clear</Link>:null}
-  </form></div>
-  <LeadWorkspace leads={records.rows} total={records.count} view={view} stageFilter={stageFilter} returnTo={leadListReturn(viewUrl(view))}/>
-  <Pages {...records} base="/crm/leads" filters={filters}/>
- </>;
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+
+import { Lead, LeadStatus } from "@/types/crm";
+import { toast } from "sonner";
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  Squares2X2Icon,
+  TableCellsIcon,
+  PlusIcon,
+  XMarkIcon,
+  DocumentTextIcon,
+} from "@heroicons/react/24/outline";
+
+const stageDefinitions: { key: LeadStatus; label: string; prob: number; color: string; border: string }[] = [
+  { key: "new", label: "New Inquiry", prob: 20, color: "bg-blue-500", border: "border-blue-500/40" },
+  { key: "contacted", label: "Contacted", prob: 40, color: "bg-amber-500", border: "border-amber-500/40" },
+  { key: "qualified", label: "Qualified", prob: 60, color: "bg-purple-500", border: "border-purple-500/40" },
+  { key: "proposal_sent", label: "Proposal Sent", prob: 80, color: "bg-orange-500", border: "border-orange-500/40" },
+  { key: "lost", label: "Lost", prob: 0, color: "bg-zinc-500", border: "border-zinc-500/40" },
+  { key: "won", label: "Won / Kickoff", prob: 100, color: "bg-emerald-500", border: "border-emerald-500/40" },
+];
+
+export default function LeadsPipelinePage() {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedService, setSelectedService] = useState("all");
+  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
+  const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const [newNote, setNewNote] = useState("");
+
+  // Sync leads from backend API
+  useEffect(() => {
+    fetch("/api/crm/leads")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Load failed"))))
+      .then((data) => {
+        if (data?.leads && Array.isArray(data.leads)) {
+          setLeads(data.leads);
+        }
+      })
+      .catch(() => toast.error("Could not load leads. Refresh to try again."));
+  }, []);
+
+  const filteredLeads = leads.filter((lead) => {
+    const matchesSearch =
+      lead.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesService =
+      selectedService === "all" || lead.service.toLowerCase().includes(selectedService.toLowerCase());
+    return matchesSearch && matchesService;
+  });
+
+  const [saving, setSaving] = useState(false);
+  const moveStage = async (id: string, newStage: LeadStatus) => {
+    const current = leads.find(l=>l.id===id);
+    if (saving || !current) return;
+    if (newStage === 'won') { toast.error('Win this deal through client proposal acceptance.'); return; }
+    setSaving(true);
+    try {
+      const response=await fetch(`/api/crm/leads/${id}/stage`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({stage:newStage,row_version:current.row_version})});
+      const data=await response.json(); if(!response.ok)throw new Error(data.error);
+      const updated={...current,status:data.lead.status,probability:data.lead.probability,row_version:data.lead.row_version};
+      setLeads(prev=>prev.map(l=>l.id===id?updated:l)); if(activeLead?.id===id)setActiveLead(updated);
+      toast.success('Stage saved');
+    } catch(error) { toast.error(error instanceof Error?error.message:'Could not save stage.'); }
+    finally { setSaving(false); }
+  };
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault(); if(!activeLead || !newNote.trim() || saving)return;
+    setSaving(true);
+    try {
+      const response=await fetch(`/api/crm/leads/${activeLead.id}/notes`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({note:newNote.trim()})});
+      const data=await response.json();if(!response.ok)throw new Error(data.error);
+      const updated={...activeLead,notes:[...(activeLead.notes??[]),newNote.trim()]};
+      setLeads(prev=>prev.map(l=>l.id===updated.id?updated:l));setActiveLead(updated);setNewNote('');toast.success('Note saved');
+    } catch(error) { toast.error(error instanceof Error?error.message:'Could not save note.'); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">
+            Opportunity Management
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mt-1">
+            Sales Pipeline Kanban
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-zinc-400 mt-0.5">
+            Stage-weighted forecasting and full lead lifecycle tracking.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center p-1 rounded-xl bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800">
+            <button
+              onClick={() => setViewMode("kanban")}
+              className={`p-1.5 rounded-lg text-xs transition-colors ${
+                viewMode === "kanban"
+                  ? "bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-xs"
+                  : "text-gray-400 hover:text-white"
+              }`}
+              title="Kanban Board"
+            >
+              <Squares2X2Icon className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              className={`p-1.5 rounded-lg text-xs transition-colors ${
+                viewMode === "table"
+                  ? "bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-xs"
+                  : "text-gray-400 hover:text-white"
+              }`}
+              title="Table View"
+            >
+              <TableCellsIcon className="w-4 h-4" />
+            </button>
+          </div>
+
+          <Link
+            href="/inquire"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 transition-all"
+          >
+            <PlusIcon className="w-4 h-4" />
+            <span>New Lead</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Filter & Search Toolbar */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative w-full sm:w-80">
+          <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filter by contact, company, or email..."
+            className="w-full h-9 pl-9 pr-4 rounded-xl bg-gray-50 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-primary/50"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-zinc-400">
+            <FunnelIcon className="w-3.5 h-3.5" />
+            <span>Service:</span>
+          </div>
+          <select
+            value={selectedService}
+            onChange={(e) => setSelectedService(e.target.value)}
+            className="h-9 px-3 rounded-xl bg-gray-50 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-primary/50"
+          >
+            <option value="all">All Services</option>
+            <option value="web">Web &amp; Mobile</option>
+            <option value="automations">AI &amp; Automations</option>
+            <option value="cloud">Cloud &amp; Supabase</option>
+            <option value="analytics">Analytics</option>
+            <option value="crm">Custom CRM</option>
+          </select>
+
+          <span className="text-xs text-gray-400 dark:text-zinc-500 ml-2">
+            {filteredLeads.length} leads
+          </span>
+        </div>
+      </div>
+
+      {/* View Mode 1: Kanban Board */}
+      {viewMode === "kanban" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 overflow-x-auto pb-6">
+          {stageDefinitions.map((stage) => {
+            const stageLeads = filteredLeads.filter((l) => l.status === stage.key);
+            const stageBudgetTotal = stageLeads.reduce((acc, l) => acc + l.budget, 0);
+
+            return (
+              <div
+                key={stage.key}
+                className={`flex flex-col rounded-2xl bg-white/70 dark:bg-zinc-900/60 border ${stage.border} p-3.5 min-w-[240px] shadow-xs`}
+              >
+                {/* Column Header */}
+                <div className="flex items-start justify-between pb-3 mb-3 border-b border-gray-100 dark:border-zinc-800">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900 dark:text-white">
+                      {stage.label}
+                    </h3>
+                    <p className="text-[11px] font-semibold text-primary mt-0.5">
+                      ${stageBudgetTotal.toLocaleString()}{" "}
+                      <span className="text-[10px] text-gray-400 font-normal">
+                        ({stage.prob}%)
+                      </span>
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400">
+                    {stageLeads.length}
+                  </span>
+                </div>
+
+                {/* Cards Stack */}
+                <div className="flex flex-col gap-3">
+                  {stageLeads.map((lead) => (
+                    <div
+                      key={lead.id}
+                      onClick={() => setActiveLead(lead)}
+                      className="p-3.5 rounded-xl bg-white dark:bg-zinc-800/90 border border-gray-200 dark:border-zinc-700/80 hover:border-primary/60 dark:hover:border-primary/60 shadow-xs cursor-pointer transition-all group"
+                    >
+                      <div className="flex items-start justify-between">
+                        <span className="font-bold text-xs text-gray-900 dark:text-white group-hover:text-primary transition-colors">
+                          {lead.company}
+                        </span>
+                        <span className="text-xs font-black text-gray-900 dark:text-white">
+                          ${lead.budget.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 line-clamp-1 mt-1">
+                        {lead.service}
+                      </p>
+
+                      <p className="text-[11px] text-gray-600 dark:text-zinc-300 line-clamp-2 mt-2 font-lato leading-relaxed">
+                        {lead.brief}
+                      </p>
+
+                      <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100 dark:border-zinc-700/50 text-[10px]">
+                        <span className="text-gray-500 dark:text-zinc-400 font-medium">
+                          {lead.contact_name}
+                        </span>
+                        <span className="text-primary font-bold">
+                          {lead.probability}% Prob
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {stageLeads.length === 0 && (
+                    <div className="py-10 text-center text-xs text-gray-400 dark:text-zinc-600 border border-dashed border-gray-200 dark:border-zinc-800 rounded-xl">
+                      No leads in {stage.label}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* View Mode 2: Dense Table View */}
+      {viewMode === "table" && (
+        <div className="rounded-2xl bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 text-gray-400 dark:text-zinc-500 uppercase tracking-wider">
+                  <th className="py-3.5 px-4 font-semibold">Company / Lead</th>
+                  <th className="py-3.5 px-4 font-semibold">Contact Person</th>
+                  <th className="py-3.5 px-4 font-semibold">Service</th>
+                  <th className="py-3.5 px-4 font-semibold">Budget</th>
+                  <th className="py-3.5 px-4 font-semibold">Stage</th>
+                  <th className="py-3.5 px-4 font-semibold">Owner</th>
+                  <th className="py-3.5 px-4 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 text-gray-700 dark:text-zinc-300">
+                {filteredLeads.map((lead) => (
+                  <tr
+                    key={lead.id}
+                    onClick={() => setActiveLead(lead)}
+                    className="hover:bg-gray-50 dark:hover:bg-zinc-800/50 cursor-pointer transition-colors"
+                  >
+                    <td className="py-3.5 px-4 font-bold text-gray-900 dark:text-white">
+                      {lead.company}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div>{lead.contact_name}</div>
+                      <div className="text-[10px] text-gray-400">{lead.email}</div>
+                    </td>
+                    <td className="py-3.5 px-4">{lead.service}</td>
+                    <td className="py-3.5 px-4 font-bold text-primary">
+                      ${lead.budget.toLocaleString()}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase">
+                        {lead.status.replace("_", " ")}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-gray-500">{lead.owner}</td>
+                    <td className="py-3.5 px-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveLead(lead);
+                        }}
+                        className="text-primary hover:underline font-bold text-[11px]"
+                      >
+                        Inspect
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Slide-Over Detail Drawer Modal */}
+      {activeLead && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            onClick={() => setActiveLead(null)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+          />
+          <div className="relative z-10 w-full max-w-lg bg-white dark:bg-zinc-950 border-l border-gray-200 dark:border-zinc-800 shadow-2xl p-6 sm:p-8 flex flex-col justify-between overflow-y-auto">
+            
+            <div>
+              {/* Drawer Top */}
+              <div className="flex items-start justify-between pb-4 border-b border-gray-200 dark:border-zinc-800">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                    Lead Inspection
+                  </span>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
+                    {activeLead.company}
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">
+                    Contact: {activeLead.contact_name} ({activeLead.email})
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveLead(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-white"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Stage Transition Selector */}
+              <div className="my-6">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 mb-2">
+                  Pipeline Stage &amp; Progression
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {stageDefinitions.map((s) => (
+                    <button
+                      key={s.key}
+                      onClick={() => moveStage(activeLead.id, s.key)}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold border text-center transition-all ${
+                        activeLead.status === s.key
+                          ? "bg-primary text-white border-primary shadow-xs"
+                          : "bg-gray-50 dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-600 dark:text-zinc-400 hover:border-gray-400"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Financial & Scope Specs */}
+              <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800 text-xs mb-6">
+                <div>
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Target Budget</span>
+                  <span className="text-base font-extrabold text-primary">${activeLead.budget.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Probability</span>
+                  <span className="text-base font-extrabold text-gray-900 dark:text-white">{activeLead.probability}%</span>
+                </div>
+                <div className="col-span-2 pt-2 border-t border-gray-200 dark:border-zinc-800">
+                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Service Required</span>
+                  <span className="font-semibold text-gray-800 dark:text-zinc-200">{activeLead.service}</span>
+                </div>
+              </div>
+
+              {/* Project Brief */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-zinc-300 mb-1.5">
+                  Client Project Brief
+                </h3>
+                <div className="p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-zinc-300 font-lato leading-relaxed">
+                  {activeLead.brief}
+                </div>
+              </div>
+
+              {/* Internal Notes Feed */}
+              <div className="mb-6">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-zinc-300 mb-2">
+                  Staff Notes &amp; Call Logs
+                </h3>
+                <div className="flex flex-col gap-2 mb-3">
+                  {activeLead.notes && activeLead.notes.length > 0 ? (
+                    activeLead.notes.map((note, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-xs text-gray-700 dark:text-zinc-300"
+                      >
+                        {note}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-gray-400 dark:text-zinc-600">
+                      No internal notes recorded.
+                    </div>
+                  )}
+                </div>
+
+                <form onSubmit={handleAddNote} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newNote}
+                    onChange={(e) => setNewNote(e.target.value)}
+                    placeholder="Log call note or reminder..."
+                    className="flex-1 h-9 px-3 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3.5 py-1.5 rounded-xl font-bold text-xs uppercase bg-primary hover:bg-primary/90 text-white shadow-xs"
+                  >
+                    Add
+                  </button>
+                </form>
+              </div>
+
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="pt-6 border-t border-gray-200 dark:border-zinc-800 flex items-center gap-3">
+              <Link
+                href="/crm/proposals"
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 transition-all"
+              >
+                <DocumentTextIcon className="w-4 h-4" />
+                <span>Draft Proposal Scope</span>
+              </Link>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
 }
