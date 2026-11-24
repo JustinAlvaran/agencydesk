@@ -1,0 +1,10 @@
+.local
+.agents
+.env.local
+.env.*.local
+node_modules
+test-results
+playwright-report
+artifacts
+.git
+supabase/.temp
