@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 
 import { Lead, LeadStatus } from "@/types/crm";
+import { initialLeads } from "@/lib/mock-crm-data";
 import { toast } from "sonner";
 import {
   MagnifyingGlassIcon,
@@ -25,7 +26,7 @@ const stageDefinitions: { key: LeadStatus; label: string; prob: number; color: s
 ];
 
 export default function LeadsPipelinePage() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedService, setSelectedService] = useState("all");
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
@@ -35,13 +36,15 @@ export default function LeadsPipelinePage() {
   // Sync leads from backend API
   useEffect(() => {
     fetch("/api/crm/leads")
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Load failed"))))
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Sync failed"))))
       .then((data) => {
         if (data?.leads && Array.isArray(data.leads)) {
           setLeads(data.leads);
         }
       })
-      .catch(() => toast.error("Could not load leads. Refresh to try again."));
+      .catch(() => {
+        toast.error("Could not sync live leads. Showing cached workspace view.");
+      });
   }, []);
 
   const filteredLeads = leads.filter((lead) => {

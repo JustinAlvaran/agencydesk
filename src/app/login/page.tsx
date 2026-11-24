@@ -39,8 +39,8 @@ const GitHubIcon = () => (
 
 export default function LoginPage() {
   const auth = useWorkspaceLogin();
-  const [email, setEmail] = useState("admin@agencydesk.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const isSubmitting = auth.pending;
   const statusText = auth.pending ? "Signing in..." : "Sign In to Workspace";
   const handleOAuth = auth.oauth;
@@ -127,6 +127,10 @@ export default function LoginPage() {
               </button>
             </div>
 
+            <p className="text-[11px] text-gray-500 dark:text-zinc-400 text-center mt-1">
+              Enterprise SSO for verified agency team members
+            </p>
+
             {/* Divider */}
             <div className="relative my-3">
               <div className="absolute inset-0 flex items-center">
@@ -141,7 +145,16 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            {auth.error && <p role="alert" className="text-sm text-primary">{auth.error}</p>}
+            {auth.error && (
+              <div role="alert" className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 text-xs text-primary flex flex-col gap-1.5">
+                <span className="font-semibold">{auth.error}</span>
+                {(auth.error.toLowerCase().includes('provider') || auth.error.toLowerCase().includes('cancel') || auth.error.toLowerCase().includes('workspace sign-in')) && (
+                  <p className="text-[11px] text-gray-600 dark:text-zinc-400 pt-1 border-t border-primary/15">
+                    Enterprise SSO is active for verified workspace members. Sign in with your registered email and password below.
+                  </p>
+                )}
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5">
                 Email Address
@@ -150,6 +163,7 @@ export default function LoginPage() {
                 <UserIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
+                  placeholder="you@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full h-11 pl-9 pr-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:outline-none focus:border-primary font-mono"
@@ -165,6 +179,7 @@ export default function LoginPage() {
                 <LockClosedIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
+                  placeholder="••••••••"
                   autoComplete="current-password" maxLength={128}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -194,14 +209,6 @@ export default function LoginPage() {
               <span>Launch /crm-admin Gateway</span>
               <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button
-              type="button"
-              onClick={() => auth.login("admin@agencydesk.com", "admin123")}
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:border-primary/50 transition-colors text-left cursor-pointer"
-            >
-              <span>Agency Staff CRM Demo</span>
-              <ArrowRightIcon className="w-3.5 h-3.5 text-primary" />
-            </button>
             <Link
               href="/portal"
               className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:border-primary/50 transition-colors"
