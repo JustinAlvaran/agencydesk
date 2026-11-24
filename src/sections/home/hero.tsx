@@ -17,10 +17,10 @@ const Hero = () => {
       className="flex flex-col justify-center items-center text-center hero-bg
       gap-[clamp(1.75rem,2.5vw,2.5rem)]
       pt-[clamp(7rem,12vw,11rem)]
-      pb-[clamp(3rem,6vw,5rem)]
+      pb-[clamp(4.5rem,8vw,7.5rem)]
       px-[clamp(1rem,5vw,5rem)]
       transition-all duration-300 ease-in-out
-      w-full"
+      w-full relative z-10"
     >
       {/* Top Eyebrow Badge */}
       <motion.div
@@ -138,7 +138,7 @@ const Hero = () => {
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, delay: 0.7 }}
-        className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3"
+        className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 pb-2 relative z-10"
       >
         <CTAButton
           title="Start inquiry"
