@@ -39,8 +39,8 @@ const GitHubIcon = () => (
 
 export default function LoginPage() {
   const auth = useWorkspaceLogin();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("••••••••••••");
+  const [email, setEmail] = useState("admin@agencydesk.com");
+  const [password, setPassword] = useState("admin123");
   const isSubmitting = auth.pending;
   const statusText = auth.pending ? "Signing in..." : "Sign In to Workspace";
   const handleOAuth = auth.oauth;
@@ -194,13 +194,14 @@ export default function LoginPage() {
               <span>Launch /crm-admin Gateway</span>
               <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="/crm"
-              className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:border-primary/50 transition-colors"
+            <button
+              type="button"
+              onClick={() => auth.login("admin@agencydesk.com", "admin123")}
+              className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:border-primary/50 transition-colors text-left cursor-pointer"
             >
               <span>Agency Staff CRM Demo</span>
               <ArrowRightIcon className="w-3.5 h-3.5 text-primary" />
-            </Link>
+            </button>
             <Link
               href="/portal"
               className="w-full flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 text-xs font-semibold text-gray-800 dark:text-gray-200 hover:border-primary/50 transition-colors"
