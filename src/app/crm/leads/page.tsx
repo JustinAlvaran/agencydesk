@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { Lead, LeadStatus } from "@/types/crm";
 import { initialLeads } from "@/lib/mock-crm-data";
@@ -25,7 +26,10 @@ const stageDefinitions: { key: LeadStatus; label: string; prob: number; color: s
   { key: "won", label: "Won / Kickoff", prob: 100, color: "bg-emerald-500", border: "border-emerald-500/40" },
 ];
 
-export default function LeadsPipelinePage() {
+function LeadsPipelineContent() {
+  const searchParams = useSearchParams();
+  const leadParam = searchParams.get("lead");
+
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedService, setSelectedService] = useState("all");
@@ -46,6 +50,16 @@ export default function LeadsPipelinePage() {
         toast.error("Could not sync live leads. Showing cached workspace view.");
       });
   }, []);
+
+  // Deep-link support: auto-open lead inspection drawer if ?lead=<id> is present
+  useEffect(() => {
+    if (leadParam && leads.length > 0) {
+      const match = leads.find((l) => l.id.toLowerCase() === leadParam.toLowerCase());
+      if (match) {
+        setActiveLead(match);
+      }
+    }
+  }, [leadParam, leads]);
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
@@ -542,5 +556,13 @@ export default function LeadsPipelinePage() {
       )}
 
     </div>
+  );
+}
+
+export default function LeadsPipelinePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs text-gray-500">Loading pipeline...</div>}>
+      <LeadsPipelineContent />
+    </Suspense>
   );
 }
