@@ -20,7 +20,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\n\n// Clean & normalize phone number to E.164 standard (+639913780170 or +1555...)\nlet rawPhone = item.whatsapp || item.phone || '';\nlet cleanPhone = rawPhone.replace(/[^\\d+]/g, '');\nif (cleanPhone.startsWith('09')) {\n  cleanPhone = '+63' + cleanPhone.slice(1);\n} else if (cleanPhone && !cleanPhone.startsWith('+')) {\n  cleanPhone = '+' + cleanPhone;\n}\n\n// Sanitize Instagram handle\nlet rawIg = item.instagram || '';\nlet cleanIg = rawIg.trim();\nif (cleanIg.includes('instagram.com/')) {\n  cleanIg = cleanIg.split('instagram.com/')[1].split('/')[0].split('?')[0];\n}\nif (cleanIg && !cleanIg.startsWith('@')) {\n  cleanIg = '@' + cleanIg;\n}\n\n// Calculate initial opportunity qualification score (0 - 100)\nlet leadScore = 20;\nconst budgetNum = Number(item.budget) || 0;\nif (budgetNum >= 50000) leadScore += 40;\nelse if (budgetNum >= 25000) leadScore += 25;\nelse if (budgetNum >= 10000) leadScore += 10;\n\nif (item.whatsapp_opt_in) leadScore += 15;\nif (cleanIg) leadScore += 10;\nif (item.brief && item.brief.length > 50) leadScore += 15;\n\nreturn [{\n  json: {\n    contact_name: item.contact_name || 'Anonymous Lead',\n    email: (item.email || '').toLowerCase().trim(),\n    phone: cleanPhone || null,\n    whatsapp: cleanPhone || null,\n    whatsapp_opt_in: Boolean(item.whatsapp_opt_in),\n    instagram: cleanIg || null,\n    company: item.company || 'Unassigned Company',\n    service: item.service || 'Web & Mobile Applications',\n    budget: budgetNum,\n    timeline: item.timeline || 'Immediate (Next 30 days)',\n    brief: item.brief || 'No initial brief provided.',\n    source: item.source || 'website_inquiry',\n    submission_id: item.submission_id || $execution.id,\n    lead_score: Math.min(100, leadScore),\n    received_at: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\n\n// Webhook authentication gate: fail-closed if secret is missing or invalid\nconst headers = input.headers || {};\nconst signature = headers['x-agencydesk-signature'] || (headers['authorization'] ? headers['authorization'].replace(/^Bearer\\s+/i, '') : '');\nif (!$env.AUTOMATION_SECRET || signature !== $env.AUTOMATION_SECRET) {\n  throw new Error('Unauthorized inquiry webhook request.');\n}\n\n// Support both direct payloads and n8n Webhook v2 nested body\nconst item = input.body || input;\n\n// Clean & normalize phone number to E.164 standard (+639913780170 or +1555...)\nlet rawPhone = item.whatsapp || item.phone || '';\nlet cleanPhone = rawPhone.replace(/[^\\d+]/g, '');\nif (cleanPhone.startsWith('09')) {\n  cleanPhone = '+63' + cleanPhone.slice(1);\n} else if (cleanPhone && !cleanPhone.startsWith('+')) {\n  cleanPhone = '+' + cleanPhone;\n}\n\n// Validate strict E.164 regex\nconst validatedPhone = /^\\+[1-9]\\d{7,14}$/.test(cleanPhone) ? cleanPhone : null;\n\n// Sanitize Instagram handle\nlet rawIg = item.instagram || '';\nlet cleanIg = rawIg.trim();\nif (cleanIg.includes('instagram.com/')) {\n  cleanIg = cleanIg.split('instagram.com/')[1].split('/')[0].split('?')[0];\n}\nif (cleanIg && !cleanIg.startsWith('@')) {\n  cleanIg = '@' + cleanIg;\n}\n\n// Calculate initial opportunity qualification score (0 - 100)\nlet leadScore = 20;\nconst budgetNum = Number(item.budget) || (Number(item.budget_cents) / 100) || 0;\nif (budgetNum >= 50000) leadScore += 40;\nelse if (budgetNum >= 25000) leadScore += 25;\nelse if (budgetNum >= 10000) leadScore += 10;\n\nif (item.whatsapp_opt_in && validatedPhone) leadScore += 15;\nif (cleanIg) leadScore += 10;\nif (item.brief && item.brief.length > 50) leadScore += 15;\n\nreturn [{\n  json: {\n    contact_name: item.contact_name || 'Anonymous Lead',\n    email: (item.email || '').toLowerCase().trim(),\n    phone: validatedPhone,\n    whatsapp: validatedPhone,\n    whatsapp_opt_in: Boolean(item.whatsapp_opt_in && validatedPhone),\n    instagram: cleanIg || null,\n    company: item.company || 'Unassigned Company',\n    service: item.service || 'Web & Mobile Applications',\n    budget: budgetNum,\n    timeline: item.timeline || 'Immediate (Next 30 days)',\n    brief: item.brief || 'No initial brief provided.',\n    source: item.source || 'website_inquiry',\n    submission_id: item.submission_id || $execution.id,\n    lead_score: Math.min(100, leadScore),\n    received_at: new Date().toISOString()\n  }\n}];"
       },
       "id": "2",
       "name": "Normalize & Validate Lead Payload",
@@ -33,17 +33,17 @@
     },
     {
       "parameters": {
-        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/leads?email=eq.' + encodeURIComponent($json.email) + '&select=id,status,created_at' }}",
+        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/leads?email=eq.' + encodeURIComponent($json.email) + '&agency_id=eq.a0000000-0000-4000-8000-000000000001&archived_at=is.null&select=id,status,created_at' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "={{ $env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy' }}"
+              "value": "={{ $env.SUPABASE_ANON_KEY || '' }}"
             },
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'dummy') }}"
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || '') }}"
             }
           ]
         },
@@ -98,11 +98,11 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "={{ $env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy' }}"
+              "value": "={{ $env.SUPABASE_ANON_KEY || '' }}"
             },
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'dummy') }}"
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || '') }}"
             },
             {
               "name": "Content-Type",
@@ -116,7 +116,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"contact_name\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n  \"email\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.email) }},\n  \"phone\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.phone) }},\n  \"whatsapp\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.whatsapp) }},\n  \"whatsapp_opt_in\": {{ $('Normalize & Validate Lead Payload').first().json.whatsapp_opt_in }},\n  \"instagram\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.instagram) }},\n  \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n  \"brief\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.brief) }},\n  \"budget_cents\": {{ $('Normalize & Validate Lead Payload').first().json.budget * 100 }},\n  \"status\": \"new\",\n  \"probability\": 20,\n  \"score\": {{ $('Normalize & Validate Lead Payload').first().json.lead_score }}\n}",
+        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"contact_name\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n  \"email\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.email) }},\n  \"phone\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.phone) }},\n  \"whatsapp_opt_in\": {{ Boolean($('Normalize & Validate Lead Payload').first().json.whatsapp_opt_in) }},\n  \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n  \"brief\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.brief) }},\n  \"budget_cents\": {{ $('Normalize & Validate Lead Payload').first().json.budget * 100 }},\n  \"status\": \"new\",\n  \"company_name\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.company) }}\n}",
         "options": {}
       },
       "id": "5",
@@ -137,11 +137,11 @@
           "parameters": [
             {
               "name": "apikey",
-              "value": "={{ $env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy' }}"
+              "value": "={{ $env.SUPABASE_ANON_KEY || '' }}"
             },
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || 'dummy') }}"
+              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || '') }}"
             },
             {
               "name": "Content-Type",
@@ -151,7 +151,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"event_type\": \"lead_received\",\n  \"detail\": {\n    \"contact\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n    \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n    \"budget\": {{ $('Normalize & Validate Lead Payload').first().json.budget }},\n    \"whatsapp\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.whatsapp) }},\n    \"instagram\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.instagram) }}\n  }\n}",
+        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"event_type\": \"lead_received\",\n  \"lead_id\": {{ JSON.stringify(Array.isArray($('Insert Lead into Supabase').first().json) ? $('Insert Lead into Supabase').first().json[0]?.id : $('Insert Lead into Supabase').first().json?.id) }},\n  \"detail\": {\n    \"contact\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n    \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n    \"budget\": {{ $('Normalize & Validate Lead Payload').first().json.budget }},\n    \"whatsapp\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.whatsapp) }},\n    \"instagram\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.instagram) }}\n  }\n}",
         "options": {}
       },
       "id": "6",
@@ -180,7 +180,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "Timestamp": "={{ new Date().toISOString() }}",
-            "Lead ID": "={{ $('Insert Lead into Supabase').first().json[0]?.id || $('Normalize & Validate Lead Payload').first().json.submission_id }}",
+            "Lead ID": "={{ (Array.isArray($('Insert Lead into Supabase').first().json) ? $('Insert Lead into Supabase').first().json[0]?.id : $('Insert Lead into Supabase').first().json?.id) || $('Normalize & Validate Lead Payload').first().json.submission_id }}",
             "Contact Name": "={{ $('Normalize & Validate Lead Payload').first().json.contact_name }}",
             "Email": "={{ $('Normalize & Validate Lead Payload').first().json.email }}",
             "WhatsApp": "={{ $('Normalize & Validate Lead Payload').first().json.whatsapp || '' }}",
@@ -194,7 +194,7 @@
             "Source": "={{ $('Normalize & Validate Lead Payload').first().json.source }}",
             "Brief": "={{ $('Normalize & Validate Lead Payload').first().json.brief }}",
             "Notes": "Auto-synced via AgencyDesk n8n Cloud to kinggucci195@gmail.com",
-            "Website CRM Link": "={{ 'https://agencydesk-theta.vercel.app/crm/leads?lead=' + ($('Insert Lead into Supabase').first().json[0]?.id || $('Normalize & Validate Lead Payload').first().json.submission_id) }}",
+            "Website CRM Link": "={{ 'https://agencydesk-theta.vercel.app/crm/leads?lead=' + ((Array.isArray($('Insert Lead into Supabase').first().json) ? $('Insert Lead into Supabase').first().json[0]?.id : $('Insert Lead into Supabase').first().json?.id) || $('Normalize & Validate Lead Payload').first().json.submission_id) }}",
             "Sync Hash": "={{ $('Normalize & Validate Lead Payload').first().json.email + '_' + $now.toMillis() }}",
             "Last Synced By": "agencydesk_crm"
           },
@@ -239,7 +239,7 @@
             },
             {
               "name": "X-AgencyDesk-Signature",
-              "value": "={{ $env.AUTOMATION_SECRET || 'agencydesk-n8n-lead-secret' }}"
+              "value": "={{ $env.AUTOMATION_SECRET || '' }}"
             }
           ]
         },
@@ -260,7 +260,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_registered\",\n  \"lead_id\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.submission_id) }},\n  \"lead_score\": {{ $('Normalize & Validate Lead Payload').first().json.lead_score }},\n  \"google_sheets_synced\": true,\n  \"whatsapp_dispatched_to\": \"+639913780170\",\n  \"crm_url\": {{ 'https://agencydesk-theta.vercel.app/crm/leads?lead=' + $('Normalize & Validate Lead Payload').first().json.submission_id }},\n  \"message\": \"Lead successfully recorded in AgencyDesk CRM, synced to Google Sheets (kinggucci195@gmail.com), and WhatsApp notification triggered.\"\n}",
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_registered\",\n  \"lead_id\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.submission_id) }},\n  \"lead_score\": {{ $('Normalize & Validate Lead Payload').first().json.lead_score }},\n  \"google_sheets_synced\": true,\n  \"whatsapp_dispatched_to\": \"+639913780170\",\n  \"crm_url\": {{ JSON.stringify('https://agencydesk-theta.vercel.app/crm/leads?lead=' + $('Normalize & Validate Lead Payload').first().json.submission_id) }},\n  \"message\": \"Lead successfully recorded in AgencyDesk CRM, synced to Google Sheets (kinggucci195@gmail.com), and WhatsApp notification triggered.\"\n}",
         "options": {}
       },
       "id": "10",
@@ -306,7 +306,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\n\n// Loop prevention: suppress sync if triggered by agencydesk_crm\nif (item['Last Synced By'] === 'agencydesk_crm' || item.last_synced_by === 'agencydesk_crm') {\n  return [{ json: { should_sync: false, reason: 'Suppressed: Origin is AgencyDesk CRM' } }];\n}\n\nreturn [{\n  json: {\n    should_sync: true,\n    lead_id: item['Lead ID'] || item.lead_id || null,\n    contact_name: item['Contact Name'] || item.contact_name || 'Imported Lead',\n    email: (item['Email'] || item.email || '').toLowerCase().trim(),\n    phone: item['WhatsApp'] || item.whatsapp || item.phone || null,\n    whatsapp: item['WhatsApp'] || item.whatsapp || null,\n    whatsapp_opt_in: item['WhatsApp Opt-in'] === 'YES' || Boolean(item.whatsapp_opt_in),\n    instagram: item['Instagram'] || item.instagram || null,\n    company: item['Company'] || item.company || 'Unassigned Company',\n    service: item['Service'] || item.service || 'Web & Mobile Applications',\n    brief: item['Brief'] || item.brief || 'Lead entered via Google Sheets',\n    budget: Number(item['Budget'] || item.budget || 0),\n    status: (item['Status'] || item.status || 'new').toLowerCase().replace(/\\s+/g, '_'),\n    score: Number(item['Score'] || item.score || 50),\n    notes: item['Notes'] || item.notes || null,\n    source: 'google_sheets',\n    last_synced_by: 'sheets_user'\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\n\n// Webhook authentication gate: fail-closed if secret is missing or invalid\nconst headers = input.headers || {};\nconst signature = headers['x-agencydesk-signature'] || (headers['authorization'] ? headers['authorization'].replace(/^Bearer\\s+/i, '') : '');\nif (!$env.AUTOMATION_SECRET || signature !== $env.AUTOMATION_SECRET) {\n  throw new Error('Unauthorized Google Sheets sync webhook request.');\n}\n\n// Support both direct payloads and n8n Webhook v2 nested body\nconst item = input.body || input;\n\n// Loop prevention: suppress sync if triggered by agencydesk_crm\nif (item['Last Synced By'] === 'agencydesk_crm' || item.last_synced_by === 'agencydesk_crm') {\n  return [{ json: { should_sync: false, reason: 'Suppressed: Origin is AgencyDesk CRM' } }];\n}\n\nlet rawStatus = (item['Status'] || item.status || 'new').toLowerCase().replace(/\\s+/g, '_');\nif (rawStatus === 'new_inquiry') rawStatus = 'new';\n\nreturn [{\n  json: {\n    should_sync: true,\n    lead_id: item['Lead ID'] || item.lead_id || null,\n    contact_name: item['Contact Name'] || item.contact_name || 'Imported Lead',\n    email: (item['Email'] || item.email || '').toLowerCase().trim(),\n    phone: item['WhatsApp'] || item.whatsapp || item.phone || null,\n    whatsapp: item['WhatsApp'] || item.whatsapp || null,\n    whatsapp_opt_in: item['WhatsApp Opt-in'] === 'YES' || Boolean(item.whatsapp_opt_in),\n    instagram: item['Instagram'] || item.instagram || null,\n    company: item['Company'] || item.company || 'Unassigned Company',\n    service: item['Service'] || item.service || 'Web & Mobile Applications',\n    brief: item['Brief'] || item.brief || 'Lead entered via Google Sheets',\n    budget: Number(item['Budget'] || item.budget || 0),\n    status: rawStatus,\n    score: Number(item['Score'] || item.score || 50),\n    notes: item['Notes'] || item.notes || null,\n    source: 'google_sheets',\n    last_synced_by: 'sheets_user'\n  }\n}];"
       },
       "id": "13",
       "name": "Check Loop & Normalize Sheets Row",
@@ -351,7 +351,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.AGENCYDESK_APP_URL || 'https://agencydesk-theta.vercel.app' }}/api/integrations/n8n/leads/upsert",
+        "url": "={{ ($env.AGENCYDESK_APP_URL || 'https://agencydesk-theta.vercel.app') + '/api/integrations/n8n/leads/upsert' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -361,7 +361,11 @@
             },
             {
               "name": "X-AgencyDesk-Signature",
-              "value": "={{ $env.AUTOMATION_SECRET || 'agencydesk-n8n-lead-secret' }}"
+              "value": "={{ $env.AUTOMATION_SECRET || '' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.AUTOMATION_SECRET || '') }}"
             }
           ]
         },

@@ -63,9 +63,13 @@ export const POST = (request: Request) =>
 
     // Optional asynchronous webhook to n8n automation engine
     if (process.env.N8N_LEAD_WEBHOOK_URL) {
+      const secret = process.env.AUTOMATION_SECRET;
       fetch(process.env.N8N_LEAD_WEBHOOK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(secret ? { 'X-AgencyDesk-Signature': secret, 'Authorization': `Bearer ${secret}` } : {}),
+        },
         body: JSON.stringify({
           lead_id: result.data,
           ...details,

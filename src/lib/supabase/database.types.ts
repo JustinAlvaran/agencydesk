@@ -490,6 +490,10 @@ export type Database = {
         }
         Insert: {
           agency_id?: string
+          company_name?: string
+          budget_range?: string
+          timeline?: string
+          row_version?: number
           phone?: string | null
           source?: string
           email_opt_in?: boolean
@@ -509,6 +513,10 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          company_name?: string
+          budget_range?: string
+          timeline?: string
+          row_version?: number
           phone?: string | null
           source?: string
           email_opt_in?: boolean

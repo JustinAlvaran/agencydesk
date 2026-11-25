@@ -38,10 +38,10 @@ export default async function Page() {
 
   return (
     <View
-      initialLeads={data.leads}
-      initialProjects={data.projects}
-      initialTasks={data.tasks}
-      initialActivities={data.activities}
+      initialLeads={data.leads || []}
+      initialProjects={data.projects || []}
+      initialTasks={data.tasks || []}
+      initialActivities={data.activities || []}
       totalPipeline={(data.totals?.pipeline_cents ?? 0) / 100}
       weightedPipeline={(data.totals?.weighted_cents ?? 0) / 100}
       openLeads={data.totals?.open_leads ?? 0}

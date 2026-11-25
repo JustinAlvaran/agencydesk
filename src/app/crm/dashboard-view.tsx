@@ -12,7 +12,25 @@ import {
   Squares2X2Icon
 } from "@heroicons/react/24/solid";
 
-export default function View({initialLeads,initialProjects,initialTasks,initialActivities,totalPipeline,weightedPipeline,openLeads,acceptedValue}:{initialLeads:Lead[];initialProjects:Project[];initialTasks:Task[];initialActivities:ActivityEvent[];totalPipeline:number;weightedPipeline:number;openLeads:number;acceptedValue:number}) {
+export default function View({
+  initialLeads = [],
+  initialProjects = [],
+  initialTasks = [],
+  initialActivities = [],
+  totalPipeline = 0,
+  weightedPipeline = 0,
+  openLeads = 0,
+  acceptedValue = 0,
+}: {
+  initialLeads?: Lead[];
+  initialProjects?: Project[];
+  initialTasks?: Task[];
+  initialActivities?: ActivityEvent[];
+  totalPipeline?: number;
+  weightedPipeline?: number;
+  openLeads?: number;
+  acceptedValue?: number;
+}) {
   const stageRows=['new','contacted','qualified','proposal_sent','won','lost'].map(stage=>{const rows=initialLeads.filter(l=>l.status===stage);return {stage:stage.replaceAll('_',' '),count:rows.length,sum:rows.reduce((a,l)=>a+l.budget,0),color:'bg-primary',pct:`${initialLeads.length?rows.length/initialLeads.length*100:0}%`};});
   return (
     <div className="flex flex-col gap-8">

@@ -222,7 +222,7 @@ export async function crmData(db?: SupabaseClient<Database> | null, client = fal
     id: e.id,
     lead_id: e.lead_id ?? undefined,
     type: 'status_change',
-    title: e.event_type.replaceAll('_', ' '),
+    title: (e.event_type || 'activity_recorded').replaceAll('_', ' '),
     actor: e.actor_id ? 'Workspace member' : 'System',
     detail: 'Recorded in the agency audit log',
     created_at: e.created_at,
