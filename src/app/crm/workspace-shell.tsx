@@ -20,6 +20,7 @@ import {
   Bars3Icon,
   XMarkIcon,
   ShieldCheckIcon,
+  UsersIcon,
 } from "@heroicons/react/24/outline";
 
 const coreNavItems = [
@@ -35,13 +36,17 @@ const automationNavItems = [
   { href: "/crm/automations?tab=outbox", label: "Approval Queue", icon: InboxStackIcon },
 ];
 
+const workspaceNavItems = [
+  { href: "/crm/team", label: "Team & Access", icon: UsersIcon, exact: false },
+];
+
 export default function CRMLayout({ children,email,role }: { children: React.ReactNode;email:string;role:string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [headerSearch, setHeaderSearch] = useState("");
 
-  const allNavItems = [...coreNavItems, ...automationNavItems];
+  const allNavItems = [...coreNavItems, ...automationNavItems, ...workspaceNavItems];
   const activeItem = allNavItems.find((item) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href.split("?")[0])
   );
@@ -137,6 +142,33 @@ export default function CRMLayout({ children,email,role }: { children: React.Rea
             {automationNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.exact && pathname === item.href;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${
+                    isActive
+                      ? "bg-primary text-white shadow-md shadow-primary/25"
+                      : "text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-900/80 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500 px-3 pt-5 pb-2">
+            Workspace &amp; Access
+          </div>
+
+          <nav className="flex flex-col gap-1">
+            {workspaceNavItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname.startsWith(item.href);
 
               return (
                 <Link
