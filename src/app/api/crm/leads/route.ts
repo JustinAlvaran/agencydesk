@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {apiSession,endpoint,json,readJson,sameOrigin,databaseError} from '@/lib/http';
 import {crmData} from '@/lib/crm-data';
+import {dispatchN8nWebhook} from '@/lib/n8n-dispatch';
 export const GET=()=>endpoint(async()=>{const {supabase}=await apiSession();return json({leads:(await crmData(supabase)).leads});});
 export const POST = (request: Request) =>
   endpoint(async () => {
@@ -38,22 +39,12 @@ export const POST = (request: Request) =>
     databaseError(error);
 
     // Asynchronous webhook to n8n automation engine
-    if (process.env.N8N_LEAD_WEBHOOK_URL) {
-      const secret = process.env.AUTOMATION_SECRET;
-      fetch(process.env.N8N_LEAD_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(secret ? { 'X-AgencyDesk-Signature': secret, 'Authorization': `Bearer ${secret}` } : {}),
-        },
-        body: JSON.stringify({
-          lead_id: data,
-          ...input,
-          phone: phoneValue,
-          timestamp: new Date().toISOString(),
-        }),
-      }).catch(() => {});
-    }
+    dispatchN8nWebhook(process.env.N8N_LEAD_WEBHOOK_URL, {
+      lead_id: data,
+      ...input,
+      phone: phoneValue,
+      timestamp: new Date().toISOString(),
+    });
 
     return json({ id: data }, 201);
   });

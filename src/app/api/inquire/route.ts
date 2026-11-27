@@ -3,6 +3,7 @@ import {z} from 'zod';
 import {endpoint,json,readJson,sameOrigin,HttpError} from '@/lib/http';
 import {serviceClient} from '@/lib/supabase/admin';
 import {isDemo} from '@/lib/env';
+import {dispatchN8nWebhook} from '@/lib/n8n-dispatch';
 const budgets:Record<string,number>={'$10,000 - $25,000':1000000,'$25,000 - $50,000':2500000,'$50,000 - $100,000':5000000,'$100,000+':10000000};
 const schema = z.object({
   submission_id: z.uuid(),
@@ -62,21 +63,11 @@ export const POST = (request: Request) =>
     }
 
     // Optional asynchronous webhook to n8n automation engine
-    if (process.env.N8N_LEAD_WEBHOOK_URL) {
-      const secret = process.env.AUTOMATION_SECRET;
-      fetch(process.env.N8N_LEAD_WEBHOOK_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(secret ? { 'X-AgencyDesk-Signature': secret, 'Authorization': `Bearer ${secret}` } : {}),
-        },
-        body: JSON.stringify({
-          lead_id: result.data,
-          ...details,
-          timestamp: new Date().toISOString(),
-        }),
-      }).catch(() => {});
-    }
+    dispatchN8nWebhook(process.env.N8N_LEAD_WEBHOOK_URL, {
+      lead_id: result.data,
+      ...details,
+      timestamp: new Date().toISOString(),
+    });
 
     return json({ success: true, id: result.data }, 201);
   });

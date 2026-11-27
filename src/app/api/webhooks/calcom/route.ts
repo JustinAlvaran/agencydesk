@@ -89,26 +89,12 @@ const eventTypeMap: Record<
   BOOKING_CANCELLED: 'calcom_booking_cancelled',
 };
 
+import { dispatchN8nWebhook } from '@/lib/n8n-dispatch';
+
 function fireLifecycleWebhook(payload: Record<string, unknown>) {
   if (isDemo()) return;
-  const secret = process.env.AUTOMATION_SECRET;
   const webhookUrl = process.env.N8N_LIFECYCLE_WEBHOOK_URL || process.env.N8N_LEAD_WEBHOOK_URL;
-  if (!secret || !webhookUrl) return;
-  try {
-    new URL(webhookUrl);
-    void fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-AgencyDesk-Signature': secret,
-        Authorization: `Bearer ${secret}`,
-      },
-      body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(5000),
-    }).catch(() => {});
-  } catch {
-    // Best-effort notification: never fail webhook acknowledgment
-  }
+  dispatchN8nWebhook(webhookUrl, payload, { requireSecret: true });
 }
 
 export const POST = (request: Request) =>
