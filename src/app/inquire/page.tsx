@@ -3,7 +3,15 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeftIcon, CheckCircleIcon, SparklesIcon, ArrowUpRightIcon } from "@heroicons/react/24/solid";
+import {
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  SparklesIcon,
+  ArrowUpRightIcon,
+  BoltIcon,
+  TableCellsIcon,
+  ChatBubbleLeftRightIcon,
+} from "@heroicons/react/24/solid";
 
 const servicesOptions = [
   "Web & Mobile Applications",
@@ -113,6 +121,41 @@ export default function InquirePage() {
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-3 max-w-lg mx-auto">
               Thank you, <span className="font-semibold text-gray-900 dark:text-white">{formData.name}</span>. We have recorded your project parameters for <span className="text-primary font-semibold">{formData.company || selectedService}</span>.
             </p>
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left max-w-2xl mx-auto">
+              <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  1. Logged
+                </span>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">
+                  CRM Intake Saved
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5">
+                  Added to our active deal pipeline.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                  2. Synced
+                </span>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">
+                  Sheet &amp; Owner Alert
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5">
+                  Principal notified for scoping review.
+                </p>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-gray-50 dark:bg-zinc-900/70 border border-gray-200 dark:border-zinc-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                  3. Next (&lt;24h)
+                </span>
+                <p className="text-xs font-semibold text-gray-900 dark:text-white mt-0.5">
+                  Discovery Response
+                </p>
+                <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5">
+                  Reply via {formData.whatsappOptIn && (formData.whatsapp || formData.phone) ? "WhatsApp & Email" : "Email"}.
+                </p>
+              </div>
+            </div>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/crm"
@@ -261,21 +304,25 @@ export default function InquirePage() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
                     <span>WhatsApp Number</span>
-                    <span className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider">Fast Response</span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Fast Response</span>
                   </label>
                   <input
                     type="tel"
+                    inputMode="tel"
                     value={formData.whatsapp || formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value, whatsapp: e.target.value })}
-                    placeholder="+63 991 378 0170 or +1 555..."
+                    placeholder="+63 991 378 0170 or +1 555 234 5678"
                     className="w-full h-11 px-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:border-primary focus:outline-none font-mono"
                   />
+                  <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                    International E.164 format recommended (e.g. <span className="font-mono text-gray-700 dark:text-zinc-300">+639913780170</span> or <span className="font-mono text-gray-700 dark:text-zinc-300">+15551234567</span>). Local <span className="font-mono">09xx</span> PH numbers auto-convert to <span className="font-mono">+63</span>.
+                  </p>
                 </div>
 
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-gray-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
                     <span>Instagram Profile / Handle (Optional)</span>
-                    <span className="text-[10px] text-pink-500 font-bold uppercase tracking-wider">Brand Audit</span>
+                    <span className="text-[10px] text-pink-600 dark:text-pink-400 font-bold uppercase tracking-wider">Brand Audit</span>
                   </label>
                   <input
                     type="text"
@@ -284,6 +331,9 @@ export default function InquirePage() {
                     placeholder="@yourbrand or instagram.com/company"
                     className="w-full h-11 px-4 rounded-xl bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-xs text-gray-900 dark:text-white focus:border-primary focus:outline-none"
                   />
+                  <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-1.5">
+                    Share your <span className="font-mono text-gray-700 dark:text-zinc-300">@handle</span> so we can review your brand &amp; funnel before our call.
+                  </p>
                 </div>
               </div>
 
@@ -331,11 +381,66 @@ export default function InquirePage() {
                 </div>
               </div>
 
+              {/* What Happens Next Reassurance Block */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gray-50/90 dark:bg-zinc-900/60 border border-gray-200 dark:border-zinc-800">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-zinc-300">
+                    What happens next
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    No spam · Human review
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-zinc-950/70 border border-gray-200/80 dark:border-zinc-800">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <BoltIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">
+                        1. Instant CRM Intake
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                        Your scope, budget, and timeline are logged immediately.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-zinc-950/70 border border-gray-200/80 dark:border-zinc-800">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <TableCellsIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">
+                        2. Sheet &amp; Owner Alert
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                        Synced to our tracking sheet and flagged for our principal.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-white dark:bg-zinc-950/70 border border-gray-200/80 dark:border-zinc-800">
+                    <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                      <ChatBubbleLeftRightIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white">
+                        3. Discovery Within 24h
+                      </p>
+                      <p className="text-[11px] text-gray-500 dark:text-zinc-400 mt-0.5 leading-snug">
+                        We follow up via WhatsApp or email with clear next steps.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/25 transition-all duration-200"
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-full font-bold text-xs uppercase tracking-wider bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/25 transition-all duration-200 cursor-pointer disabled:opacity-60"
               >
                 <span>{submitting ? "Submitting Inquiry..." : "Submit Inquiry for Proposal"}</span>
                 <ArrowUpRightIcon className="w-4 h-4" />

@@ -13,48 +13,21 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        200,
+        180,
         300
       ],
       "webhookId": "agencydesk-lead-inquiry-webhook"
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\n\n// Webhook authentication gate: fail-closed if secret is missing or invalid\nconst headers = input.headers || {};\nconst signature = headers['x-agencydesk-signature'] || (headers['authorization'] ? headers['authorization'].replace(/^Bearer\\s+/i, '') : '');\nif (!$env.AUTOMATION_SECRET || signature !== $env.AUTOMATION_SECRET) {\n  throw new Error('Unauthorized inquiry webhook request.');\n}\n\n// Support both direct payloads and n8n Webhook v2 nested body\nconst item = input.body || input;\n\n// Clean & normalize phone number to E.164 standard (+639913780170 or +1555...)\nlet rawPhone = item.whatsapp || item.phone || '';\nlet cleanPhone = rawPhone.replace(/[^\\d+]/g, '');\nif (cleanPhone.startsWith('09')) {\n  cleanPhone = '+63' + cleanPhone.slice(1);\n} else if (cleanPhone && !cleanPhone.startsWith('+')) {\n  cleanPhone = '+' + cleanPhone;\n}\n\n// Validate strict E.164 regex\nconst validatedPhone = /^\\+[1-9]\\d{7,14}$/.test(cleanPhone) ? cleanPhone : null;\n\n// Sanitize Instagram handle\nlet rawIg = item.instagram || '';\nlet cleanIg = rawIg.trim();\nif (cleanIg.includes('instagram.com/')) {\n  cleanIg = cleanIg.split('instagram.com/')[1].split('/')[0].split('?')[0];\n}\nif (cleanIg && !cleanIg.startsWith('@')) {\n  cleanIg = '@' + cleanIg;\n}\n\n// Calculate initial opportunity qualification score (0 - 100)\nlet leadScore = 20;\nconst budgetNum = Number(item.budget) || (Number(item.budget_cents) / 100) || 0;\nif (budgetNum >= 50000) leadScore += 40;\nelse if (budgetNum >= 25000) leadScore += 25;\nelse if (budgetNum >= 10000) leadScore += 10;\n\nif (item.whatsapp_opt_in && validatedPhone) leadScore += 15;\nif (cleanIg) leadScore += 10;\nif (item.brief && item.brief.length > 50) leadScore += 15;\n\nreturn [{\n  json: {\n    contact_name: item.contact_name || 'Anonymous Lead',\n    email: (item.email || '').toLowerCase().trim(),\n    phone: validatedPhone,\n    whatsapp: validatedPhone,\n    whatsapp_opt_in: Boolean(item.whatsapp_opt_in && validatedPhone),\n    instagram: cleanIg || null,\n    company: item.company || 'Unassigned Company',\n    service: item.service || 'Web & Mobile Applications',\n    budget: budgetNum,\n    timeline: item.timeline || 'Immediate (Next 30 days)',\n    brief: item.brief || 'No initial brief provided.',\n    source: item.source || 'website_inquiry',\n    submission_id: item.submission_id || $execution.id,\n    lead_score: Math.min(100, leadScore),\n    received_at: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\n\n// n8n Cloud compatible config: $vars is permitted on n8n Cloud (OS env vars are blocked)\nconst varsObj = (typeof $vars !== 'undefined' && $vars) ? $vars : {};\nconst expectedSecret = varsObj.AUTOMATION_SECRET ? String(varsObj.AUTOMATION_SECRET) : '';\n\n// Fail-closed webhook authentication gate\nconst headers = input.headers || {};\nconst authHeader = headers['authorization'] || headers['Authorization'] || '';\nconst signature = headers['x-agencydesk-signature'] || headers['X-AgencyDesk-Signature'] || (authHeader ? String(authHeader).replace(/^Bearer\\s+/i, '') : '');\nif (!expectedSecret || signature !== expectedSecret) {\n  throw new Error('Unauthorized inquiry webhook request.');\n}\n\n// Support both direct payloads and n8n Webhook v2 nested body\nconst item = input.body || input;\nconst UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nconst safeLeadId = (item.lead_id && UUID_RE.test(String(item.lead_id))) ? String(item.lead_id) : null;\n\nconst cleanEmail = String(item.email || '').toLowerCase().trim();\nconst emailValid = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(cleanEmail);\n\n// Clean & normalize phone number to E.164 standard (+639913780170 or +1555...)\nconst rawPhone = String(item.whatsapp || item.phone || '');\nlet cleanPhone = rawPhone.replace(/[^\\d+]/g, '');\nif (cleanPhone.startsWith('09')) {\n  cleanPhone = '+63' + cleanPhone.slice(1);\n} else if (cleanPhone && !cleanPhone.startsWith('+')) {\n  cleanPhone = '+' + cleanPhone;\n}\nconst validatedPhone = /^\\+[1-9]\\d{7,14}$/.test(cleanPhone) ? cleanPhone : null;\n\n// Sanitize Instagram handle\nlet cleanIg = String(item.instagram || '').trim();\nif (cleanIg.includes('instagram.com/')) {\n  cleanIg = cleanIg.split('instagram.com/')[1].split('/')[0].split('?')[0];\n}\nif (cleanIg && !cleanIg.startsWith('@')) {\n  cleanIg = '@' + cleanIg;\n}\n\n// Calculate initial opportunity qualification score (0 - 100)\nlet leadScore = 20;\nconst budgetNum = Number(item.budget) || (Number(item.budget_cents) / 100) || 0;\nconst safeBudget = Number.isFinite(budgetNum) && budgetNum >= 0 ? Math.round(budgetNum) : 0;\nif (safeBudget >= 50000) leadScore += 40;\nelse if (safeBudget >= 25000) leadScore += 25;\nelse if (safeBudget >= 10000) leadScore += 10;\n\nif (item.whatsapp_opt_in && validatedPhone) leadScore += 15;\nif (cleanIg) leadScore += 10;\nif (item.brief && String(item.brief).length > 50) leadScore += 15;\n\nconst finalScore = Math.round(Math.min(100, Math.max(0, leadScore)));\nconst receivedAt = new Date().toISOString();\nconst syncHash = `${cleanEmail}|${safeBudget}|${validatedPhone || ''}|new`;\n\nreturn [{\n  json: {\n    email_valid: emailValid,\n    lead_id: safeLeadId,\n    contact_name: String(item.contact_name || 'Anonymous Lead').trim().slice(0, 100) || 'Anonymous Lead',\n    email: cleanEmail,\n    phone: validatedPhone,\n    whatsapp: validatedPhone,\n    whatsapp_opt_in: Boolean(item.whatsapp_opt_in && validatedPhone),\n    instagram: cleanIg || null,\n    company: String(item.company || 'Unassigned Company').trim().slice(0, 200) || 'Unassigned Company',\n    service: String(item.service || 'Web & Mobile Applications').trim().slice(0, 100) || 'Web & Mobile Applications',\n    budget: safeBudget,\n    timeline: String(item.timeline || 'Immediate (Next 30 days)').trim(),\n    brief: String(item.brief || 'No initial brief provided.').trim().slice(0, 4000) || 'No initial brief provided.',\n    source: String(item.source || 'website_inquiry').trim().slice(0, 100) || 'website_inquiry',\n    submission_id: item.submission_id || $execution.id,\n    lead_score: finalScore,\n    sync_hash: syncHash,\n    received_at: receivedAt\n  }\n}];"
       },
       "id": "2",
       "name": "Normalize & Validate Lead Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/leads?email=eq.' + encodeURIComponent($json.email) + '&agency_id=eq.a0000000-0000-4000-8000-000000000001&archived_at=is.null&select=id,status,created_at' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_ANON_KEY || '' }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || '') }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "3",
-      "name": "Check Existing Lead (Deduplication)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        680,
+        420,
         300
       ]
     },
@@ -68,99 +41,114 @@
           },
           "conditions": [
             {
-              "id": "1",
-              "leftValue": "={{ $json.length || 0 }}",
-              "rightValue": 0,
+              "id": "valid-email-cond",
+              "leftValue": "={{ $json.email_valid }}",
+              "rightValue": true,
               "operator": {
-                "type": "number",
-                "operation": "gt"
+                "type": "boolean",
+                "operation": "equals"
               }
             }
           ],
           "combinator": "and"
         }
       },
-      "id": "4",
-      "name": "Lead Already Exists?",
+      "id": "3",
+      "name": "Valid Lead Email?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        920,
+        660,
         300
       ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/leads' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_ANON_KEY || '' }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || '') }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=representation"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"contact_name\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n  \"email\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.email) }},\n  \"phone\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.phone) }},\n  \"whatsapp_opt_in\": {{ Boolean($('Normalize & Validate Lead Payload').first().json.whatsapp_opt_in) }},\n  \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n  \"brief\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.brief) }},\n  \"budget_cents\": {{ $('Normalize & Validate Lead Payload').first().json.budget * 100 }},\n  \"status\": \"new\",\n  \"company_name\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.company) }}\n}",
-        "options": {}
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"validation_error\",\n  \"message\": \"A valid email address is required to register an AgencyDesk lead.\"\n}",
+        "options": {
+          "responseCode": 400
+        }
       },
-      "id": "5",
-      "name": "Insert Lead into Supabase",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "4",
+      "name": "Respond Invalid Payload (400)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
       "position": [
-        1160,
-        180
+        900,
+        460
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ ($env.SUPABASE_URL || 'https://pbfxjlxfvhrhxlimcboq.supabase.co').replace(/\\/+$/, '') + '/rest/v1/activity_events' }}",
+        "url": "={{ ((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/integrations/n8n/leads/upsert' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_ANON_KEY || '' }}"
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
             },
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.SUPABASE_SERVICE_ROLE_KEY || $env.SUPABASE_ANON_KEY || '') }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) ? 'Bearer ' + $vars.AUTOMATION_SECRET : '' }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"agency_id\": \"a0000000-0000-4000-8000-000000000001\",\n  \"event_type\": \"lead_received\",\n  \"lead_id\": {{ JSON.stringify(Array.isArray($('Insert Lead into Supabase').first().json) ? $('Insert Lead into Supabase').first().json[0]?.id : $('Insert Lead into Supabase').first().json?.id) }},\n  \"detail\": {\n    \"contact\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.contact_name) }},\n    \"service\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.service) }},\n    \"budget\": {{ $('Normalize & Validate Lead Payload').first().json.budget }},\n    \"whatsapp\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.whatsapp) }},\n    \"instagram\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.instagram) }}\n  }\n}",
-        "options": {}
+        "jsonBody": "={\n  \"lead_id\": {{ $json.lead_id ? JSON.stringify($json.lead_id) : null }},\n  \"contact_name\": {{ JSON.stringify($json.contact_name) }},\n  \"email\": {{ JSON.stringify($json.email) }},\n  \"phone\": {{ JSON.stringify($json.phone) }},\n  \"whatsapp\": {{ JSON.stringify($json.whatsapp) }},\n  \"whatsapp_opt_in\": {{ Boolean($json.whatsapp_opt_in) }},\n  \"instagram\": {{ JSON.stringify($json.instagram) }},\n  \"company\": {{ JSON.stringify($json.company) }},\n  \"service\": {{ JSON.stringify($json.service) }},\n  \"brief\": {{ JSON.stringify($json.brief) }},\n  \"budget\": {{ $json.budget }},\n  \"status\": \"new\",\n  \"score\": {{ $json.lead_score }},\n  \"source\": {{ JSON.stringify($json.source) }},\n  \"sync_hash\": {{ JSON.stringify($json.sync_hash) }},\n  \"last_synced_by\": \"n8n_inquire_pipeline\"\n}",
+        "options": {
+          "timeout": 15000
+        }
       },
-      "id": "6",
-      "name": "Log Activity Event",
+      "id": "5",
+      "name": "Upsert Lead in AgencyDesk CRM",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
-        180
+        900,
+        240
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "created-action-cond",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "created",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "6",
+      "name": "Is New Lead Created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        200
       ]
     },
     {
@@ -168,7 +156,7 @@
         "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
-          "value": "={{ $env.GOOGLE_SHEETS_SPREADSHEET_ID || 'AgencyDesk_Leads_Master' }}",
+          "value": "={{ (typeof $vars !== 'undefined' && $vars?.GOOGLE_SHEETS_SPREADSHEET_ID) || 'AgencyDesk_Leads_Master' }}",
           "mode": "id"
         },
         "sheetName": {
@@ -179,8 +167,8 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "Timestamp": "={{ new Date().toISOString() }}",
-            "Lead ID": "={{ (Array.isArray($('Insert Lead into Supabase').first().json) ? $('Insert Lead into Supabase').first().json[0]?.id : $('Insert Lead into Supabase').first().json?.id) || $('Normalize & Validate Lead Payload').first().json.submission_id }}",
+            "Timestamp": "={{ $('Normalize & Validate Lead Payload').first().json.received_at }}",
+            "Lead ID": "={{ $('Upsert Lead in AgencyDesk CRM').first().json.lead_id || $('Normalize & Validate Lead Payload').first().json.submission_id }}",
             "Contact Name": "={{ $('Normalize & Validate Lead Payload').first().json.contact_name }}",
             "Email": "={{ $('Normalize & Validate Lead Payload').first().json.email }}",
             "WhatsApp": "={{ $('Normalize & Validate Lead Payload').first().json.whatsapp || '' }}",
@@ -194,8 +182,8 @@
             "Source": "={{ $('Normalize & Validate Lead Payload').first().json.source }}",
             "Brief": "={{ $('Normalize & Validate Lead Payload').first().json.brief }}",
             "Notes": "Auto-synced via AgencyDesk n8n Cloud to kinggucci195@gmail.com",
-            "Website CRM Link": "={{ 'https://agencydesk-theta.vercel.app/crm/leads?lead=' + ((Array.isArray($('Insert Lead into Supabase').first().json) ? $('Insert Lead into Supabase').first().json[0]?.id : $('Insert Lead into Supabase').first().json?.id) || $('Normalize & Validate Lead Payload').first().json.submission_id) }}",
-            "Sync Hash": "={{ $('Normalize & Validate Lead Payload').first().json.email + '_' + $now.toMillis() }}",
+            "Website CRM Link": "={{ $('Upsert Lead in AgencyDesk CRM').first().json.crm_url || ('https://agencydesk-theta.vercel.app/crm/leads?lead=' + ($('Upsert Lead in AgencyDesk CRM').first().json.lead_id || $('Normalize & Validate Lead Payload').first().json.submission_id)) }}",
+            "Sync Hash": "={{ $('Normalize & Validate Lead Payload').first().json.sync_hash }}",
             "Last Synced By": "agencydesk_crm"
           },
           "matchingColumns": [
@@ -209,27 +197,61 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        1600,
-        180
+        1380,
+        140
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sheets-synced-false",
+              "name": "sheets_synced",
+              "value": "={{ false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "sheets-warning-msg",
+              "name": "sheets_warning",
+              "value": "Google Sheets sync failed; verify n8n Google Sheets OAuth credential and GOOGLE_SHEETS_SPREADSHEET_ID.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8",
+      "name": "Mark Sheet Sync Warning",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1580,
+        280
       ]
     },
     {
       "parameters": {
-        "jsCode": "const lead = $('Normalize & Validate Lead Payload').first().json;\nconst leadRecord = $('Insert Lead into Supabase').first().json;\nconst leadId = (Array.isArray(leadRecord) ? leadRecord[0]?.id : leadRecord?.id) || lead.submission_id;\n\nconst messageText = [\n  '🚀 *NEW AGENCYDESK LEAD INQUIRY*',\n  '━━━━━━━━━━━━━━━━━━━━━',\n  `👤 *Contact:* ${lead.contact_name}`,\n  `🏢 *Company:* ${lead.company}`,\n  `💼 *Service:* ${lead.service}`,\n  `💰 *Budget:* $${lead.budget.toLocaleString()}`,\n  `🎯 *Score:* ${lead.lead_score}/100`,\n  `📱 *WhatsApp:* ${lead.whatsapp || 'Not provided'} (${lead.whatsapp_opt_in ? '✅ Opted-in' : 'Pending opt-in'})`,\n  `📸 *Instagram:* ${lead.instagram || 'Not provided'}`,\n  '━━━━━━━━━━━━━━━━━━━━━',\n  '📝 *Brief:*',\n  `\"${lead.brief}\"`,\n  '━━━━━━━━━━━━━━━━━━━━━',\n  '📊 *Google Sheet:* Synced to kinggucci195@gmail.com',\n  `⚡ *Open Lead:* https://agencydesk-theta.vercel.app/crm/leads?lead=${leadId}`\n].join('\\n');\n\nreturn [{\n  json: {\n    target_phone: '+639913780170',\n    lead_phone: lead.whatsapp,\n    lead_name: lead.contact_name,\n    message: messageText,\n    lead_id: leadId,\n    lead_score: lead.lead_score,\n    opt_in: lead.whatsapp_opt_in,\n    dispatch_timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "const varsObj = (typeof $vars !== 'undefined' && $vars) ? $vars : {};\nconst lead = $('Normalize & Validate Lead Payload').first().json;\nconst crmResult = $('Upsert Lead in AgencyDesk CRM').first().json;\nconst currentItem = $input.first().json || {};\n\nconst sheetsSynced = currentItem.sheets_synced !== false;\nconst leadId = crmResult.lead_id || lead.submission_id;\nconst crmUrl = crmResult.crm_url || (`${(varsObj.AGENCYDESK_APP_URL || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '')}/crm/leads?lead=${leadId}`);\nconst targetPhone = varsObj.OWNER_WHATSAPP_NUMBER || '+639913780170';\n\nconst messageText = [\n  '🚀 *NEW AGENCYDESK LEAD INQUIRY*',\n  '━━━━━━━━━━━━━━━━━━━━━',\n  `👤 *Contact:* ${lead.contact_name}`,\n  `🏢 *Company:* ${lead.company}`,\n  `💼 *Service:* ${lead.service}`,\n  `💰 *Budget:* $${Number(lead.budget || 0).toLocaleString()}`,\n  `🎯 *Score:* ${lead.lead_score}/100`,\n  `📱 *WhatsApp:* ${lead.whatsapp || 'Not provided'} (${lead.whatsapp_opt_in ? '✅ Opted-in' : 'Pending opt-in'})`,\n  `📸 *Instagram:* ${lead.instagram || 'Not provided'}`,\n  '━━━━━━━━━━━━━━━━━━━━━',\n  '📝 *Brief:*',\n  `\"${lead.brief}\"`,\n  '━━━━━━━━━━━━━━━━━━━━━',\n  sheetsSynced ? '📊 *Google Sheet:* Synced to kinggucci195@gmail.com' : '⚠️ *Google Sheet:* Sync warning (check n8n OAuth)',\n  `⚡ *Open Lead:* ${crmUrl}`\n].join('\\n');\n\nreturn [{\n  json: {\n    target_phone: targetPhone,\n    lead_phone: lead.whatsapp,\n    lead_name: lead.contact_name,\n    message: messageText,\n    lead_id: leadId,\n    crm_url: crmUrl,\n    lead_score: lead.lead_score,\n    opt_in: lead.whatsapp_opt_in,\n    sheets_synced: sheetsSynced,\n    dispatch_timestamp: new Date().toISOString()\n  }\n}];"
       },
-      "id": "8",
+      "id": "9",
       "name": "Format WhatsApp Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1820,
-        180
+        1800,
+        140
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.WHATSAPP_API_ENDPOINT || 'https://agencydesk-theta.vercel.app/api/crm/automations/whatsapp-dispatch' }}",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.WHATSAPP_API_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/crm/automations/whatsapp-dispatch') }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -239,52 +261,62 @@
             },
             {
               "name": "X-AgencyDesk-Signature",
-              "value": "={{ $env.AUTOMATION_SECRET || '' }}"
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={\n  \"to\": {{ JSON.stringify($json.target_phone) }},\n  \"lead_phone\": {{ JSON.stringify($json.lead_phone) }},\n  \"message\": {{ JSON.stringify($json.message) }},\n  \"lead_id\": {{ JSON.stringify($json.lead_id) }},\n  \"timestamp\": {{ JSON.stringify($json.dispatch_timestamp) }}\n}",
-        "options": {}
+        "options": {
+          "timeout": 10000
+        }
       },
-      "id": "9",
+      "id": "10",
       "name": "Dispatch WhatsApp Alert",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         2040,
-        180
-      ]
+        140
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_registered\",\n  \"lead_id\": {{ JSON.stringify($('Normalize & Validate Lead Payload').first().json.submission_id) }},\n  \"lead_score\": {{ $('Normalize & Validate Lead Payload').first().json.lead_score }},\n  \"google_sheets_synced\": true,\n  \"whatsapp_dispatched_to\": \"+639913780170\",\n  \"crm_url\": {{ JSON.stringify('https://agencydesk-theta.vercel.app/crm/leads?lead=' + $('Normalize & Validate Lead Payload').first().json.submission_id) }},\n  \"message\": \"Lead successfully recorded in AgencyDesk CRM, synced to Google Sheets (kinggucci195@gmail.com), and WhatsApp notification triggered.\"\n}",
-        "options": {}
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_registered\",\n  \"lead_id\": {{ JSON.stringify($('Format WhatsApp Message').first().json.lead_id) }},\n  \"lead_score\": {{ $('Format WhatsApp Message').first().json.lead_score }},\n  \"google_sheets_synced\": {{ $('Format WhatsApp Message').first().json.sheets_synced }},\n  \"whatsapp_dispatched_to\": {{ JSON.stringify($('Format WhatsApp Message').first().json.target_phone) }},\n  \"crm_url\": {{ JSON.stringify($('Format WhatsApp Message').first().json.crm_url) }},\n  \"message\": \"Lead successfully recorded in AgencyDesk CRM, synced to Google Sheets (kinggucci195@gmail.com), and WhatsApp notification triggered.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
       },
-      "id": "10",
+      "id": "11",
       "name": "Respond to Inquire Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2260,
-        180
+        2280,
+        140
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_already_exists\",\n  \"message\": \"Inquiry matched an existing prospect in AgencyDesk CRM. Notification suppressed to prevent duplication.\"\n}",
-        "options": {}
+        "responseBody": "={\n  \"success\": true,\n  \"status\": \"lead_already_exists\",\n  \"lead_id\": {{ JSON.stringify($('Upsert Lead in AgencyDesk CRM').first().json.lead_id || null) }},\n  \"crm_url\": {{ JSON.stringify($('Upsert Lead in AgencyDesk CRM').first().json.crm_url || null) }},\n  \"message\": \"Inquiry matched an existing prospect in AgencyDesk CRM. Notification suppressed to prevent duplication.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
       },
-      "id": "11",
+      "id": "12",
       "name": "Respond Lead Exists",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1160,
-        420
+        1380,
+        360
       ]
     },
     {
@@ -294,27 +326,27 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "12",
+      "id": "13",
       "name": "Webhook - Google Sheets Sync (Inbound)",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        200,
-        600
+        180,
+        660
       ],
       "webhookId": "agencydesk-sheets-inbound-sync"
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\n\n// Webhook authentication gate: fail-closed if secret is missing or invalid\nconst headers = input.headers || {};\nconst signature = headers['x-agencydesk-signature'] || (headers['authorization'] ? headers['authorization'].replace(/^Bearer\\s+/i, '') : '');\nif (!$env.AUTOMATION_SECRET || signature !== $env.AUTOMATION_SECRET) {\n  throw new Error('Unauthorized Google Sheets sync webhook request.');\n}\n\n// Support both direct payloads and n8n Webhook v2 nested body\nconst item = input.body || input;\n\n// Loop prevention: suppress sync if triggered by agencydesk_crm\nif (item['Last Synced By'] === 'agencydesk_crm' || item.last_synced_by === 'agencydesk_crm') {\n  return [{ json: { should_sync: false, reason: 'Suppressed: Origin is AgencyDesk CRM' } }];\n}\n\nlet rawStatus = (item['Status'] || item.status || 'new').toLowerCase().replace(/\\s+/g, '_');\nif (rawStatus === 'new_inquiry') rawStatus = 'new';\n\nreturn [{\n  json: {\n    should_sync: true,\n    lead_id: item['Lead ID'] || item.lead_id || null,\n    contact_name: item['Contact Name'] || item.contact_name || 'Imported Lead',\n    email: (item['Email'] || item.email || '').toLowerCase().trim(),\n    phone: item['WhatsApp'] || item.whatsapp || item.phone || null,\n    whatsapp: item['WhatsApp'] || item.whatsapp || null,\n    whatsapp_opt_in: item['WhatsApp Opt-in'] === 'YES' || Boolean(item.whatsapp_opt_in),\n    instagram: item['Instagram'] || item.instagram || null,\n    company: item['Company'] || item.company || 'Unassigned Company',\n    service: item['Service'] || item.service || 'Web & Mobile Applications',\n    brief: item['Brief'] || item.brief || 'Lead entered via Google Sheets',\n    budget: Number(item['Budget'] || item.budget || 0),\n    status: rawStatus,\n    score: Number(item['Score'] || item.score || 50),\n    notes: item['Notes'] || item.notes || null,\n    source: 'google_sheets',\n    last_synced_by: 'sheets_user'\n  }\n}];"
+        "jsCode": "const input = $input.first().json;\n\n// n8n Cloud compatible config: $vars is permitted on n8n Cloud (OS env vars are blocked)\nconst varsObj = (typeof $vars !== 'undefined' && $vars) ? $vars : {};\nconst expectedSecret = varsObj.AUTOMATION_SECRET ? String(varsObj.AUTOMATION_SECRET) : '';\n\n// Fail-closed webhook authentication gate\nconst headers = input.headers || {};\nconst authHeader = headers['authorization'] || headers['Authorization'] || '';\nconst signature = headers['x-agencydesk-signature'] || headers['X-AgencyDesk-Signature'] || (authHeader ? String(authHeader).replace(/^Bearer\\s+/i, '') : '');\nif (!expectedSecret || signature !== expectedSecret) {\n  throw new Error('Unauthorized Google Sheets sync webhook request.');\n}\n\nconst item = input.body || input;\n\n// Loop prevention: suppress sync if triggered by agencydesk_crm\nif (item['Last Synced By'] === 'agencydesk_crm' || item.last_synced_by === 'agencydesk_crm') {\n  return [{ json: { should_sync: false, reason: 'Suppressed: Origin is AgencyDesk CRM' } }];\n}\n\nconst UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nconst rawLeadId = item['Lead ID'] || item.lead_id;\nconst safeLeadId = (rawLeadId && UUID_RE.test(String(rawLeadId))) ? String(rawLeadId) : null;\n\nconst cleanEmail = String(item['Email'] || item.email || '').toLowerCase().trim();\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(cleanEmail)) {\n  return [{ json: { should_sync: false, reason: 'Suppressed: Missing or invalid email in Sheets row' } }];\n}\n\nconst rawPhone = String(item['WhatsApp'] || item.whatsapp || item.phone || '');\nlet cleanPhone = rawPhone.replace(/[^\\d+]/g, '');\nif (cleanPhone.startsWith('09')) {\n  cleanPhone = '+63' + cleanPhone.slice(1);\n} else if (cleanPhone && !cleanPhone.startsWith('+')) {\n  cleanPhone = '+' + cleanPhone;\n}\nconst validatedPhone = /^\\+[1-9]\\d{7,14}$/.test(cleanPhone) ? cleanPhone : null;\n\nlet cleanIg = String(item['Instagram'] || item.instagram || '').trim();\nif (cleanIg.includes('instagram.com/')) {\n  cleanIg = cleanIg.split('instagram.com/')[1].split('/')[0].split('?')[0];\n}\nif (cleanIg && !cleanIg.startsWith('@')) {\n  cleanIg = '@' + cleanIg;\n}\n\nlet rawStatus = String(item['Status'] || item.status || 'new').toLowerCase().trim().replace(/\\s+/g, '_');\nif (rawStatus === 'new_inquiry') rawStatus = 'new';\n// Note: /api/integrations/n8n/leads/upsert preserves existing 'won' server-side; map 'won' safely to 'proposal_sent'\nif (rawStatus === 'won') rawStatus = 'proposal_sent';\nconst allowedStatuses = ['new', 'contacted', 'qualified', 'proposal_sent', 'lost'];\nconst safeStatus = allowedStatuses.includes(rawStatus) ? rawStatus : 'new';\n\nconst rawBudget = Number(item['Budget'] || item.budget || 0);\nconst safeBudget = Number.isFinite(rawBudget) && rawBudget >= 0 ? Math.round(rawBudget) : 0;\nconst rawScore = Number(item['Score'] || item.score || 50);\nconst safeScore = Number.isFinite(rawScore) ? Math.round(Math.min(100, Math.max(0, rawScore))) : 50;\n\nreturn [{\n  json: {\n    should_sync: true,\n    lead_id: safeLeadId,\n    contact_name: String(item['Contact Name'] || item.contact_name || 'Imported Lead').trim().slice(0, 100) || 'Imported Lead',\n    email: cleanEmail,\n    phone: validatedPhone,\n    whatsapp: validatedPhone,\n    whatsapp_opt_in: item['WhatsApp Opt-in'] === 'YES' || Boolean(item.whatsapp_opt_in),\n    instagram: cleanIg || null,\n    company: String(item['Company'] || item.company || 'Unassigned Company').trim().slice(0, 200) || 'Unassigned Company',\n    service: String(item['Service'] || item.service || 'Web & Mobile Applications').trim().slice(0, 100) || 'Web & Mobile Applications',\n    brief: String(item['Brief'] || item.brief || 'Lead entered via Google Sheets').trim().slice(0, 4000) || 'Lead entered via Google Sheets',\n    budget: safeBudget,\n    status: safeStatus,\n    score: safeScore,\n    notes: item['Notes'] || item.notes || undefined,\n    sync_hash: `${cleanEmail}|${safeBudget}|${validatedPhone || ''}|${safeStatus}`,\n    source: 'google_sheets',\n    last_synced_by: 'sheets_user'\n  }\n}];"
       },
-      "id": "13",
+      "id": "14",
       "name": "Check Loop & Normalize Sheets Row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        440,
-        600
+        420,
+        660
       ]
     },
     {
@@ -327,7 +359,7 @@
           },
           "conditions": [
             {
-              "id": "1",
+              "id": "should-sync-cond",
               "leftValue": "={{ $json.should_sync }}",
               "rightValue": true,
               "operator": {
@@ -339,19 +371,19 @@
           "combinator": "and"
         }
       },
-      "id": "14",
+      "id": "15",
       "name": "Should Sync to CRM?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        680,
-        600
+        660,
+        660
       ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ ($env.AGENCYDESK_APP_URL || 'https://agencydesk-theta.vercel.app') + '/api/integrations/n8n/leads/upsert' }}",
+        "url": "={{ ((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/integrations/n8n/leads/upsert' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -361,56 +393,83 @@
             },
             {
               "name": "X-AgencyDesk-Signature",
-              "value": "={{ $env.AUTOMATION_SECRET || '' }}"
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
             },
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + ($env.AUTOMATION_SECRET || '') }}"
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) ? 'Bearer ' + $vars.AUTOMATION_SECRET : '' }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"lead_id\": {{ $json.lead_id ? JSON.stringify($json.lead_id) : null }},\n  \"contact_name\": {{ JSON.stringify($json.contact_name) }},\n  \"email\": {{ JSON.stringify($json.email) }},\n  \"phone\": {{ JSON.stringify($json.phone) }},\n  \"whatsapp\": {{ JSON.stringify($json.whatsapp) }},\n  \"whatsapp_opt_in\": {{ $json.whatsapp_opt_in }},\n  \"instagram\": {{ JSON.stringify($json.instagram) }},\n  \"company\": {{ JSON.stringify($json.company) }},\n  \"service\": {{ JSON.stringify($json.service) }},\n  \"brief\": {{ JSON.stringify($json.brief) }},\n  \"budget\": {{ $json.budget }},\n  \"status\": {{ JSON.stringify($json.status) }},\n  \"score\": {{ $json.score }},\n  \"notes\": {{ JSON.stringify($json.notes) }},\n  \"source\": \"google_sheets\",\n  \"last_synced_by\": \"sheets_user\"\n}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify({ lead_id: $json.lead_id || null, contact_name: $json.contact_name, email: $json.email, phone: $json.phone, whatsapp: $json.whatsapp, whatsapp_opt_in: Boolean($json.whatsapp_opt_in), instagram: $json.instagram, company: $json.company, service: $json.service, brief: $json.brief, budget: $json.budget, status: $json.status, score: $json.score, ...($json.notes ? { notes: $json.notes } : {}), sync_hash: $json.sync_hash, source: 'google_sheets', last_synced_by: 'sheets_user' }) }}",
+        "options": {
+          "timeout": 15000
+        }
       },
-      "id": "15",
+      "id": "16",
       "name": "Upsert Lead into AgencyDesk CRM",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        920,
-        520
-      ]
+        900,
+        600
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={\n  \"success\": true,\n  \"message\": \"Google Sheets row successfully synced to AgencyDesk CRM Kanban board.\",\n  \"sync_result\": {{ JSON.stringify($json) }}\n}",
-        "options": {}
+        "options": {
+          "responseCode": 200
+        }
       },
-      "id": "16",
+      "id": "17",
       "name": "Respond Sheets Sync Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1160,
-        520
+        1140,
+        580
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"success\": true,\n  \"ignored\": true,\n  \"message\": \"Echo suppressed: update originated from AgencyDesk CRM.\"\n}",
-        "options": {}
+        "responseBody": "={\n  \"success\": true,\n  \"ignored\": true,\n  \"message\": {{ JSON.stringify($json.reason || 'Echo suppressed: update originated from AgencyDesk CRM.') }}\n}",
+        "options": {
+          "responseCode": 200
+        }
       },
-      "id": "17",
+      "id": "18",
       "name": "Respond Echo Suppressed",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        920,
-        700
+        900,
+        780
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"upstream_error\",\n  \"message\": \"An AgencyDesk CRM or WhatsApp dispatch request failed. Check n8n execution logs for details.\"\n}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "19",
+      "name": "Respond Pipeline Error (502)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        460
       ]
     }
   ],
@@ -430,54 +489,50 @@
       "main": [
         [
           {
-            "node": "Check Existing Lead (Deduplication)",
+            "node": "Valid Lead Email?",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Check Existing Lead (Deduplication)": {
+    "Valid Lead Email?": {
       "main": [
         [
           {
-            "node": "Lead Already Exists?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Lead Already Exists?": {
-      "main": [
-        [
-          {
-            "node": "Respond Lead Exists",
+            "node": "Upsert Lead in AgencyDesk CRM",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Insert Lead into Supabase",
+            "node": "Respond Invalid Payload (400)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Insert Lead into Supabase": {
+    "Upsert Lead in AgencyDesk CRM": {
       "main": [
         [
           {
-            "node": "Log Activity Event",
+            "node": "Is New Lead Created?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Pipeline Error (502)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Log Activity Event": {
+    "Is New Lead Created?": {
       "main": [
         [
           {
@@ -485,10 +540,35 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Respond Lead Exists",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Append Lead to Google Sheets (kinggucci195)": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Sheet Sync Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Sheet Sync Warning": {
       "main": [
         [
           {
@@ -515,6 +595,13 @@
         [
           {
             "node": "Respond to Inquire Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Pipeline Error (502)",
             "type": "main",
             "index": 0
           }
@@ -569,11 +656,19 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Respond Pipeline Error (502)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "timezone": "Asia/Manila"
   }
 }
