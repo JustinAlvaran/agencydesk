@@ -30,45 +30,32 @@ async function hasDemoSessionCookie(): Promise<boolean> {
   }
 }
 
+import { dispatchN8nWebhook } from '@/lib/n8n-dispatch';
+
 function fireStageWebhook(
   lead: ReturnType<typeof leadView>,
   nextAction: ReturnType<typeof recommendNextAction>
 ) {
   if (isDemo()) return;
   const webhookUrl = process.env.N8N_LIFECYCLE_WEBHOOK_URL || process.env.N8N_LEAD_WEBHOOK_URL;
-  if (!webhookUrl) return;
-  try {
-    new URL(webhookUrl);
-    const secret = process.env.AUTOMATION_SECRET;
-    void fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(secret ? { 'X-AgencyDesk-Signature': secret, Authorization: `Bearer ${secret}` } : {}),
-      },
-      body: JSON.stringify({
-        event: 'lead_stage_changed',
-        lead_id: lead.id,
-        stage: lead.status,
-        row_version: lead.row_version,
-        contact_name: lead.contact_name,
-        email: lead.email,
-        phone: lead.phone ?? null,
-        company: lead.company,
-        service: lead.service,
-        next_action: {
-          template_key: nextAction.template_key,
-          label: nextAction.label,
-          channel: nextAction.channel,
-          priority: nextAction.priority,
-        },
-        timestamp: new Date().toISOString(),
-      }),
-      signal: AbortSignal.timeout(5000),
-    }).catch(() => {});
-  } catch {
-    // Best-effort notification: never fail the stage transition
-  }
+  dispatchN8nWebhook(webhookUrl, {
+    event: 'lead_stage_changed',
+    lead_id: lead.id,
+    stage: lead.status,
+    row_version: lead.row_version,
+    contact_name: lead.contact_name,
+    email: lead.email,
+    phone: lead.phone ?? null,
+    company: lead.company,
+    service: lead.service,
+    next_action: {
+      template_key: nextAction.template_key,
+      label: nextAction.label,
+      channel: nextAction.channel,
+      priority: nextAction.priority,
+    },
+    timestamp: new Date().toISOString(),
+  });
 }
 
 export const PATCH = (request: Request, { params }: { params: Promise<{ id: string }> }) =>
