@@ -1,97 +1,127 @@
-import React from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { getSEOMetadata } from '@/utils/seoMetadata'
-import TermsOfServiceHero from '@/components/ui/terms-of-service-hero'
+import React from "react";
+import Link from "next/link";
+import { getSEOMetadata } from "@/utils/seoMetadata";
+import { ScaleIcon } from "@heroicons/react/24/solid";
 
 export async function generateMetadata() {
-  return getSEOMetadata('citc-ph.com', '/terms-of-service')
+  return getSEOMetadata("agencydesk-theta.vercel.app", "/terms-of-service");
 }
 
 export default function TermsOfServicePage() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-red-50/30 dark:from-black dark:via-black dark:to-red-900/20 text-gray-900 dark:text-white px-4 py-16 lg:py-[150px]">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-100/20 via-white to-red-200/20 dark:from-red-900/10 dark:via-black dark:to-red-950/10"></div>
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-red-400/10 dark:bg-red-500/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 dark:bg-red-600/5 rounded-full blur-3xl"></div>
+    <div className="min-h-screen flex flex-col py-12 px-4 sm:px-6 lg:px-16 radial-gradient-bg mt-10 2xl:mt-16">
+      <main className="max-w-4xl w-full mx-auto">
+        <div className="bg-white/80 dark:bg-zinc-950/80 px-6 py-5 rounded-2xl border border-gray-200 dark:border-zinc-800 mb-8 flex items-center gap-4 shadow-sm backdrop-blur-xl">
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-md shadow-primary/20">
+            <ScaleIcon className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-primary">
+              Legal &amp; Engagement Terms
+            </p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white">
+              Terms of Service
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+              Effective Date: November 27, 2026 · AgencyDesk
+            </p>
+          </div>
         </div>
-      </div>
 
-      <main className="relative z-10 max-w-5xl mx-auto text-left">
-        <TermsOfServiceHero />
-
-        {/* Content Card */}
-        <article className="flex flex-col gap-4 prose prose-invert max-w-none bg-card/60 p-8 rounded-[clamp(1.25rem,4vw,1.875rem)] backdrop-blur-xl shadow-[0_4px_20px_0_rgba(0,0,0,0.10),inset_0_0_20px_0_rgba(255,255,255,0.05)]">
+        <article className="flex flex-col gap-6 bg-white/85 dark:bg-zinc-950/80 border border-gray-200 dark:border-zinc-800 p-6 sm:p-10 rounded-3xl backdrop-blur-xl shadow-xl text-sm text-gray-700 dark:text-zinc-300 leading-relaxed">
           <p>
-            Welcome to Cornerstone International Technologies. These Terms of Service (&quot;Terms&quot;) govern your access to and use of our website and services. By accessing or using our services, you agree to be bound by these Terms.
+            Welcome to <strong>AgencyDesk</strong>. These Terms of Service (&ldquo;Terms&rdquo;)
+            govern your access to and use of{" "}
+            <span className="font-mono text-xs text-primary">https://agencydesk-theta.vercel.app</span>,
+            our project inquiry and discovery booking flows, and our client portal workspace. By
+            using our services, you agree to these Terms.
           </p>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>1. Acceptance of Terms</h3>
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold text-primary">
+              1. Agency Engagements &amp; Fixed-Price Proposals
+            </h2>
             <p>
-              By using our services, you accept and agree to follow the terms and conditions outlined here. If you disagree with any part of these terms, you must not use our services.
+              Project inquiries and discovery calls are exploratory until a formal versioned
+              proposal is published in the AgencyDesk Client Portal and formally accepted. Accepted
+              proposals define the fixed scope, milestone schedule, and deliverable acceptance
+              criteria for the engagement.
             </p>
           </section>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>2. Use of Service</h3>
-            <p>Our services are provided for lawful purposes only. You agree not to use the services to upload, post, or otherwise transmit any content that is unlawful, harmful, offensive, or infringes the rights of others.</p>
-          </section>
-
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>3. Accounts & Security</h3>
-            <ul className="mt-3 space-y-2">
-              <li className="flex gap-3 items-start"><span className="w-3 h-3 rounded-full mt-2" style={{ background: 'var(--primary)' }} aria-hidden></span><span>You are responsible for maintaining the confidentiality of your account credentials.</span></li>
-              <li className="flex gap-3 items-start"><span className="w-3 h-3 rounded-full mt-2" style={{ background: 'var(--primary)' }} aria-hidden></span><span>Notify us immediately if you suspect unauthorized access to your account.</span></li>
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold text-primary">
+              2. Client Portal Approvals &amp; Workspace Accounts
+            </h2>
+            <ul className="list-disc pl-5 space-y-1.5">
+              <li>
+                You are responsible for maintaining the confidentiality of your portal login links
+                and account credentials.
+              </li>
+              <li>
+                Milestone approvals and proposal acceptances recorded through authenticated client
+                accounts constitute binding project sign-off for that deliverable phase.
+              </li>
+              <li>
+                Notify us promptly at{" "}
+                <a className="underline text-primary" href="mailto:inquiries@agencydesk.dev">
+                  inquiries@agencydesk.dev
+                </a>{" "}
+                if you suspect unauthorized access.
+              </li>
             </ul>
           </section>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>4. Intellectual Property</h3>
-            <p>All content, trademarks, and intellectual property on this site are owned by or licensed to us. You may not use any of our content without prior written permission.</p>
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold text-primary">3. Acceptable Use</h2>
+            <p>
+              You agree to use AgencyDesk only for lawful business inquiries and project
+              collaboration. Automated scraping, unauthorized credential probing, spam submissions,
+              or interference with workspace isolation controls is strictly prohibited.
+            </p>
           </section>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>5. Third-Party Services</h3>
-            <p>We may use third-party services that collect, store, and process data as described in our Privacy Policy. We are not responsible for the privacy practices or policies of those third parties.</p>
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold text-primary">4. Intellectual Property</h2>
+            <p>
+              AgencyDesk platform code, interface designs, and documentation remain the property of
+              AgencyDesk and its licensors. Ownership of custom client deliverables transfers upon
+              milestone completion and full payment according to the accepted proposal terms.
+            </p>
           </section>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>6. Termination</h3>
-            <p>We reserve the right to suspend or terminate access to our services for users who violate these Terms or for any reason at our discretion.</p>
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold text-primary">5. Limitation of Liability</h2>
+            <p>
+              To the maximum extent permitted by applicable law, AgencyDesk provides this website and
+              portal on an &ldquo;as is&rdquo; basis and is not liable for indirect, incidental, or
+              consequential damages arising from third-party service outages or client-provided
+              content.
+            </p>
           </section>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>7. Governing Law</h3>
-            <p>These Terms are governed by the laws of the Philippines, without respect to its conflict of laws rules.</p>
+          <section className="space-y-2">
+            <h2 className="text-lg font-bold text-primary">6. Changes &amp; Contact</h2>
+            <p>
+              We may update these Terms periodically with an updated effective date. Questions
+              regarding these Terms may be directed to{" "}
+              <a className="underline text-primary" href="mailto:inquiries@agencydesk.dev">
+                inquiries@agencydesk.dev
+              </a>
+              .
+            </p>
           </section>
 
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>8. Changes to Terms</h3>
-            <p>We may update these Terms from time to time. If we make changes, we will update the effective date and post the updated Terms on this page.</p>
-          </section>
-
-          <section className="mb-6  pl-4 rounded-sm" >
-            <h3 className="text-lg font-semibold" style={{ color: 'var(--primary)' }}>9. Contact Us</h3>
-            <p>If you have questions about these Terms, contact us at <a className="underline" href="mailto:privacy@citc-ph.com">privacy@citc-ph.com</a>.</p>
-          </section>
-
-          <div className="mt-6 flex items-center gap-4">
-            <Link href="/privacy-policy">
-              <Button variant="link">See our Privacy Policy</Button>
+          <div className="pt-4 border-t border-gray-200 dark:border-zinc-800 flex flex-wrap items-center gap-4 text-xs">
+            <Link href="/privacy-policy" className="text-primary hover:underline font-semibold">
+              Read Privacy Policy
+            </Link>
+            <Link href="/book" className="text-gray-500 dark:text-zinc-400 hover:text-primary underline">
+              Book Discovery Call
             </Link>
           </div>
         </article>
       </main>
-
-      {/* Floating/Decorative Elements (static) */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/6 w-8 h-8 bg-red-400/20 dark:bg-red-500/20 rounded-lg" />
-        <div className="absolute bottom-1/3 right-1/6 w-6 h-6 bg-red-500/20 dark:bg-red-400/20 rounded-full" />
-      </div>
     </div>
-  )
+  );
 }

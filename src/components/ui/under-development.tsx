@@ -43,14 +43,14 @@ const UnderDevelopment: React.FC<UnderDevelopmentProps> = ({
         >
           <Image 
             src="/logo/logo-light.svg" 
-            alt="CITC Logo" 
+            alt="AgencyDesk Logo" 
             width={120} 
             height={120} 
             className="mx-auto mb-6 dark:hidden"
           />
           <Image 
             src="/logo/logo-dark.svg" 
-            alt="CITC Logo" 
+            alt="AgencyDesk Logo" 
             width={120} 
             height={120} 
             className="mx-auto mb-6 hidden dark:block"

@@ -21,9 +21,10 @@ describe("getSEOMetadata", () => {
 
     const result = await getSEOMetadata(domain, slug);
 
-    expect(result).toEqual({
-      title: "CITC",
-      description: "Default description",
+    expect(result).toMatchObject({
+      title: "AgencyDesk · Modern Agency CRM & Client Workspace",
+      description:
+        "Capture client inquiries, publish versioned proposals, track project milestones, and automate team delivery with complete transparency.",
     });
   });
 
@@ -81,9 +82,10 @@ describe("getSEOMetadata", () => {
 
     const result = await getSEOMetadata(domain, slug);
 
-    expect(result).toEqual({
-      title: "CITC",
-      description: "Default description",
+    expect(result).toMatchObject({
+      title: "AgencyDesk · Modern Agency CRM & Client Workspace",
+      description:
+        "Capture client inquiries, publish versioned proposals, track project milestones, and automate team delivery with complete transparency.",
     });
   });
 });

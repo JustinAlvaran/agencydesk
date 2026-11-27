@@ -131,17 +131,19 @@ describe('End-to-End Lead Automation & WhatsApp Pipeline', () => {
       expect(Array.isArray(workflow.nodes)).toBe(true);
       expect(workflow.nodes.length).toBeGreaterThanOrEqual(10);
 
-      // Verify essential nodes exist
+      // Verify essential nodes exist (n8n Cloud-safe CRM API upsert architecture)
       const nodeNames = workflow.nodes.map((n: { name: string }) => n.name);
       expect(nodeNames).toContain('Webhook - AgencyDesk Inquire');
       expect(nodeNames).toContain('Normalize & Validate Lead Payload');
-      expect(nodeNames).toContain('Check Existing Lead (Deduplication)');
-      expect(nodeNames).toContain('Lead Already Exists?');
-      expect(nodeNames).toContain('Insert Lead into Supabase');
-      expect(nodeNames).toContain('Log Activity Event');
+      expect(nodeNames).toContain('Valid Lead Email?');
+      expect(nodeNames).toContain('Upsert Lead in AgencyDesk CRM');
+      expect(nodeNames).toContain('Is New Lead Created?');
       expect(nodeNames).toContain('Format WhatsApp Message');
       expect(nodeNames).toContain('Dispatch WhatsApp Alert');
       expect(nodeNames).toContain('Respond to Inquire Webhook');
+
+      // Verify zero $env references (blocked on n8n Cloud)
+      expect(content).not.toContain('$env');
 
       // Verify target phone number is pinned to the user's number
       const formatNode = workflow.nodes.find(
@@ -149,13 +151,11 @@ describe('End-to-End Lead Automation & WhatsApp Pipeline', () => {
       );
       expect(formatNode.parameters.jsCode).toContain('+639913780170');
 
-      // Verify strict tenant isolation
-      const insertNode = workflow.nodes.find(
-        (n: { name: string }) => n.name === 'Insert Lead into Supabase'
+      // Verify CRM API upsert endpoint is used instead of raw PostgREST
+      const upsertNode = workflow.nodes.find(
+        (n: { name: string }) => n.name === 'Upsert Lead in AgencyDesk CRM'
       );
-      expect(insertNode.parameters.jsonBody).toContain(
-        'a0000000-0000-4000-8000-000000000001'
-      );
+      expect(upsertNode.parameters.url).toContain('/api/integrations/n8n/leads/upsert');
 
       // Verify phone normalization logic handles Philippine numbers
       const normalizeNode = workflow.nodes.find(

@@ -201,8 +201,8 @@ const JobDetailsSection = ({ career, isLoading }: Props) => {
         ">
         <div className="flex flex-col lg:flex-row gap-12.5 lg:gap-10">
           <Image
-            src="/logo/citc-logo.svg"
-            alt="Logo"
+            src="/logo/agencydesk-logo.svg"
+            alt="AgencyDesk Logo"
             width={128}
             height={128}
             className="min-w-32 sm:self-start lg:min-w-xs"

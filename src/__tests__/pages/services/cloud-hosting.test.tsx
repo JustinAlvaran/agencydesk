@@ -72,7 +72,7 @@ describe('CloudHostingPage', () => {
 
     const meta = await generateMetadata();
 
-    expect(getSEOMetadata).toHaveBeenCalledWith('citc-ph.com', '/services/cloud-hosting');
+    expect(getSEOMetadata).toHaveBeenCalledWith('agencydesk-theta.vercel.app', '/services/cloud-hosting');
     expect(meta).toEqual({
       title: 'Cloud Hosting | AgencyDesk',
       description: 'Scalable cloud infra',

@@ -7,7 +7,7 @@ import { getServiceDetailSSG } from '@/utils/getServiceDetailSSG'
 import { getSEOMetadata } from "@/utils/seoMetadata";
 
 export async function generateMetadata() {
-  return getSEOMetadata("citc-ph.com", "/services/cloud-hosting")
+  return getSEOMetadata("agencydesk-theta.vercel.app", "/services/cloud-hosting")
 }
 import React from 'react'
 

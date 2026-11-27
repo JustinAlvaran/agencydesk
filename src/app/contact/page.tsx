@@ -3,7 +3,7 @@ import NewLetterSection from "@/sections/home/newsletter-section";
 import { getSEOMetadata } from "@/utils/seoMetadata";
 
 export async function generateMetadata() {
-  return getSEOMetadata("citc-ph.com", "/contact");
+  return getSEOMetadata("agencydesk-theta.vercel.app", "/contact");
 }
 
 export default function ContactPage() {

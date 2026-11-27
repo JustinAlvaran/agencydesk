@@ -1,0 +1,1518 @@
+{
+  "name": "AgencyDesk Post-Lead Lifecycle & Follow-Up Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agencydesk-lifecycle",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook - CRM Lifecycle Event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        360
+      ],
+      "webhookId": "agencydesk-post-lead-lifecycle-webhook"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Schedule - Daily Morning Stale Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\n\n// n8n Cloud compatible config: $vars is permitted (OS env vars are blocked on n8n Cloud)\nconst varsObj = (typeof $vars !== 'undefined' && $vars) ? $vars : {};\nconst expectedSecret = varsObj.AUTOMATION_SECRET ? String(varsObj.AUTOMATION_SECRET) : '';\n\n// Fail-closed webhook signature gate BEFORE merging with Schedule branch\nconst headers = input.headers || {};\nconst authHeader = headers['authorization'] || headers['Authorization'] || '';\nconst signature = headers['x-agencydesk-signature'] || headers['X-AgencyDesk-Signature'] || (authHeader ? String(authHeader).replace(/^Bearer\\s+/i, '') : '');\nif (!expectedSecret || signature !== expectedSecret) {\n  throw new Error('Unauthorized lifecycle webhook request.');\n}\n\nconst payload = (input.body && typeof input.body === 'object') ? input.body : input;\nreturn [{\n  json: {\n    ...payload,\n    triggered_by: 'webhook'\n  }\n}];"
+      },
+      "id": "36",
+      "name": "Verify Lifecycle Webhook Signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "sched-event-type",
+              "name": "event_type",
+              "value": "stale_lead_check",
+              "type": "string"
+            },
+            {
+              "id": "sched-triggered-by",
+              "name": "triggered_by",
+              "value": "schedule",
+              "type": "string"
+            },
+            {
+              "id": "sched-checked-at",
+              "name": "checked_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "Tag Schedule Trigger",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json || {};\n\n// n8n Cloud compatible config: $vars is permitted (OS env vars are blocked on n8n Cloud)\nconst varsObj = (typeof $vars !== 'undefined' && $vars) ? $vars : {};\nconst isSchedule = item.triggered_by === 'schedule';\n\nconst eventType = String(item.event_type || item.event || (isSchedule ? 'stale_lead_check' : 'lead_stage_changed')).toLowerCase().trim();\nconst rawStage = String(item.stage || item.status || '').toLowerCase().trim().replace(/\\s+/g, '_');\nconst isCalcomBooking = eventType === 'calcom_booking_created' || eventType === 'booking_created';\n\nlet routeBranch = 'other_stage';\nif (eventType === 'stale_lead_check' || isSchedule) {\n  routeBranch = 'stale_lead_check';\n} else if (eventType === 'proposal_accepted' || rawStage === 'won') {\n  routeBranch = 'proposal_accepted';\n} else if (eventType === 'proposal_published' || rawStage === 'proposal_sent') {\n  routeBranch = 'proposal_published';\n} else if (isCalcomBooking || rawStage === 'contacted' || rawStage === 'qualified') {\n  routeBranch = 'contacted_qualified';\n}\n\nconst stageToSheetLabel = {\n  new: 'New Inquiry',\n  contacted: 'Contacted',\n  qualified: 'Qualified',\n  proposal_sent: 'Proposal Sent',\n  won: 'WON',\n  lost: 'Lost'\n};\nconst effectiveStage = routeBranch === 'proposal_accepted' ? 'won' : (routeBranch === 'proposal_published' ? 'proposal_sent' : (isCalcomBooking ? 'contacted' : (rawStage || 'new')));\nconst sheetStatusLabel = stageToSheetLabel[effectiveStage] || 'Open';\n\nconst appUrl = String(varsObj.AGENCYDESK_APP_URL || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '');\nconst leadId = item.lead_id || null;\nconst crmUrl = item.crm_url || (leadId ? `${appUrl}/crm/leads?lead=${leadId}` : `${appUrl}/crm/leads`);\nconst contactName = String(item.contact_name || 'Prospect').trim();\nconst company = String(item.company || item.company_name || 'Client Team').trim();\nconst service = String(item.service || 'Agency Services').trim();\nconst email = String(item.email || '').toLowerCase().trim();\nconst budget = Number(item.budget) || (Number(item.budget_cents) / 100) || 0;\nconst proposalTitle = String(item.proposal_title || `${company} — ${service} Proposal`).trim();\nconst bookingTime = item.booking_time || item.start_time || item.startTime || null;\nconst meetingUrl = item.meeting_url || item.video_url || item.meetingUrl || null;\nconst ownerWhatsApp = varsObj.OWNER_WHATSAPP_NUMBER || '+639913780170';\nconst ownerEmail = varsObj.OWNER_EMAIL || 'kinggucci195@gmail.com';\nconst staleDays = Number(varsObj.STALE_LEAD_DAYS || 3) || 3;\nconst processedAt = new Date().toISOString();\n\nlet sheetNotes = `Stage updated to ${sheetStatusLabel} at ${processedAt}`;\nlet stageWhatsappMessage = `📌 *LEAD STAGE UPDATED: ${sheetStatusLabel.toUpperCase()}*\\n👤 *Contact:* ${contactName}\\n🏢 *Company:* ${company}\\n📝 *Draft Status:* Follow-up draft queued for staff approval (never auto-sent).\\n⚡ *Open Lead:* ${crmUrl}`;\n\nlet draftSubject = '';\nlet draftBody = '';\nif (isCalcomBooking) {\n  sheetNotes = `Discovery call booked via Cal.com${bookingTime ? ' for ' + bookingTime : ''}${meetingUrl ? ' (' + meetingUrl + ')' : ''}`;\n  stageWhatsappMessage = `📅 *DISCOVERY CALL BOOKED (CAL.COM)*\\n👤 *Contact:* ${contactName}\\n🏢 *Company:* ${company}\\n🕒 *Time:* ${bookingTime || 'See Cal.com invite'}${meetingUrl ? '\\n🔗 *Meeting:* ' + meetingUrl : ''}\\n📝 *Prep Draft:* Created in kinggucci195@gmail.com (review before sending).\\n⚡ *Open Lead:* ${crmUrl}`;\n  draftSubject = `Discovery Call Prep: ${company} — ${service}`;\n  draftBody = `Hi ${contactName},\\n\\nLooking forward to our discovery call${bookingTime ? ` scheduled for ${bookingTime}` : ''}${meetingUrl ? ` (${meetingUrl})` : ''}.\\n\\nTo make our session super productive for ${company}, feel free to reply with any current workflows, links, or priorities you want to review first.\\n\\nBest,\\nJustin\\nAgencyDesk`;\n} else if (routeBranch === 'contacted_qualified') {\n  draftSubject = `Next steps for ${company} — ${service}`;\n  draftBody = `Hi ${contactName},\\n\\nThanks for connecting regarding ${service} for ${company}. Based on our initial review, I'd love to confirm your target timeline and key deliverables so we can prepare a tailored scope.\\n\\nWould a quick 20-minute discovery call work this week?\\n\\nBest,\\nJustin\\nAgencyDesk`;\n} else if (routeBranch === 'proposal_published') {\n  draftSubject = `Following up on your proposal: ${proposalTitle}`;\n  draftBody = `Hi ${contactName},\\n\\nChecking in on the ${proposalTitle} scope we shared for ${company}. Let me know if you'd like any adjustments to milestones, timeline, or payment terms before kicking off.\\n\\nBest,\\nJustin\\nAgencyDesk`;\n} else if (routeBranch === 'proposal_accepted') {\n  draftSubject = `Welcome to AgencyDesk — ${company} Kickoff Plan`;\n  draftBody = `Hi ${contactName},\\n\\nThank you for approving ${proposalTitle}! We're excited to kick off ${service} with ${company}.\\n\\nYour client portal is live here: ${appUrl}/portal\\n\\nNext steps:\\n1. Confirm kickoff call time\\n2. Share brand assets and system access\\n3. Review Milestone 1 schedule\\n\\nBest,\\nJustin\\nAgencyDesk`;\n}\n\nreturn [{\n  json: {\n    triggered_by: isSchedule ? 'schedule' : 'webhook',\n    event_type: eventType,\n    is_calcom_booking: isCalcomBooking,\n    route_branch: routeBranch,\n    stage: effectiveStage,\n    sheet_status_label: sheetStatusLabel,\n    sheet_notes: sheetNotes,\n    stage_whatsapp_message: stageWhatsappMessage,\n    lead_id: leadId,\n    contact_name: contactName,\n    email,\n    whatsapp: item.whatsapp || item.phone || null,\n    company,\n    service,\n    budget,\n    booking_time: bookingTime,\n    meeting_url: meetingUrl,\n    proposal_id: item.proposal_id || null,\n    proposal_title: proposalTitle,\n    project_id: item.project_id || null,\n    crm_url: crmUrl,\n    owner_whatsapp: ownerWhatsApp,\n    owner_email: ownerEmail,\n    stale_days: staleDays,\n    draft_subject: draftSubject,\n    draft_body: draftBody,\n    followup_due_72h: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),\n    processed_at: processedAt\n  }\n}];"
+      },
+      "id": "4",
+      "name": "Normalize Lifecycle Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-contacted-qualified",
+                    "leftValue": "={{ $json.route_branch }}",
+                    "rightValue": "contacted_qualified",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Contacted or Qualified"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-proposal-published",
+                    "leftValue": "={{ $json.route_branch }}",
+                    "rightValue": "proposal_published",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Proposal Published or Sent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-proposal-accepted",
+                    "leftValue": "={{ $json.route_branch }}",
+                    "rightValue": "proposal_accepted",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Proposal Accepted or Won"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-stale-check",
+                    "leftValue": "={{ $json.route_branch }}",
+                    "rightValue": "stale_lead_check",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Stale Lead Check"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Other Stage"
+        }
+      },
+      "id": "5",
+      "name": "Route Lifecycle Event",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        860,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ (typeof $vars !== 'undefined' && $vars?.GOOGLE_SHEETS_SPREADSHEET_ID) || 'AgencyDesk_Leads_Master' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads_Master",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Normalize Lifecycle Event').first().json.email }}",
+            "Status": "={{ $('Normalize Lifecycle Event').first().json.sheet_status_label }}",
+            "Notes": "={{ $('Normalize Lifecycle Event').first().json.sheet_notes }}",
+            "Website CRM Link": "={{ $('Normalize Lifecycle Event').first().json.crm_url }}",
+            "Last Synced By": "agencydesk_crm"
+          },
+          "matchingColumns": [
+            "Email"
+          ]
+        },
+        "options": {}
+      },
+      "id": "6",
+      "name": "Sheets - Update Stage (Contacted/Qualified)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1140,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1-sheet-warn",
+              "name": "sheet_warning",
+              "value": "Google Sheets update skipped due to error; proceeding with owner alert.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7",
+      "name": "Mark Branch 1 Sheet Warning",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.WHATSAPP_API_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/crm/automations/whatsapp-dispatch') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.owner_whatsapp) }},\n  \"lead_phone\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.whatsapp) }},\n  \"lead_id\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.lead_id) }},\n  \"message\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.stage_whatsapp_message) }},\n  \"timestamp\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.processed_at) }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "8",
+      "name": "WhatsApp - Notify Owner (Stage Update)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.OUTBOX_DRAFT_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/integrations/n8n/leads/upsert') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) ? 'Bearer ' + $vars.AUTOMATION_SECRET : '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": {{ $('Normalize Lifecycle Event').first().json.lead_id ? JSON.stringify($('Normalize Lifecycle Event').first().json.lead_id) : null }},\n  \"contact_name\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.contact_name) }},\n  \"email\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.email) }},\n  \"company\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.company) }},\n  \"service\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.service) }},\n  \"budget\": {{ $('Normalize Lifecycle Event').first().json.budget }},\n  \"status\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.stage) }},\n  \"notes\": {{ JSON.stringify('[APPROVAL_REQUIRED_DRAFT] ' + $('Normalize Lifecycle Event').first().json.draft_subject + ' — ' + $('Normalize Lifecycle Event').first().json.draft_body) }},\n  \"last_synced_by\": \"n8n_lifecycle_outbox\"\n}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "9",
+      "name": "Outbox - Prepare Follow-Up Draft",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $('Normalize Lifecycle Event').first().json.draft_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Normalize Lifecycle Event').first().json.draft_body }}",
+        "options": {
+          "sendTo": "={{ $('Normalize Lifecycle Event').first().json.email }}"
+        }
+      },
+      "id": "10",
+      "name": "Gmail - Create Follow-Up Draft (kinggucci195)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2000,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ (typeof $vars !== 'undefined' && $vars?.GOOGLE_SHEETS_SPREADSHEET_ID) || 'AgencyDesk_Leads_Master' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads_Master",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Normalize Lifecycle Event').first().json.email }}",
+            "Status": "Proposal Sent",
+            "Notes": "={{ 'Proposal published/sent; 72h follow-up reminder scheduled for ' + $('Normalize Lifecycle Event').first().json.followup_due_72h }}",
+            "Website CRM Link": "={{ $('Normalize Lifecycle Event').first().json.crm_url }}",
+            "Last Synced By": "agencydesk_crm"
+          },
+          "matchingColumns": [
+            "Email"
+          ]
+        },
+        "options": {}
+      },
+      "id": "11",
+      "name": "Sheets - Update Stage (Proposal Sent)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1140,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b2-sheet-warn",
+              "name": "sheet_warning",
+              "value": "Google Sheets update skipped due to error; proceeding with proposal 72h flow.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "12",
+      "name": "Mark Branch 2 Sheet Warning",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.WHATSAPP_API_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/crm/automations/whatsapp-dispatch') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.owner_whatsapp) }},\n  \"lead_phone\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.whatsapp) }},\n  \"lead_id\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.lead_id) }},\n  \"message\": {{ JSON.stringify('📄 *PROPOSAL SENT / PUBLISHED*\\n👤 *Contact:* ' + $('Normalize Lifecycle Event').first().json.contact_name + '\\n🏢 *Company:* ' + $('Normalize Lifecycle Event').first().json.company + '\\n📑 *Proposal:* ' + $('Normalize Lifecycle Event').first().json.proposal_title + '\\n⏰ *72h Follow-Up:* Draft created in kinggucci195@gmail.com; reminder armed for ' + $('Normalize Lifecycle Event').first().json.followup_due_72h + '\\n⚡ *Open Lead:* ' + $('Normalize Lifecycle Event').first().json.crm_url) }},\n  \"timestamp\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.processed_at) }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "13",
+      "name": "WhatsApp - Notify Owner (Proposal Sent)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $('Normalize Lifecycle Event').first().json.draft_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Normalize Lifecycle Event').first().json.draft_body }}",
+        "options": {
+          "sendTo": "={{ $('Normalize Lifecycle Event').first().json.email }}"
+        }
+      },
+      "id": "14",
+      "name": "Gmail - Create 72h Follow-Up Draft (kinggucci195)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1760,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"branch\": \"proposal_published\",\n  \"status\": \"proposal_followup_armed\",\n  \"followup_due_at\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.followup_due_72h) }},\n  \"draft_created\": true,\n  \"approval_required\": true\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "15",
+      "name": "Respond Proposal Branch (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 72,
+        "unit": "hours"
+      },
+      "id": "16",
+      "name": "Wait 72 Hours for Proposal Check",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2220,
+        360
+      ],
+      "webhookId": "agencydesk-proposal-72h-wait"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ (typeof $vars !== 'undefined' && $vars?.GOOGLE_SHEETS_SPREADSHEET_ID) || 'AgencyDesk_Leads_Master' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads_Master",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Email",
+              "lookupValue": "={{ $('Normalize Lifecycle Event').first().json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "17",
+      "name": "Sheets - Re-check Lead After 72h",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2440,
+        360
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "still-proposal-sent",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "Proposal Sent",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "18",
+      "name": "Still Proposal Sent After 72h?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.WHATSAPP_API_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/crm/automations/whatsapp-dispatch') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.owner_whatsapp) }},\n  \"lead_phone\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.whatsapp) }},\n  \"lead_id\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.lead_id) }},\n  \"message\": {{ JSON.stringify('⏰ *72H PROPOSAL FOLLOW-UP REMINDER*\\n👤 *Contact:* ' + $('Normalize Lifecycle Event').first().json.contact_name + '\\n🏢 *Company:* ' + $('Normalize Lifecycle Event').first().json.company + '\\n📑 *Proposal:* ' + $('Normalize Lifecycle Event').first().json.proposal_title + '\\n✉️ *Action:* Review & send the prepared Gmail draft in kinggucci195@gmail.com.\\n⚡ *Open Lead:* ' + $('Normalize Lifecycle Event').first().json.crm_url) }},\n  \"timestamp\": {{ JSON.stringify($now.toISO()) }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "19",
+      "name": "WhatsApp - 72h Proposal Follow-Up Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        340
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ (typeof $vars !== 'undefined' && $vars?.GOOGLE_SHEETS_SPREADSHEET_ID) || 'AgencyDesk_Leads_Master' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads_Master",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Normalize Lifecycle Event').first().json.email }}",
+            "Status": "WON",
+            "Notes": "={{ 'Proposal accepted / Deal WON at ' + $('Normalize Lifecycle Event').first().json.processed_at + '. Kickoff draft queued.' }}",
+            "Website CRM Link": "={{ $('Normalize Lifecycle Event').first().json.crm_url }}",
+            "Last Synced By": "agencydesk_crm"
+          },
+          "matchingColumns": [
+            "Email"
+          ]
+        },
+        "options": {}
+      },
+      "id": "20",
+      "name": "Sheets - Update Stage (WON)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1140,
+        620
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b3-sheet-warn",
+              "name": "sheet_warning",
+              "value": "Google Sheets WON update skipped due to error; proceeding with kickoff alert.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "21",
+      "name": "Mark Branch 3 Sheet Warning",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.WHATSAPP_API_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/crm/automations/whatsapp-dispatch') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.owner_whatsapp) }},\n  \"lead_phone\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.whatsapp) }},\n  \"lead_id\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.lead_id) }},\n  \"message\": {{ JSON.stringify('🎉 *DEAL WON — PROJECT KICKOFF ALERT*\\n👤 *Client:* ' + $('Normalize Lifecycle Event').first().json.contact_name + '\\n🏢 *Company:* ' + $('Normalize Lifecycle Event').first().json.company + '\\n💰 *Value:* $' + Number($('Normalize Lifecycle Event').first().json.budget || 0).toLocaleString() + '\\n📑 *Proposal:* ' + $('Normalize Lifecycle Event').first().json.proposal_title + '\\n✉️ *Kickoff Draft:* Welcome email draft created in kinggucci195@gmail.com for approval.\\n⚡ *Open Lead:* ' + $('Normalize Lifecycle Event').first().json.crm_url) }},\n  \"timestamp\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.processed_at) }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "22",
+      "name": "WhatsApp - Notify Owner (Deal WON Kickoff)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        620
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "operation": "create",
+        "subject": "={{ $('Normalize Lifecycle Event').first().json.draft_subject }}",
+        "emailType": "text",
+        "message": "={{ $('Normalize Lifecycle Event').first().json.draft_body }}",
+        "options": {
+          "sendTo": "={{ $('Normalize Lifecycle Event').first().json.email }}"
+        }
+      },
+      "id": "23",
+      "name": "Gmail - Create Project Kickoff Draft (kinggucci195)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1760,
+        620
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ (typeof $vars !== 'undefined' && $vars?.GOOGLE_SHEETS_SPREADSHEET_ID) || 'AgencyDesk_Leads_Master' }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads_Master",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "24",
+      "name": "Sheets - Read Open Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1140,
+        920
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Normalize Lifecycle Event').first().json;\nconst rows = $input.all().map(item => item.json || {});\nconst staleDays = Number(ctx.stale_days || 3);\nconst cutoffMs = Date.now() - staleDays * 24 * 60 * 60 * 1000;\n\nconst escapeHtml = (val) => String(val ?? '')\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;')\n  .replace(/'/g, '&#39;');\n\nconst sanitizeHttpUrl = (raw, fallback) => {\n  const str = String(raw || '').trim();\n  return /^https?:\\/\\//i.test(str) ? str : fallback;\n};\n\nconst safeBaseCrmUrl = sanitizeHttpUrl(ctx.crm_url, 'https://agencydesk-theta.vercel.app/crm/leads');\n\nconst closedStatuses = ['won', 'lost', 'closed', 'archived'];\nconst staleLeads = rows.filter(row => {\n  const email = String(row.Email || '').trim();\n  if (!email) return false;\n  const status = String(row.Status || 'new').toLowerCase().trim();\n  if (closedStatuses.includes(status)) return false;\n  const tsRaw = row.Timestamp || row['Updated At'] || '';\n  const tsMs = Date.parse(String(tsRaw));\n  if (Number.isNaN(tsMs)) return false;\n  return tsMs <= cutoffMs;\n}).map(row => {\n  const tsMs = Date.parse(String(row.Timestamp || row['Updated At'] || ''));\n  const ageDays = Math.max(staleDays, Math.floor((Date.now() - tsMs) / (24 * 60 * 60 * 1000)));\n  return {\n    contact_name: String(row['Contact Name'] || 'Unknown'),\n    company: String(row.Company || 'Unassigned'),\n    service: String(row.Service || 'Agency Services'),\n    email: String(row.Email || ''),\n    status: String(row.Status || 'Open'),\n    budget: Number(row.Budget || 0),\n    score: Number(row.Score || 0),\n    age_days: ageDays,\n    crm_link: sanitizeHttpUrl(row['Website CRM Link'], safeBaseCrmUrl)\n  };\n}).sort((a, b) => b.age_days - a.age_days || b.score - a.score);\n\nconst topList = staleLeads.slice(0, 8);\nconst whatsappLines = [\n  `☀️ *AGENCYDESK MORNING STALE LEADS DIGEST*`,\n  `━━━━━━━━━━━━━━━━━━━━━`,\n  `Found *${staleLeads.length}* open lead(s) untouched for ${staleDays}+ days:`,\n  ...topList.map((l, idx) => `${idx + 1}. *${l.contact_name}* (${l.company}) — ${l.status} · ${l.age_days}d old · $${l.budget.toLocaleString()}\\n   ${l.crm_link}`),\n  `━━━━━━━━━━━━━━━━━━━━━`,\n  `📊 Open Leads Sheet checked for ${ctx.owner_email}`\n].join('\\n');\n\nconst htmlRows = topList.map(l =>\n  `<li><strong>${escapeHtml(l.contact_name)}</strong> (${escapeHtml(l.company)} · ${escapeHtml(l.service)}) — <em>${escapeHtml(l.status)}</em> · ${escapeHtml(l.age_days)} days old · $${escapeHtml(l.budget.toLocaleString())} · <a href=\"${escapeHtml(l.crm_link)}\">Open in CRM</a></li>`\n).join('');\n\nconst emailHtml = `\n  <h2>AgencyDesk Morning Stale Leads Digest</h2>\n  <p>Found <strong>${escapeHtml(staleLeads.length)}</strong> open lead(s) with no update in the last ${escapeHtml(staleDays)}+ days:</p>\n  <ul>${htmlRows}</ul>\n  <p><a href=\"${escapeHtml(safeBaseCrmUrl)}\">Open AgencyDesk Leads Pipeline</a></p>\n`;\n\nreturn [{\n  json: {\n    stale_count: staleLeads.length,\n    stale_days: staleDays,\n    owner_whatsapp: ctx.owner_whatsapp,\n    owner_email: ctx.owner_email,\n    triggered_by: ctx.triggered_by,\n    whatsapp_message: whatsappLines,\n    email_subject: `AgencyDesk Morning Digest: ${staleLeads.length} stale open lead(s)`,\n    email_html: emailHtml,\n    checked_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "25",
+      "name": "Compile Stale Leads Morning Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "executeOnce": true,
+      "position": [
+        1380,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-stale-leads",
+              "leftValue": "={{ $json.stale_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "26",
+      "name": "Has Stale Open Leads?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ (typeof $vars !== 'undefined' && $vars?.WHATSAPP_API_ENDPOINT) || (((typeof $vars !== 'undefined' && $vars?.AGENCYDESK_APP_URL) || 'https://agencydesk-theta.vercel.app').replace(/\\/+$/, '') + '/api/crm/automations/whatsapp-dispatch') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-AgencyDesk-Signature",
+              "value": "={{ (typeof $vars !== 'undefined' && $vars?.AUTOMATION_SECRET) || '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"to\": {{ JSON.stringify($json.owner_whatsapp) }},\n  \"message\": {{ JSON.stringify($json.whatsapp_message) }},\n  \"timestamp\": {{ JSON.stringify($json.checked_at) }}\n}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "27",
+      "name": "WhatsApp - Send Morning Stale Digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        840
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Compile Stale Leads Morning Summary').first().json.owner_email }}",
+        "subject": "={{ $('Compile Stale Leads Morning Summary').first().json.email_subject }}",
+        "emailType": "html",
+        "message": "={{ $('Compile Stale Leads Morning Summary').first().json.email_html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "28",
+      "name": "Gmail - Send Morning Digest (kinggucci195)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2100,
+        840
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "is-webhook-trigger",
+              "leftValue": "={{ $('Normalize Lifecycle Event').first().json.triggered_by }}",
+              "rightValue": "webhook",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "29",
+      "name": "Triggered by Webhook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2340,
+        920
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"branch\": \"stale_lead_check\",\n  \"stale_count\": {{ $('Compile Stale Leads Morning Summary').first().json.stale_count }},\n  \"checked_at\": {{ JSON.stringify($('Compile Stale Leads Morning Summary').first().json.checked_at) }}\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "30",
+      "name": "Respond Stale Check (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2580,
+        860
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "31",
+      "name": "Scheduled Check Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2580,
+        1020
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"branch\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.route_branch) }},\n  \"event_type\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.event_type) }},\n  \"lead_id\": {{ JSON.stringify($('Normalize Lifecycle Event').first().json.lead_id) }},\n  \"approval_required\": true,\n  \"message\": \"Lifecycle automation completed; external drafts queued for staff approval.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "32",
+      "name": "Respond Lifecycle Success (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2260,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"ignored\": true,\n  \"branch\": \"other_stage\",\n  \"message\": \"Lifecycle event acknowledged; no external automation action configured for this stage.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "33",
+      "name": "Respond Lifecycle Ignored (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1140,
+        1140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"lifecycle_upstream_error\",\n  \"message\": \"A downstream lifecycle step failed. Check n8n execution logs for details.\"\n}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "34",
+      "name": "Respond Lifecycle Error (502)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2000,
+        780
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "35",
+      "name": "Log Async Branch Warning",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2880,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - CRM Lifecycle Event": {
+      "main": [
+        [
+          {
+            "node": "Verify Lifecycle Webhook Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Lifecycle Webhook Signature": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lifecycle Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule - Daily Morning Stale Check": {
+      "main": [
+        [
+          {
+            "node": "Tag Schedule Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tag Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lifecycle Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lifecycle Event": {
+      "main": [
+        [
+          {
+            "node": "Route Lifecycle Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Lifecycle Event": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Update Stage (Contacted/Qualified)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets - Update Stage (Proposal Sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets - Update Stage (WON)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sheets - Read Open Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Lifecycle Ignored (200)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Update Stage (Contacted/Qualified)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Owner (Stage Update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Branch 1 Sheet Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Branch 1 Sheet Warning": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Owner (Stage Update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Notify Owner (Stage Update)": {
+      "main": [
+        [
+          {
+            "node": "Outbox - Prepare Follow-Up Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Lifecycle Error (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outbox - Prepare Follow-Up Draft": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Create Follow-Up Draft (kinggucci195)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Create Follow-Up Draft (kinggucci195)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Create Follow-Up Draft (kinggucci195)": {
+      "main": [
+        [
+          {
+            "node": "Respond Lifecycle Success (200)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Lifecycle Success (200)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Update Stage (Proposal Sent)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Owner (Proposal Sent)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Branch 2 Sheet Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Branch 2 Sheet Warning": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Owner (Proposal Sent)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Notify Owner (Proposal Sent)": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Create 72h Follow-Up Draft (kinggucci195)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Lifecycle Error (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Create 72h Follow-Up Draft (kinggucci195)": {
+      "main": [
+        [
+          {
+            "node": "Respond Proposal Branch (200)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Proposal Branch (200)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond Proposal Branch (200)": {
+      "main": [
+        [
+          {
+            "node": "Wait 72 Hours for Proposal Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 72 Hours for Proposal Check": {
+      "main": [
+        [
+          {
+            "node": "Sheets - Re-check Lead After 72h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Re-check Lead After 72h": {
+      "main": [
+        [
+          {
+            "node": "Still Proposal Sent After 72h?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Async Branch Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still Proposal Sent After 72h?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - 72h Proposal Follow-Up Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Async Branch Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - 72h Proposal Follow-Up Reminder": {
+      "main": [
+        [
+          {
+            "node": "Log Async Branch Warning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Async Branch Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Update Stage (WON)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Owner (Deal WON Kickoff)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Branch 3 Sheet Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Branch 3 Sheet Warning": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Notify Owner (Deal WON Kickoff)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Notify Owner (Deal WON Kickoff)": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Create Project Kickoff Draft (kinggucci195)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Lifecycle Error (502)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Create Project Kickoff Draft (kinggucci195)": {
+      "main": [
+        [
+          {
+            "node": "Respond Lifecycle Success (200)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Lifecycle Success (200)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets - Read Open Leads": {
+      "main": [
+        [
+          {
+            "node": "Compile Stale Leads Morning Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Triggered by Webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Stale Leads Morning Summary": {
+      "main": [
+        [
+          {
+            "node": "Has Stale Open Leads?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Stale Open Leads?": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp - Send Morning Stale Digest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Triggered by Webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp - Send Morning Stale Digest": {
+      "main": [
+        [
+          {
+            "node": "Gmail - Send Morning Digest (kinggucci195)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail - Send Morning Digest (kinggucci195)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail - Send Morning Digest (kinggucci195)": {
+      "main": [
+        [
+          {
+            "node": "Triggered by Webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Triggered by Webhook?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Triggered by Webhook?": {
+      "main": [
+        [
+          {
+            "node": "Respond Stale Check (200)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Scheduled Check Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Manila"
+  }
+}
