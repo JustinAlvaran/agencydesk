@@ -9,7 +9,7 @@ import Snaps from "@/sections/about/snaps";
 
 
 export async function generateMetadata() {
-  return getSEOMetadata("citc-ph.com", "/about");
+  return getSEOMetadata("agencydesk-theta.vercel.app", "/about");
 }
 
 

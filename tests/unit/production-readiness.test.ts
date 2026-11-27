@@ -69,7 +69,10 @@ describe('Production Readiness, SEO, Security Headers & Cal.com Integration', ()
       expect(urls.some((u) => u.includes('/crm'))).toBe(false);
     });
 
-    it('robots disallows /crm/, /portal/, and /api/ while allowing /', () => {
+    it('robots disallows /crm/, /portal/, and /api/ while allowing /, and static shadowing files are removed', () => {
+      expect(fs.existsSync(path.resolve(process.cwd(), 'public/robots.txt'))).toBe(false);
+      expect(fs.existsSync(path.resolve(process.cwd(), 'public/sitemap.xml'))).toBe(false);
+
       const config = robots();
       const rules = Array.isArray(config.rules) ? config.rules : [config.rules];
       const wildcard = rules.find((r) => r.userAgent === '*');

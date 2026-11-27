@@ -37,15 +37,15 @@ export async function generateMetadata(
 
   if (!job) {
     return {
-      title: "Job Not Found | CITC",
+      title: "Job Not Found | AgencyDesk",
     };
   }
 
-  const title = `${job.title} | CITC Careers`;
+  const title = `${job.title} | AgencyDesk Careers`;
   
   const plainTextDescription = job.description
     ? job.description.replace(/<[^>]*>?/gm, '').substring(0, 160) + "..."
-    : "Join our team at CITC. Apply now!";
+    : "Join our team at AgencyDesk. Apply now!";
 
   const previousImages = (await parent).openGraph?.images || [];
 
@@ -62,7 +62,7 @@ export async function generateMetadata(
     : null;
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_STAGING_SITE_URL || "https://citc-ph.com"),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://agencydesk-theta.vercel.app"),
     title: title,
     description: plainTextDescription,
     openGraph: {

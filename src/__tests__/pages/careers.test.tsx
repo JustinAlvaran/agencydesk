@@ -138,7 +138,7 @@ describe('CareersPage', () => {
     render(<CareersPage />);
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
-    userEvent.click(screen.getByText('Search')); // searches "frontend"
+    await userEvent.click(screen.getByText('Search')); // searches "frontend"
 
     await waitFor(() => expect(screen.getByTestId('count')).toHaveTextContent('1'));
     expect(screen.getByTestId('job-1')).toBeInTheDocument();
@@ -153,10 +153,10 @@ describe('CareersPage', () => {
     render(<CareersPage />);
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
-    userEvent.click(screen.getByText('Search')); // single result
+    await userEvent.click(screen.getByText('Search')); // single result
     await waitFor(() => expect(screen.getByTestId('count')).toHaveTextContent('1'));
 
-    userEvent.click(screen.getByText('Clear')); // restore all
+    await userEvent.click(screen.getByText('Clear')); // restore all
     await waitFor(() => expect(screen.getByTestId('count')).toHaveTextContent('2'));
   });
 
