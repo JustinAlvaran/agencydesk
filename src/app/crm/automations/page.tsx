@@ -111,6 +111,23 @@ const freeCoreConnectors: ConnectorApp[] = [
     ],
   },
   {
+    id: "calcom",
+    name: "Cal.com (Free Tier)",
+    role: "kinggucci195@gmail.com · Discovery Scheduler",
+    description:
+      "Syncs booked 20-min discovery calls to Google Calendar and dispatches verified webhooks to /api/webhooks/calcom to advance leads and schedule follow-up tasks.",
+    logo: "/brand-logos/google.webp",
+    status: "connected",
+    lastSync: "Webhook /api/webhooks/calcom",
+    tier: "free_core",
+    configurableViaApi: false,
+    setupSteps: [
+      "Connect Google Calendar (kinggucci195@gmail.com) in Cal.com free tier.",
+      "Add a Cal.com webhook pointing to https://agencydesk-theta.vercel.app/api/webhooks/calcom with CALCOM_WEBHOOK_SECRET.",
+      "Optional: set NEXT_PUBLIC_CALCOM_BOOKING_URL to embed the live scheduler on /book.",
+    ],
+  },
+  {
     id: "twilio",
     name: "Twilio",
     role: "Optional Programmable SMS",
