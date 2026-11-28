@@ -85,6 +85,7 @@ export const POST = (request: Request) =>
     // 3. Check for existing lead by ID or email (strictly scoped to agency_id and unarchived)
     let existingId: string | null = null;
     let existingStatus: string | null = null;
+    let matchedById = false;
     if (payload.lead_id) {
       const { data } = await supabase
         .from('leads')
@@ -96,6 +97,7 @@ export const POST = (request: Request) =>
       if (data) {
         existingId = data.id;
         existingStatus = data.status;
+        matchedById = true;
       }
     }
 
@@ -147,11 +149,33 @@ export const POST = (request: Request) =>
         throw new HttpError(500, 'Database operation could not be completed.');
       }
 
+      // Website inquiries are inserted by /api/inquire before triggering n8n.
+      // Return action='created' on the first n8n_inquire_pipeline pass for that lead_id
+      // so Google Sheets append and WhatsApp dispatch run once, then suppress retries.
+      let responseAction: 'created' | 'updated' = 'updated';
+      if (matchedById && payload.last_synced_by === 'n8n_inquire_pipeline') {
+        try {
+          const { data: priorSync, error: priorSyncError } = await supabase
+            .from('activity_events')
+            .select('id')
+            .eq('agency_id', agencyId)
+            .eq('lead_id', existingId)
+            .in('event_type', ['lead_synced_to_sheets', 'whatsapp_alert_dispatched'])
+            .limit(1)
+            .maybeSingle();
+          if (!priorSyncError && !priorSync) {
+            responseAction = 'created';
+          }
+        } catch {
+          // If history lookup fails, default to 'updated' to avoid duplicate alerts
+        }
+      }
+
       // Log activity event
       try {
         await supabase.from('activity_events').insert({
           agency_id: agencyId,
-          event_type: 'lead_updated_from_sheets',
+          event_type: responseAction === 'created' ? 'lead_synced_to_sheets' : 'lead_updated_from_sheets',
           detail: {
             lead_id: existingId,
             contact_name: payload.contact_name,
@@ -169,7 +193,7 @@ export const POST = (request: Request) =>
 
       return json({
         success: true,
-        action: 'updated',
+        action: responseAction,
         lead_id: existingId,
         status: existingStatus === 'won' ? 'won' : payload.status,
         crm_url: `${appUrl}/crm/leads?lead=${existingId}`,
